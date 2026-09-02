@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'vocabfast.words.v2';
   const ACHIEVEMENTS_KEY = 'vocabfast.achievements.v1';
-  const TRANSLATION_CACHE_KEY = 'vocabfast.translation-cache.v2';
+  const TRANSLATION_CACHE_KEY = 'vocabfast.translation-cache.v3';
   const PROFILE_KEY = 'vocabfast.profile.v1';
   const GUEST_STATE_KEY = 'vocabfast.guest-state.v1';
   const CORE_COUNT = 4500;
@@ -68,6 +68,13 @@
     pdf: { fileName: '', status: '', words: [], selected: new Set(), search: '', loading: false, adding: false },
     grammarOpen: 'word-order'
   };
+
+  // Core and theme translations are loaded automatically in small batches.
+  // No user has to press a separate "Deutsch" button.
+  const automaticTranslationQueue = [];
+  const automaticTranslationQueued = new Set();
+  const automaticTranslationFailures = new Map();
+  let automaticTranslationRunning = false;
 
   function makeId() {
     if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
@@ -458,7 +465,7 @@
     const c = state.core;
     let words = [...c.words];
     const q = c.search.trim().toLowerCase();
-    if (q) words = words.filter(w => w.word.toLowerCase().includes(q));
+    if (q) words = words.filter(w => w.word.toLowerCase().includes(q) || String(getCachedTranslation(w.word, '', 'EN','DE') || FALLBACK_DICTIONARY[w.word.toLowerCase()] || '').toLowerCase().includes(q));
     if (c.cefr !== 'all') words = words.filter(w=>String(w.cefr).toUpperCase()===c.cefr);
     const order={A1:1,A2:2,B1:3,B2:4,C1:5};
     if(c.sort==='az') words.sort((a,b)=>a.word.localeCompare(b.word));
@@ -471,16 +478,23 @@
     const visible = words.slice(c.page*perPage,(c.page+1)*perPage);
     const known = new Set(state.words.map(w=>w.english.toLowerCase()));
     const levelCounts=['A1','A2','B1','B2','C1'].map(level=>[level,c.words.filter(w=>w.cefr===level).length]);
+    const translatedCount = c.words.reduce((n,item)=>n + Boolean(getCachedTranslation(item.word,'','EN','DE') || FALLBACK_DICTIONARY[item.word.toLowerCase()]) ,0);
+
+    // Visible words are always prioritized. The remaining 4,500 words continue
+    // loading automatically in the background and are cached in the browser.
+    setTimeout(()=>queueAutomaticTranslations(visible.map(x=>x.word), true),0);
+
     return shell(`<div class="page">
-      ${heading('KERNWORTSCHATZ',`${CORE_COUNT.toLocaleString('de-DE')} Wörter – exakt im Projekt enthalten`,'Ein lokaler, häufigkeitsorientierter Basiswortschatz für flüssigeres Englisch. Du kannst nach A1 bis C1 filtern und sortieren. Die Stufen sind VocabFast-Lernbänder zur Orientierung, keine offizielle Prüfungswortliste.')}
-      <section class="core-hero"><div><strong>${c.words.length.toLocaleString('de-DE')}</strong><span>lokal gespeicherte Wörter</span></div><p>Die Liste wird zusammen mit der Website geladen – kein externer Wortlisten-Download ist nötig. Fachwörter bleiben zusätzlich jederzeit über den freien Übersetzer möglich.</p></section>
+      ${heading('KERNWORTSCHATZ',`${CORE_COUNT.toLocaleString('de-DE')} Wörter – Englisch + Deutsch`,'Alle Kernwörter zeigen ihre deutsche Bedeutung automatisch. Du musst keinen Übersetzungsbutton mehr anklicken. Filtere nach A1 bis C1 oder sortiere nach Häufigkeit und Alphabet.')}
+      <section class="core-hero"><div><strong>${c.words.length.toLocaleString('de-DE')}</strong><span>lokal gespeicherte englische Wörter</span></div><p><b>${translatedCount.toLocaleString('de-DE')} / ${CORE_COUNT.toLocaleString('de-DE')}</b> deutsche Bedeutungen sind bereits im Cache. Fehlende Bedeutungen lädt VocabFast automatisch im Hintergrund nach.</p></section>
       <div class="level-counts">${levelCounts.map(([level,n])=>`<button data-core-level="${level}"><b>${level}</b><span>${n.toLocaleString('de-DE')}</span></button>`).join('')}</div>
-      <div class="toolbar core-toolbar three"><input id="core-search" placeholder="In 4.500 Wörtern suchen …" value="${escapeHtml(c.search)}"><select id="core-cefr"><option value="all">Alle Stufen</option>${['A1','A2','B1','B2','C1'].map(x=>`<option value="${x}" ${c.cefr===x?'selected':''}>${x}</option>`).join('')}</select><select id="core-sort"><option value="rank" ${c.sort==='rank'?'selected':''}>Häufigkeit</option><option value="az" ${c.sort==='az'?'selected':''}>A–Z</option><option value="cefr" ${c.sort==='cefr'?'selected':''}>A1 → C1</option><option value="cefr-desc" ${c.sort==='cefr-desc'?'selected':''}>C1 → A1</option></select></div>
+      <div class="toolbar core-toolbar three"><input id="core-search" placeholder="Englisch oder Deutsch suchen …" value="${escapeHtml(c.search)}"><select id="core-cefr"><option value="all">Alle Stufen</option>${['A1','A2','B1','B2','C1'].map(x=>`<option value="${x}" ${c.cefr===x?'selected':''}>${x}</option>`).join('')}</select><select id="core-sort"><option value="rank" ${c.sort==='rank'?'selected':''}>Häufigkeit</option><option value="az" ${c.sort==='az'?'selected':''}>A–Z</option><option value="cefr" ${c.sort==='cefr'?'selected':''}>A1 → C1</option><option value="cefr-desc" ${c.sort==='cefr-desc'?'selected':''}>C1 → A1</option></select></div>
       ${c.error ? `<div class="notice warning">${escapeHtml(c.error)}</div>` : ''}
       ${visible.length ? `<div class="core-list">${visible.map(item=>{
-        const cached=getCachedTranslation(item.word, undefined, 'EN','DE') || FALLBACK_DICTIONARY[item.word.toLowerCase()] || '';
+        const cached=getCachedTranslation(item.word, '', 'EN','DE') || FALLBACK_DICTIONARY[item.word.toLowerCase()] || '';
         const isKnown=known.has(item.word.toLowerCase());
-        return `<div class="core-row"><div class="rank">#${item.rank}</div><div class="core-main"><strong>${escapeHtml(item.word)}</strong><small>${cached?escapeHtml(cached):`${item.cefr} · Übersetzung bei Bedarf`}</small></div><span class="cefr">${escapeHtml(item.cefr)}</span><button class="ghost icon-btn" data-core-speak="${escapeHtml(item.word)}">🔊</button>${cached?'':`<button class="ghost" data-core-translate="${escapeHtml(item.word)}" ${c.translating===item.word?'disabled':''}>${c.translating===item.word?'…':'Deutsch'}</button>`}<button class="${isKnown?'ghost':'primary'}" data-core-add="${escapeHtml(item.word)}" ${isKnown||c.adding===item.word?'disabled':''}>${isKnown?'✓ Gespeichert':c.adding===item.word?'…':'+ Hinzufügen'}</button></div>`;
+        const meaning=cached?escapeHtml(cached):'<span class="translation-loading">Übersetzung wird automatisch geladen …</span>';
+        return `<div class="core-row"><div class="rank">#${item.rank}</div><div class="core-main"><strong>${escapeHtml(item.word)}</strong><small>${meaning}</small></div><span class="cefr">${escapeHtml(item.cefr)}</span><button class="ghost icon-btn" data-core-speak="${escapeHtml(item.word)}">🔊</button><button class="${isKnown?'ghost':'primary'}" data-core-add="${escapeHtml(item.word)}" ${isKnown||c.adding===item.word?'disabled':''}>${isKnown?'✓ Gespeichert':c.adding===item.word?'…':'+ Hinzufügen'}</button></div>`;
       }).join('')}</div><div class="pagination"><button class="secondary" data-core-page="${c.page-1}" ${c.page<=0?'disabled':''}>← Zurück</button><span>${words.length.toLocaleString('de-DE')} Treffer · Seite ${c.page+1} / ${pages}</span><button class="secondary" data-core-page="${c.page+1}" ${c.page>=pages-1?'disabled':''}>Weiter →</button></div>` : '<div class="empty">Keine Wörter gefunden.</div>'}
     </div>`);
   }
@@ -488,14 +502,18 @@
   function themesPage() {
     const current = THEMES.find(t=>t.id===state.themes.selected) || THEMES[0];
     const q = state.themes.search.toLowerCase().trim();
-    const list = current.words.filter(([en])=>!q || en.toLowerCase().includes(q) || (getCachedTranslation(en, undefined, 'EN','DE')||'').toLowerCase().includes(q));
+    const list = current.words.filter(([en])=>!q || en.toLowerCase().includes(q) || (getCachedTranslation(en, '', 'EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]||'').toLowerCase().includes(q));
     const known = new Set(state.words.map(w=>w.english.toLowerCase()));
+    const translatedCount=current.words.reduce((n,[en])=>n+Boolean(getCachedTranslation(en,'','EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]),0);
+
+    setTimeout(()=>queueAutomaticTranslations(current.words.map(([en])=>en), true),0);
+
     return shell(`<div class="page">
-      ${heading('THEMENWORTSCHATZ','Umfangreiche Fach- und Themenpakete',`${THEMES.reduce((n,t)=>n+t.words.length,0).toLocaleString('de-DE')} zusätzliche Begriffe neben dem 4.500er-Kernwortschatz. Die Pakete sind breit bis B2–C1 angelegt und können jederzeit durch deine eigenen Fachwörter ergänzt werden.`)}
+      ${heading('THEMENWORTSCHATZ','Umfangreiche Fach- und Themenpakete',`${THEMES.reduce((n,t)=>n+t.words.length,0).toLocaleString('de-DE')} zusätzliche Begriffe neben dem 4.500er-Kernwortschatz. Die deutsche Bedeutung erscheint automatisch – ohne zusätzlichen DE-Klick.`)}
       <div class="theme-tabs">${THEMES.map(t=>`<button data-theme="${t.id}" class="${current.id===t.id?'active':''}"><span>${t.icon}</span><b>${t.title}</b><small>${t.words.length} Begriffe</small></button>`).join('')}</div>
-      <section class="theme-head"><div><span class="theme-icon">${current.icon}</span><div><h2>${current.title}</h2><p>${current.description}</p><small class="field-help">${current.words.length} Begriffe · ${current.level || 'B2–C1'} orientiert</small></div></div></section>
-      <div class="toolbar" style="grid-template-columns:1fr"><input id="theme-search" placeholder="In ${current.words.length} Begriffen suchen …" value="${escapeHtml(state.themes.search)}"></div>
-      <div class="theme-word-grid">${list.map(([en])=>{const de=getCachedTranslation(en,undefined,'EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]||'';return `<div class="theme-word"><div><strong>${escapeHtml(en)}</strong><small>${de?escapeHtml(de):'Deutsche Bedeutung wird beim Hinzufügen frei übersetzt.'}</small></div><div class="theme-actions"><button class="ghost icon-btn" data-theme-speak="${escapeHtml(en)}">🔊</button>${de?'':`<button class="ghost" data-theme-translate="${escapeHtml(en)}" ${state.themes.adding===en?'disabled':''}>DE</button>`}<button class="${known.has(en.toLowerCase())?'ghost':'primary'}" data-theme-add="${escapeHtml(en)}" ${known.has(en.toLowerCase())||state.themes.adding===en?'disabled':''}>${known.has(en.toLowerCase())?'✓':'＋'}</button></div></div>`;}).join('')}</div>
+      <section class="theme-head"><div><span class="theme-icon">${current.icon}</span><div><h2>${current.title}</h2><p>${current.description}</p><small class="field-help">${current.words.length} Begriffe · ${current.level || 'B2–C1'} orientiert · ${translatedCount}/${current.words.length} übersetzt</small></div></div></section>
+      <div class="toolbar" style="grid-template-columns:1fr"><input id="theme-search" placeholder="Englisch oder Deutsch in ${current.words.length} Begriffen suchen …" value="${escapeHtml(state.themes.search)}"></div>
+      <div class="theme-word-grid">${list.map(([en])=>{const de=getCachedTranslation(en,'','EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]||'';return `<div class="theme-word"><div><strong>${escapeHtml(en)}</strong><small>${de?escapeHtml(de):'<span class="translation-loading">Übersetzung wird automatisch geladen …</span>'}</small></div><div class="theme-actions"><button class="ghost icon-btn" data-theme-speak="${escapeHtml(en)}">🔊</button><button class="${known.has(en.toLowerCase())?'ghost':'primary'}" data-theme-add="${escapeHtml(en)}" ${known.has(en.toLowerCase())||state.themes.adding===en?'disabled':''}>${known.has(en.toLowerCase())?'✓':'＋'}</button></div></div>`;}).join('')}</div>
     </div>`);
   }
 
@@ -649,14 +667,12 @@
     document.querySelectorAll('[data-core-level]').forEach(el=>el.addEventListener('click',()=>{state.core.cefr=el.dataset.coreLevel;state.core.page=0;render();}));
     document.querySelectorAll('[data-core-page]').forEach(el=>el.addEventListener('click',()=>{state.core.page=Math.max(0,Number(el.dataset.corePage)||0);render();window.scrollTo({top:0,behavior:'smooth'});}));
     document.querySelectorAll('[data-core-speak]').forEach(el=>el.addEventListener('click',()=>speak(el.dataset.coreSpeak)));
-    document.querySelectorAll('[data-core-translate]').forEach(el=>el.addEventListener('click',()=>translateCoreWord(el.dataset.coreTranslate)));
     document.querySelectorAll('[data-core-add]').forEach(el=>el.addEventListener('click',()=>addCoreWord(el.dataset.coreAdd)));
 
     document.querySelectorAll('[data-theme]').forEach(el=>el.addEventListener('click',()=>{state.themes.selected=el.dataset.theme;state.themes.search='';render();}));
     document.getElementById('theme-search')?.addEventListener('input',e=>{state.themes.search=e.target.value;render();});
     document.querySelectorAll('[data-theme-speak]').forEach(el=>el.addEventListener('click',()=>speak(el.dataset.themeSpeak)));
     document.querySelectorAll('[data-theme-add]').forEach(el=>el.addEventListener('click',()=>addThemeWord(el.dataset.themeAdd)));
-    document.querySelectorAll('[data-theme-translate]').forEach(el=>el.addEventListener('click',()=>translateThemeWord(el.dataset.themeTranslate)));
 
     document.getElementById('pdf-context')?.addEventListener('input',e=>{state.profile.translationContext=e.target.value;saveProfile();});
     document.getElementById('pdf-input')?.addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)processPdf(file);});
@@ -748,7 +764,10 @@
     try{
       const res=await fetch('/api/translate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:cleanText,source:'AUTO',target:'AUTO',context:contextText}),signal:controller.signal});
       const data=await res.json().catch(()=>({}));
-      if(!res.ok||!data.translation||!data.source||!data.target) throw new Error(data.error||'Autoübersetzung konnte nicht abgeschlossen werden.');
+      if(!res.ok||!data.translation||!data.source||!data.target) {
+        const detail = data.detail ? ` · ${String(data.detail).slice(0,260)}` : '';
+        throw new Error((data.error||'Autoübersetzung konnte nicht abgeschlossen werden.') + detail);
+      }
       const result={translation:data.translation,source:data.source,target:data.target};
       state.translationCache[cacheKey]=result;saveTranslationCache();return result;
     }catch(err){
@@ -797,18 +816,74 @@
     throw new Error(`Die freie Online-Übersetzung ${sourceLang} → ${targetLang} ist gerade nicht erreichbar. Das Wort muss nicht in VocabFast vorhanden sein – bitte prüfe, ob die Cloudflare Worker API unter /api/translate erreichbar ist.`);
   }
 
+  function queueAutomaticTranslations(words, priority = false) {
+    const now=Date.now();
+    const candidates=[...new Set((words||[]).map(x=>String(x||'').trim()).filter(Boolean))];
+    for(const word of candidates){
+      if(getCachedTranslation(word,'','EN','DE') || FALLBACK_DICTIONARY[word.toLowerCase()]) continue;
+      const key=translationCacheKey(word,'','EN','DE');
+      const failedAt=automaticTranslationFailures.get(key)||0;
+      if(failedAt && now-failedAt<60000) continue;
+      const existingIndex=automaticTranslationQueue.findIndex(x=>x.key===key);
+      if(existingIndex>=0){
+        if(priority){const [item]=automaticTranslationQueue.splice(existingIndex,1);automaticTranslationQueue.unshift(item);}
+        continue;
+      }
+      const item={key,word};
+      automaticTranslationQueued.add(key);
+      if(priority) automaticTranslationQueue.unshift(item); else automaticTranslationQueue.push(item);
+    }
+    if(!automaticTranslationRunning) setTimeout(processAutomaticTranslationQueue,0);
+  }
+
+  async function processAutomaticTranslationQueue(){
+    if(automaticTranslationRunning || !automaticTranslationQueue.length) return;
+    automaticTranslationRunning=true;
+    const batch=automaticTranslationQueue.splice(0,30);
+    batch.forEach(x=>automaticTranslationQueued.delete(x.key));
+    try{
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),30000);
+      const res=await fetch('/api/translate-batch',{
+        method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({texts:batch.map(x=>x.word),source:'EN',target:'DE'}),signal:controller.signal
+      });
+      clearTimeout(timer);
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok || !Array.isArray(data.results)) throw new Error(data.error||'Batch-Übersetzung fehlgeschlagen.');
+      let changed=false;
+      const byWord=new Map(data.results.map(x=>[String(x.text||'').toLowerCase(),x]));
+      for(const item of batch){
+        const result=byWord.get(item.word.toLowerCase());
+        if(result?.ok && result.translation){
+          state.translationCache[item.key]=String(result.translation).trim();
+          automaticTranslationFailures.delete(item.key);
+          changed=true;
+        }else{
+          automaticTranslationFailures.set(item.key,Date.now());
+        }
+      }
+      if(changed) saveTranslationCache();
+    }catch(err){
+      console.warn('Automatische Listenübersetzung fehlgeschlagen',err);
+      batch.forEach(item=>automaticTranslationFailures.set(item.key,Date.now()));
+    }
+    automaticTranslationRunning=false;
+    if(state.page==='core' || state.page==='themes') render();
+    if(automaticTranslationQueue.length) setTimeout(processAutomaticTranslationQueue,180);
+  }
+
   async function loadCoreWords() {
     state.core.loading=true;state.core.error='';render();
     try{
       const bundled=Array.isArray(window.VOCABFAST_CORE_WORDS)?window.VOCABFAST_CORE_WORDS:[];
       if(bundled.length!==CORE_COUNT) throw new Error(`Lokale Wortdatei enthält ${bundled.length} statt ${CORE_COUNT} Wörter.`);
       state.core.words=bundled.map(x=>({...x})); state.core.loaded=true;
+      // Load translations for the complete 4,500-word package progressively.
+      // Current/visible words are reprioritized by corePage().
+      queueAutomaticTranslations(state.core.words.map(x=>x.word), false);
     }catch(err){state.core.words=[];state.core.loaded=true;state.core.error=err.message||'Lokaler Kernwortschatz konnte nicht geladen werden.';}
     state.core.loading=false;render();
-  }
-
-  async function translateCoreWord(word) {
-    state.core.translating=word;render();try{await translateWord(word,undefined,'EN','DE');showToast(`„${word}“ wurde übersetzt.`);}catch(err){showToast(err.message||'Übersetzung nicht verfügbar.');}state.core.translating='';render();
   }
 
   async function addCoreWord(english) {
@@ -818,7 +893,6 @@
   }
 
   function currentTheme(){return THEMES.find(t=>t.id===state.themes.selected)||THEMES[0];}
-  async function translateThemeWord(english){state.themes.adding=english;render();try{await translateWord(english,undefined,'EN','DE');showToast(`„${english}“ wurde übersetzt.`);}catch(err){showToast(err.message||'Übersetzung nicht verfügbar.');}state.themes.adding='';render();}
   async function addThemeWord(english){if(hasWord(english))return;state.themes.adding=english;render();try{const german=await translateWord(english,undefined,'EN','DE');const w=createWord(english,german,`theme:${currentTheme().id}`,{exampleEn:''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}state.themes.adding='';render();}
 
   async function processPdf(file) {

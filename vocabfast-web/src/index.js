@@ -1,5 +1,5 @@
 /**
- * VocabFast Cloudflare Worker v9
+ * VocabFast Cloudflare Worker v11
  *
  * - Static website from ./public
  * - Workers AI translation with automatic EN/DE language detection
@@ -12,7 +12,7 @@ const TRANSLATION_MODEL = '@cf/meta/m2m100-1.2b';
 const CONTEXT_MODEL = '@cf/zai-org/glm-4.7-flash';
 const SESSION_COOKIE = 'vf_session';
 const SESSION_DAYS = 30;
-const PBKDF2_ITERATIONS = 210000;
+const PBKDF2_ITERATIONS = 100000;
 
 export default {
   async fetch(request, env) {
@@ -21,13 +21,21 @@ export default {
     if (url.pathname === '/api/health') {
       return json({
         ok: true,
-        service: 'vocabfast-worker-v9',
+        service: 'vocabfast-worker-v11',
         aiBinding: Boolean(env.AI),
         accountStorage: Boolean(env.USER_STORE),
         deepLConfigured: Boolean(env.DEEPL_API_KEY),
         translationModel: TRANSLATION_MODEL,
-        contextModel: CONTEXT_MODEL
+        contextModel: CONTEXT_MODEL,
+        batchTranslation: true,
+        passwordKdfIterations: PBKDF2_ITERATIONS
       });
+    }
+
+    if (url.pathname === '/api/translate-batch') {
+      if (request.method === 'OPTIONS') return optionsResponse();
+      if (request.method !== 'POST') return json({ error: 'Methode nicht erlaubt.' }, 405);
+      return handleTranslationBatch(request, env);
     }
 
     if (url.pathname === '/api/translate') {
@@ -90,6 +98,7 @@ export class UserStore {
       email,
       passwordHash,
       salt,
+      passwordIterations: PBKDF2_ITERATIONS,
       createdAt: new Date().toISOString()
     };
 
@@ -107,7 +116,7 @@ export class UserStore {
     const user = await this.ctx.storage.get(`user-email:${email}`);
     if (!user) return json({ error: 'E-Mail oder Passwort ist falsch.' }, 401);
 
-    const passwordHash = await hashPassword(password, user.salt);
+    const passwordHash = await hashPassword(password, user.salt, user.passwordIterations || PBKDF2_ITERATIONS);
     if (!safeStringEqual(passwordHash, user.passwordHash)) return json({ error: 'E-Mail oder Passwort ist falsch.' }, 401);
     return this.createSessionResponse(user, 200);
   }
@@ -192,46 +201,118 @@ async function handleTranslation(request, env) {
   const autoMode = !['EN', 'DE'].includes(requestedSource) || !['EN', 'DE'].includes(requestedTarget) || requestedSource === requestedTarget;
   const attempts = [];
 
-  // For the simple Add screen we let the multilingual LLM detect the language and translate
-  // in one operation. This also handles specialist terminology much better than a fixed word list.
-  if (env.AI && autoMode) {
+  if (autoMode) {
+    // 1) Best path for individual words and specialist terms: one multilingual model
+    // detects the language and translates in the same request.
+    if (env.AI) {
+      try {
+        const result = await autoDetectAndTranslateWithAI(env, text, subjectContext);
+        if (validAutoTranslation(result, text)) {
+          return json({
+            translation: result.translation,
+            source: result.source,
+            target: result.target,
+            detectedLanguage: result.source,
+            provider: 'cloudflare-ai-auto',
+            contextApplied: Boolean(subjectContext)
+          });
+        }
+      } catch (error) {
+        attempts.push(`AI-Auto: ${errorMessage(error)}`);
+      }
+
+      // 2) Robust fallback for single words: translate in both directions with the
+      // dedicated translation model. This resolves cases such as "brick" and "beton"
+      // even when the language classifier is temporarily unavailable.
+      try {
+        const result = await autoDetectWithBidirectionalAI(env, text);
+        if (validAutoTranslation(result, text)) {
+          return json({
+            translation: result.translation,
+            source: result.source,
+            target: result.target,
+            detectedLanguage: result.source,
+            provider: 'cloudflare-ai-bidirectional',
+            contextApplied: false
+          });
+        }
+      } catch (error) {
+        attempts.push(`AI-Bidirektional: ${errorMessage(error)}`);
+      }
+    }
+
+    // 3) Network fallback with automatic source detection.
     try {
-      const result = await autoDetectAndTranslateWithAI(env, text, subjectContext);
-      if (result?.translation && result?.source && result?.target) {
-        return json({
-          translation: result.translation,
-          source: result.source,
-          target: result.target,
-          detectedLanguage: result.source,
-          provider: 'cloudflare-ai-auto',
-          contextApplied: Boolean(subjectContext)
-        });
+      const result = await translateWithGoogleAuto(text);
+      if (validAutoTranslation(result, text)) {
+        return json({ ...result, detectedLanguage: result.source, provider: 'google-auto-fallback', contextApplied: false });
       }
     } catch (error) {
-      attempts.push(`Workers AI auto: ${errorMessage(error)}`);
+      attempts.push(`Google-Auto: ${errorMessage(error)}`);
     }
+
+    console.error('VocabFast auto translation failed:', attempts.join(' | '));
+    return json({
+      error: 'Die Autoübersetzung ist gerade nicht verfügbar.',
+      detail: attempts.join(' | ')
+    }, 502);
   }
 
-  const source = ['EN', 'DE'].includes(requestedSource) ? requestedSource : detectLanguageHeuristic(text);
-  const target = ['EN', 'DE'].includes(requestedTarget) && requestedTarget !== source ? requestedTarget : (source === 'DE' ? 'EN' : 'DE');
+  const source = requestedSource;
+  const target = requestedTarget;
 
-  // Prefer an instruction-following multilingual model for explicit translations too.
+  // Explicit list translations (EN -> DE) should use the dedicated translation model first.
+  const explicit = await translateExplicitWithFallbacks(env, text, source, target, subjectContext, attempts);
+  if (explicit) return json({ translation: explicit.translation, source, target, detectedLanguage: source, provider: explicit.provider, contextApplied: explicit.contextApplied });
+
+  console.error('VocabFast explicit translation failed:', attempts.join(' | '));
+  return json({ error: 'Die Übersetzung ist gerade nicht verfügbar.', detail: attempts.join(' | ') }, 502);
+}
+
+async function handleTranslationBatch(request, env) {
+  let body = {};
+  try { body = await request.json(); } catch (_) { return json({ error: 'Ungültige Anfrage.' }, 400); }
+  const texts = Array.isArray(body.texts) ? body.texts.map(x => String(x || '').trim()).filter(Boolean) : [];
+  const source = normalizeLanguage(body.source || 'EN');
+  const target = normalizeLanguage(body.target || 'DE');
+  const context = String(body.context || '').trim().slice(0, 500);
+
+  if (!texts.length) return json({ results: [] });
+  if (texts.length > 30) return json({ error: 'Maximal 30 Wörter pro Batch.' }, 400);
+  if (!['EN', 'DE'].includes(source) || !['EN', 'DE'].includes(target) || source === target) return json({ error: 'Ungültige Sprachrichtung.' }, 400);
+
+  const unique = [...new Set(texts)].slice(0, 30);
+  const results = await Promise.all(unique.map(async text => {
+    const attempts = [];
+    try {
+      const translated = await translateExplicitWithFallbacks(env, text, source, target, context, attempts);
+      if (translated?.translation) return { text, translation: translated.translation, ok: true, provider: translated.provider };
+    } catch (error) {
+      attempts.push(errorMessage(error));
+    }
+    return { text, translation: '', ok: false, error: attempts.join(' | ') || 'Übersetzung fehlgeschlagen.' };
+  }));
+
+  return json({ source, target, results });
+}
+
+async function translateExplicitWithFallbacks(env, text, source, target, subjectContext, attempts = []) {
   if (env.AI) {
     try {
-      const translation = await translateWithInstructionAI(env, text, source, target, subjectContext);
+      const translation = await translateWithWorkersAI(env, text, source, target);
       if (translation && normalizeForComparison(translation) !== normalizeForComparison(text)) {
-        return json({ translation, source, target, detectedLanguage: source, provider: 'cloudflare-ai', contextApplied: Boolean(subjectContext) });
+        return { translation, provider: 'cloudflare-ai-translation', contextApplied: false };
       }
-      if (translation) attempts.push('Workers AI: Ausgabe war identisch zur Eingabe');
+      if (translation) attempts.push('M2M100: Ausgabe war identisch zur Eingabe');
     } catch (error) {
-      attempts.push(`Workers AI: ${errorMessage(error)}`);
+      attempts.push(`M2M100: ${errorMessage(error)}`);
     }
   }
 
   if (env.DEEPL_API_KEY) {
     try {
       const translation = await translateWithDeepL(env, text, source, target, subjectContext);
-      if (translation) return json({ translation, source, target, detectedLanguage: source, provider: 'deepl', contextApplied: Boolean(subjectContext) });
+      if (translation) return { translation, provider: 'deepl', contextApplied: Boolean(subjectContext) };
     } catch (error) {
       attempts.push(`DeepL: ${errorMessage(error)}`);
     }
@@ -239,30 +320,35 @@ async function handleTranslation(request, env) {
 
   if (env.AI) {
     try {
-      const translation = await translateWithWorkersAI(env, text, source, target);
+      const translation = await translateWithInstructionAI(env, text, source, target, subjectContext);
       if (translation && normalizeForComparison(translation) !== normalizeForComparison(text)) {
-        return json({ translation, source, target, detectedLanguage: source, provider: 'cloudflare-ai-translation', contextApplied: false });
+        return { translation, provider: 'cloudflare-ai-context', contextApplied: Boolean(subjectContext) };
       }
+      if (translation) attempts.push('Kontext-AI: Ausgabe war identisch zur Eingabe');
     } catch (error) {
-      attempts.push(`Workers AI translation: ${errorMessage(error)}`);
+      attempts.push(`Kontext-AI: ${errorMessage(error)}`);
     }
   }
 
   try {
     const translation = await translateWithGoogleFallback(text, source, target);
-    if (translation) return json({ translation, source, target, detectedLanguage: source, provider: 'google-fallback', contextApplied: false });
+    if (translation && normalizeForComparison(translation) !== normalizeForComparison(text)) {
+      return { translation, provider: 'google-fallback', contextApplied: false };
+    }
   } catch (error) {
-    attempts.push(`Google fallback: ${errorMessage(error)}`);
+    attempts.push(`Google: ${errorMessage(error)}`);
   }
 
   try {
     const translation = await translateWithMyMemory(text, source, target);
-    if (translation) return json({ translation, source, target, detectedLanguage: source, provider: 'mymemory-fallback', contextApplied: false });
+    if (translation && normalizeForComparison(translation) !== normalizeForComparison(text)) {
+      return { translation, provider: 'mymemory-fallback', contextApplied: false };
+    }
   } catch (error) {
-    attempts.push(`MyMemory fallback: ${errorMessage(error)}`);
+    attempts.push(`MyMemory: ${errorMessage(error)}`);
   }
 
-  return json({ error: 'Die automatische Übersetzung konnte die Anfrage gerade nicht abschließen.', detail: attempts.join(' | ') }, 502);
+  return null;
 }
 
 async function autoDetectAndTranslateWithAI(env, text, subjectContext) {
@@ -271,36 +357,83 @@ async function autoDetectAndTranslateWithAI(env, text, subjectContext) {
     messages: [
       {
         role: 'system',
-        content: 'You are the translation engine for a German-English vocabulary trainer. Detect whether the user input is German or English, then translate it into the other language. This must work for ordinary vocabulary, technical terminology, professional jargon and short phrases. If a term is ambiguous, use the specialist context when supplied. Return ONLY valid compact JSON with exactly these keys: source, target, translation. source and target must each be EN or DE. translation must contain the best natural translation only, without explanations. Do not simply copy the input unless the correct translation genuinely has identical spelling. For example, English brick means German Ziegelstein, and German Luftfahrt means English aviation.'
+        content: 'You translate between German and English. Detect whether the input is German or English and translate it into the other language. Technical terms and professional jargon are allowed. Return exactly one line in this format: SOURCE|TARGET|TRANSLATION. SOURCE and TARGET must be EN or DE. Example: brick -> EN|DE|Ziegelstein. Example: Beton -> DE|EN|concrete. No explanation.'
       },
       { role: 'user', content: `Text: ${text}${contextLine}` }
     ],
     temperature: 0,
-    max_completion_tokens: 140,
-    reasoning_effort: 'low'
+    max_completion_tokens: 100
   });
   const raw = extractTextGeneration(response);
-  const parsed = parseTranslationJson(raw);
-  if (!parsed) throw new Error(`Ungültige Modellantwort: ${String(raw || '').slice(0, 120)}`);
+  const parsed = parseAutoTranslation(raw);
+  if (!parsed) throw new Error(`Ungültige Modellantwort: ${String(raw || '').slice(0, 140)}`);
   return parsed;
 }
 
-function parseTranslationJson(raw) {
-  let value = String(raw || '').trim();
-  value = value.replace(/^```(?:json)?\s*/i, '').replace(/```$/i, '').trim();
+function parseAutoTranslation(raw) {
+  let value = String(raw || '').trim().replace(/^```(?:text|json)?\s*/i, '').replace(/```$/i, '').trim();
+  // Preferred pipe format.
+  const pipe = value.match(/\b(EN|DE)\s*\|\s*(EN|DE)\s*\|\s*(.+)$/is);
+  if (pipe) {
+    const source = normalizeLanguage(pipe[1]);
+    const target = normalizeLanguage(pipe[2]);
+    const translation = cleanTranslation(pipe[3]);
+    if (source !== target && translation) return { source, target, translation };
+  }
+  // Backwards-compatible JSON parser in case the model chooses JSON anyway.
   const start = value.indexOf('{');
   const end = value.lastIndexOf('}');
-  if (start >= 0 && end > start) value = value.slice(start, end + 1);
-  try {
-    const obj = JSON.parse(value);
-    const source = normalizeLanguage(obj.source);
-    const target = normalizeLanguage(obj.target);
-    const translation = cleanTranslation(obj.translation);
-    if (!['EN', 'DE'].includes(source) || !['EN', 'DE'].includes(target) || source === target || !translation) return null;
-    return { source, target, translation };
-  } catch (_) {
-    return null;
+  if (start >= 0 && end > start) {
+    try {
+      const obj = JSON.parse(value.slice(start, end + 1));
+      const source = normalizeLanguage(obj.source);
+      const target = normalizeLanguage(obj.target);
+      const translation = cleanTranslation(obj.translation);
+      if (['EN', 'DE'].includes(source) && ['EN', 'DE'].includes(target) && source !== target && translation) return { source, target, translation };
+    } catch (_) {}
   }
+  return null;
+}
+
+function validAutoTranslation(result, original) {
+  return Boolean(result && ['EN', 'DE'].includes(result.source) && ['EN', 'DE'].includes(result.target) && result.source !== result.target && result.translation && normalizeForComparison(result.translation) !== normalizeForComparison(original));
+}
+
+async function autoDetectWithBidirectionalAI(env, text) {
+  const [enToDeResult, deToEnResult] = await Promise.allSettled([
+    translateWithWorkersAI(env, text, 'EN', 'DE'),
+    translateWithWorkersAI(env, text, 'DE', 'EN')
+  ]);
+  const enToDe = enToDeResult.status === 'fulfilled' ? cleanTranslation(enToDeResult.value) : '';
+  const deToEn = deToEnResult.status === 'fulfilled' ? cleanTranslation(deToEnResult.value) : '';
+  const original = normalizeForComparison(text);
+  const enChanged = Boolean(enToDe) && normalizeForComparison(enToDe) !== original;
+  const deChanged = Boolean(deToEn) && normalizeForComparison(deToEn) !== original;
+
+  if (enChanged && !deChanged) return { source: 'EN', target: 'DE', translation: enToDe };
+  if (deChanged && !enChanged) return { source: 'DE', target: 'EN', translation: deToEn };
+
+  const guessed = detectLanguageHeuristic(text);
+  if (guessed === 'DE' && deChanged) return { source: 'DE', target: 'EN', translation: deToEn };
+  if (guessed === 'EN' && enChanged) return { source: 'EN', target: 'DE', translation: enToDe };
+  if (deChanged) return { source: 'DE', target: 'EN', translation: deToEn };
+  if (enChanged) return { source: 'EN', target: 'DE', translation: enToDe };
+  throw new Error('Beide Übersetzungsrichtungen lieferten keine verwertbare Änderung.');
+}
+
+async function translateWithGoogleAuto(text) {
+  const firstUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=de&dt=t&q=${encodeURIComponent(text)}`;
+  const firstResponse = await fetch(firstUrl, { headers: { 'Accept': 'application/json' } });
+  if (!firstResponse.ok) throw new Error(`HTTP ${firstResponse.status}`);
+  const first = await firstResponse.json();
+  const detected = String(first?.[2] || '').toLowerCase();
+  const firstTranslation = cleanTranslation(Array.isArray(first?.[0]) ? first[0].map(x => Array.isArray(x) ? x[0] : '').filter(Boolean).join(' ') : '');
+  if (detected.startsWith('de')) {
+    const translation = await translateWithGoogleFallback(text, 'DE', 'EN');
+    return { source: 'DE', target: 'EN', translation };
+  }
+  if (firstTranslation) return { source: 'EN', target: 'DE', translation: firstTranslation };
+  throw new Error('Keine Autoübersetzung erhalten.');
 }
 
 async function readTranslationInput(request) {
@@ -333,8 +466,7 @@ async function translateWithInstructionAI(env, text, source, target, subjectCont
       { role: 'user', content: `Text: ${text}${contextLine}` }
     ],
     temperature: 0,
-    max_completion_tokens: 100,
-    reasoning_effort: 'low'
+    max_completion_tokens: 100
   });
   return cleanModelTranslation(extractTextGeneration(response));
 }
@@ -342,8 +474,8 @@ async function translateWithInstructionAI(env, text, source, target, subjectCont
 async function translateWithWorkersAI(env, text, source, target) {
   const result = await env.AI.run(TRANSLATION_MODEL, {
     text,
-    source_lang: source.toLowerCase(),
-    target_lang: target.toLowerCase()
+    source_lang: source === 'EN' ? 'english' : 'german',
+    target_lang: target === 'EN' ? 'english' : 'german'
   });
 
   const candidate = result?.translated_text || result?.translation || result?.translations?.[0]?.translated_text || result?.translations?.[0]?.translation || result?.translations?.[0]?.text || '';
@@ -516,9 +648,9 @@ function randomBase64Url(byteLength) {
   return bytesToBase64Url(bytes);
 }
 
-async function hashPassword(password, saltBase64Url) {
+async function hashPassword(password, saltBase64Url, iterations = PBKDF2_ITERATIONS) {
   const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: base64UrlToBytes(saltBase64Url), iterations: PBKDF2_ITERATIONS }, keyMaterial, 256);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: base64UrlToBytes(saltBase64Url), iterations: Math.min(100000, Math.max(1000, Number(iterations) || PBKDF2_ITERATIONS)) }, keyMaterial, 256);
   return bytesToBase64Url(new Uint8Array(bits));
 }
 

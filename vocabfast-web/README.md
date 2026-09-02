@@ -1,8 +1,8 @@
-# VocabFast – Worker v9
+# VocabFast – Worker v11
 
 Cloudflare-Worker-Version der VocabFast Web-App.
 
-## Neu in v9
+## Neu in v11
 
 - **Ein einziges Übersetzungsfeld** statt Richtungs-Auswahl.
 - Button heißt **Autoübersetzung**.
@@ -11,6 +11,10 @@ Cloudflare-Worker-Version der VocabFast Web-App.
 - Die Übersetzung ist **nicht** auf die 4.500 Kernwörter begrenzt und ist auch für Fachbegriffe gedacht.
 - Optionaler Fach-/Lernkontext bleibt erhalten.
 - **E-Mail + Passwort Registrierung und Login**.
+- Cloudflare-PBKDF2-Kompatibilität korrigiert: maximal 100.000 Iterationen, damit Registrierung im Worker funktioniert.
+- Neuer `/api/translate-batch`-Endpunkt für automatische Listenübersetzungen.
+- Die 4.500 Kernwörter laden ihre deutschen Bedeutungen automatisch im Hintergrund; kein „Deutsch“-Button mehr.
+- Themenpakete laden ihre deutschen Bedeutungen ebenfalls automatisch; kein „DE“-Button mehr.
 - Persönliche Wörter, Erfolge und Lernkontext werden nach Login **serverseitig bei Cloudflare** gespeichert.
 - Cloud-Sync läuft automatisch nach Änderungen.
 - Die 4.500 Kernwörter und Themenpakete bleiben statische Lerninhalte und werden nicht pro Benutzer gespeichert.
@@ -81,7 +85,7 @@ In der App links auf **Konto** gehen, registrieren und danach ein Wort hinzufüg
 
 ## Konten – aktueller Stand
 
-v9 unterstützt E-Mail + Passwort. Passwörter werden nicht im Klartext gespeichert, sondern mit PBKDF2 + individuellem Salt abgeleitet. Sitzungen laufen über ein HttpOnly/Secure-Cookie.
+v11 unterstützt E-Mail + Passwort. Passwörter werden nicht im Klartext gespeichert, sondern mit PBKDF2 + individuellem Salt abgeleitet. Sitzungen laufen über ein HttpOnly/Secure-Cookie.
 
 Noch **nicht** enthalten:
 
@@ -98,3 +102,10 @@ Ohne Login läuft VocabFast weiter im Gastmodus und hält Daten als lokalen Zwis
 ## DeepL
 
 DeepL bleibt optional. Für die Standard-Autoübersetzung wird Workers AI verwendet. Ein `DEEPL_API_KEY` kann später zusätzlich als Secret gesetzt werden.
+
+
+## Automatische Listenübersetzungen
+
+Beim ersten Öffnen des 4.500er-Kernwortschatzes lädt die App fehlende deutsche Bedeutungen automatisch in kleinen Batches über `/api/translate-batch`. Die sichtbare Seite wird priorisiert; anschließend wird der restliche Wortschatz im Hintergrund weiter übersetzt. Ergebnisse werden im Browser-Cache gespeichert. Themenpakete funktionieren genauso.
+
+Manuelles Anklicken von „Deutsch“ oder „DE“ ist nicht mehr nötig.
