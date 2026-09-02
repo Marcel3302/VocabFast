@@ -5,6 +5,7 @@
   const ACHIEVEMENTS_KEY = 'vocabfast.achievements.v1';
   const TRANSLATION_CACHE_KEY = 'vocabfast.translation-cache.v2';
   const PROFILE_KEY = 'vocabfast.profile.v1';
+  const GUEST_STATE_KEY = 'vocabfast.guest-state.v1';
   const CORE_COUNT = 4500;
   const app = document.getElementById('app');
 
@@ -60,7 +61,8 @@
     search: '',
     sort: 'new',
     trainer: { queue: [], index: 0, mode: 'write', result: null, answer: '', revealed: false, levelFilter: 'all', exampleLoading: false },
-    add: { english: '', german: '', status: '', translating: false, listening: false, direction: 'auto', lastEdited: 'english' },
+    add: { input: '', translation: '', source: '', target: '', status: '', translating: false, listening: false },
+    auth: { loading: true, user: null, status: '', mode: 'login', saving: false, lastSavedAt: '' },
     core: { words: [], loading: false, loaded: false, error: '', search: '', cefr: 'all', sort: 'rank', page: 0, adding: '', translating: '' },
     themes: { selected: 'aviation', search: '', adding: '' },
     pdf: { fileName: '', status: '', words: [], selected: new Set(), search: '', loading: false, adding: false },
@@ -74,6 +76,18 @@
 
   function loadJson(key, fallback) {
     try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (_) { return fallback; }
+  }
+
+  function saveGuestSnapshot() {
+    try { localStorage.setItem(GUEST_STATE_KEY, JSON.stringify({ words: state.words, achievements: state.achievements, profile: state.profile })); } catch (_) {}
+  }
+
+  function restoreGuestSnapshot() {
+    const guest=loadJson(GUEST_STATE_KEY,null);
+    state.words=Array.isArray(guest?.words)?guest.words.map(normalizeWordRecord).filter(w=>w.english&&w.german):starterWords();
+    state.achievements=Array.isArray(guest?.achievements)?guest.achievements:[];
+    state.profile=guest?.profile&&typeof guest.profile==='object'?guest.profile:{translationContext:''};
+    try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state.words));localStorage.setItem(ACHIEVEMENTS_KEY,JSON.stringify(state.achievements));localStorage.setItem(PROFILE_KEY,JSON.stringify(state.profile)); } catch(_){}
   }
 
   function createWord(english, german, source, extra) {
@@ -118,10 +132,70 @@
     } catch (_) { return starterWords(); }
   }
 
-  function saveWords() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.words)); } catch (_) { showToast('Speichern im Browser ist blockiert.'); } }
-  function saveAchievements() { try { localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(state.achievements)); } catch (_) {} }
+  function saveWords() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.words)); } catch (_) { showToast('Lokales Zwischenspeichern ist blockiert.'); } queueCloudSave(); }
+  function saveAchievements() { try { localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(state.achievements)); } catch (_) {} queueCloudSave(); }
   function saveTranslationCache() { try { localStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(state.translationCache)); } catch (_) {} }
-  function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(state.profile)); } catch (_) {} }
+  function saveProfile() { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(state.profile)); } catch (_) {} queueCloudSave(); }
+
+  function queueCloudSave() {
+    if (!state.auth.user) return;
+    clearTimeout(queueCloudSave.timer);
+    queueCloudSave.timer = setTimeout(syncCloudData, 650);
+  }
+
+  async function syncCloudData() {
+    if (!state.auth.user || state.auth.saving) return;
+    state.auth.saving = true;
+    try {
+      const res = await fetch('/api/user-data', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ words: state.words, achievements: state.achievements, profile: state.profile })
+      });
+      if (!res.ok) throw new Error('Cloud-Speicherung fehlgeschlagen.');
+      const data = await res.json().catch(()=>({}));
+      state.auth.lastSavedAt = data.updatedAt || new Date().toISOString();
+    } catch (err) {
+      console.warn(err);
+      state.auth.status = 'Cloud-Synchronisierung konnte gerade nicht gespeichert werden.';
+    } finally {
+      state.auth.saving = false;
+      if (state.page === 'account') render();
+    }
+  }
+
+  async function initAuth() {
+    try {
+      const meRes = await fetch('/api/auth/me', { credentials: 'same-origin' });
+      if (!meRes.ok) throw new Error('Kontoserver nicht erreichbar.');
+      const me = await meRes.json();
+      state.auth.user = me.user || null;
+      if (state.auth.user) await loadCloudData();
+    } catch (err) {
+      console.warn('Auth init', err);
+      state.auth.status = 'Kontofunktion konnte nicht geladen werden. Die App läuft vorübergehend im Gastmodus.';
+    }
+    state.auth.loading = false;
+    render();
+  }
+
+  async function loadCloudData() {
+    const res = await fetch('/api/user-data', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('Cloud-Daten konnten nicht geladen werden.');
+    const payload = await res.json();
+    if (payload.data) {
+      const data = payload.data;
+      if (Array.isArray(data.words)) state.words = data.words.map(normalizeWordRecord).filter(w=>w.english && w.german);
+      if (Array.isArray(data.achievements)) state.achievements = data.achievements;
+      if (data.profile && typeof data.profile === 'object') state.profile = data.profile;
+      state.auth.lastSavedAt = data.updatedAt || '';
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.words));
+      localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(state.achievements));
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(state.profile));
+    } else {
+      await syncCloudData();
+    }
+  }
 
   function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
   function normalize(value) { return String(value || '').toLowerCase().trim().replace(/[.,!?;:()"'’]/g, '').replace(/\s+/g,' '); }
@@ -157,13 +231,18 @@
   function shell(content) {
     const nav = [
       ['home','⌂','Übersicht'],['trainer','▶','Trainer'],['add','＋','Hinzufügen'],['core','4500','Kernwörter'],
-      ['themes','◈','Themen'],['pdf','PDF','PDF'],['grammar','Aa','Grammatik'],['words','▤','Meine Wörter'],['achievements','🏆','Erfolge']
+      ['themes','◈','Themen'],['pdf','PDF','PDF'],['grammar','Aa','Grammatik'],['words','▤','Meine Wörter'],['achievements','🏆','Erfolge'],['account','@','Konto']
     ];
+    const accountNote = state.auth.loading
+      ? '<b>Konto wird geprüft …</b>'
+      : state.auth.user
+        ? `<b>☁ Cloud-Sync aktiv</b><br>${escapeHtml(state.auth.user.email)}${state.auth.saving?'<br>speichert …':''}`
+        : '<b>Gastmodus</b><br>Für geräteübergreifendes Speichern anmelden.';
     return `<div class="shell">
       <aside class="sidebar">
         <button class="brand" data-page="home"><span class="brand-mark">V</span><span>VocabFast</span></button>
         <nav class="nav">${nav.map(([key,icon,label]) => `<button class="${state.page===key?'active':''}" data-page="${key}"><span class="nav-icon">${icon}</span><span>${label}</span></button>`).join('')}</nav>
-        <div class="side-note"><b>VocabFast Test</b><br>Daten lokal in diesem Browser</div>
+        <button class="side-note side-account" data-page="account">${accountNote}</button>
       </aside>
       <main class="main">${content}</main>
       <nav class="mobile-nav">${nav.map(([key,icon,label]) => `<button class="${state.page===key?'active':''}" data-page="${key}"><span>${icon}</span><small>${label}</small></button>`).join('')}</nav>
@@ -209,33 +288,72 @@
 
   function addPage() {
     const a = state.add;
+    const hasResult = Boolean(a.translation && a.source && a.target);
+    const sourceLabel = a.source === 'EN' ? 'Englisch' : a.source === 'DE' ? 'Deutsch' : '';
+    const targetLabel = a.target === 'EN' ? 'Englisch' : a.target === 'DE' ? 'Deutsch' : '';
+    const englishValue = a.source === 'EN' ? a.input : a.target === 'EN' ? a.translation : '';
     return shell(`<div class="page narrow">
-      ${heading('VOKABEL HINZUFÜGEN','Freier Übersetzer + neue Vokabel','Übersetze jedes beliebige Wort oder jeden Fachbegriff in beide Richtungen. Die 4.500 Kernwörter sind nur ein Lernpaket und begrenzen die Übersetzung nicht.')}
+      ${heading('VOKABEL HINZUFÜGEN','Autoübersetzung + neue Vokabel','Gib einfach ein deutsches oder englisches Wort ein. VocabFast erkennt die Sprache selbst und übersetzt automatisch in die andere Sprache – auch bei neuen Fachbegriffen.')}
       <div class="form-grid">
         <section class="panel">
           <form id="add-form">
-            <label for="translation-direction">Übersetzungsrichtung</label>
-            <select id="translation-direction"><option value="auto" ${a.direction==='auto'?'selected':''}>Automatisch nach zuletzt bearbeitetem Feld</option><option value="en-de" ${a.direction==='en-de'?'selected':''}>Englisch → Deutsch</option><option value="de-en" ${a.direction==='de-en'?'selected':''}>Deutsch → Englisch</option></select>
-            <label for="english">Englisch</label>
-            <div class="row"><input id="english" autocomplete="off" placeholder="z. B. hydraulic accumulator" value="${escapeHtml(a.english)}"><button class="secondary icon-btn" type="button" id="mic-en" title="Englisch sprechen">🎤</button><button class="secondary icon-btn" type="button" id="speak-add" title="Englische Aussprache">🔊</button></div>
-            <label for="german">Deutsch</label>
-            <div class="row"><input id="german" autocomplete="off" placeholder="z. B. Hydraulikspeicher" value="${escapeHtml(a.german)}"><button class="secondary icon-btn" type="button" id="mic-de" title="Deutsch sprechen">🎤</button></div>
+            <label for="translate-input">Deutsches oder englisches Wort / Fachbegriff</label>
+            <div class="row">
+              <input id="translate-input" autocomplete="off" placeholder="z. B. Luftfahrt, brick oder hydraulic accumulator" value="${escapeHtml(a.input)}">
+              <button class="secondary mic-lang-btn" type="button" id="mic-auto-de" title="Deutsch sprechen">🎤 DE</button>
+              <button class="secondary mic-lang-btn" type="button" id="mic-auto-en" title="Englisch sprechen">🎤 EN</button>
+            </div>
             <label for="translation-context">Dein Fachgebiet / Lernkontext <span class="optional">optional</span></label>
             <input id="translation-context" autocomplete="off" placeholder="z. B. Luftfahrt – Flugzeugwartung / Airbus A320" value="${escapeHtml(state.profile.translationContext || '')}">
-            <small class="field-help">Bei Fachbegriffen hilft der Kontext dem Übersetzungsdienst. Neue Begriffe müssen nicht in VocabFast hinterlegt sein.</small>
-            <div class="row form-actions"><button class="secondary" type="button" id="translate-btn" ${a.translating?'disabled':''}>${a.translating?'Übersetze …':'⇄ Frei übersetzen'}</button><button class="primary" type="submit">＋ Als Vokabel speichern</button></div>
+            <small class="field-help">Der Kontext hilft bei mehrdeutigen Fachbegriffen. Das eingegebene Wort muss nicht in VocabFast vorhanden sein.</small>
+            <div class="row form-actions"><button class="primary auto-translate-btn" type="button" id="translate-btn" ${a.translating?'disabled':''}>${a.translating?'Übersetze …':'Autoübersetzung'}</button></div>
           </form>
+          ${hasResult ? `<div class="translation-result">
+            <div class="translation-meta">${escapeHtml(sourceLabel)} → ${escapeHtml(targetLabel)} · automatisch erkannt</div>
+            <div class="translation-pair"><div><small>Eingabe</small><strong>${escapeHtml(a.input)}</strong></div><span>→</span><div><small>Übersetzung</small><strong>${escapeHtml(a.translation)}</strong></div></div>
+            <div class="row result-actions">${englishValue?`<button class="secondary" id="speak-add" type="button">🔊 Englisch anhören</button>`:''}<button class="primary" id="save-translated-word" type="button">＋ Als Vokabel speichern</button></div>
+          </div>` : ''}
           <div class="level-hint"><span class="dot red"></span> Neue Wörter starten in Stufe 3 mit Serie 0/5.</div>
           ${a.status ? `<div class="status">${escapeHtml(a.status)}</div>` : ''}
         </section>
-        <section class="panel"><div class="panel-head"><div><p class="eyebrow">LERNSYSTEM</p><h3>Wann ist ein Wort gemeistert?</h3></div></div>
-          <div class="rule-list">
-            <div><span class="dot red"></span><b>Stufe 3</b><small>5× richtig → Stufe 2. Fehler: Serie zurück auf 0.</small></div>
-            <div><span class="dot yellow"></span><b>Stufe 2</b><small>Deutsch ↔ Englisch. 5× richtig → Stufe 1. Ein Fehler → Stufe 3.</small></div>
-            <div><span class="dot green"></span><b>Stufe 1</b><small>Bleibt im normalen Trainer. Ein Fehler → Stufe 2. Erst 5× richtig in Stufe 1 → 🏆 Gemeistert und aus Standard-Training entfernt.</small></div>
+        <section class="panel"><div class="panel-head"><div><p class="eyebrow">SO FUNKTIONIERT ES</p><h3>Ein Feld statt Einstellungen</h3></div></div>
+          <div class="rule-list simple-rules">
+            <div><span class="step-number">1</span><b>Wort eingeben</b><small>Deutsch oder Englisch – du musst keine Richtung auswählen.</small></div>
+            <div><span class="step-number">2</span><b>Autoübersetzung</b><small>VocabFast erkennt die Sprache und übersetzt in die jeweils andere.</small></div>
+            <div><span class="step-number">3</span><b>Speichern & lernen</b><small>Die erkannte Wortpaarung landet mit einem Klick in deinem persönlichen Trainer.</small></div>
           </div>
         </section>
       </div>
+    </div>`);
+  }
+
+  function accountPage() {
+    const user = state.auth.user;
+    if (state.auth.loading) return shell(`<div class="page narrow">${heading('KONTO','Konto wird geladen …','Einen Moment bitte.')}</div>`);
+    if (user) {
+      return shell(`<div class="page narrow">
+        ${heading('KONTO','Deine Lerndaten sind in der Cloud','Deine Wörter, Erfolge und dein Lernkontext sind an dein Konto gebunden und können auf anderen Geräten geladen werden.')}
+        <section class="panel account-card">
+          <div class="account-avatar">${escapeHtml(user.email.charAt(0).toUpperCase())}</div>
+          <div><p class="eyebrow">ANGEMELDET ALS</p><h3>${escapeHtml(user.email)}</h3><p class="subtitle small-subtitle">☁ Cloud-Synchronisierung aktiv${state.auth.lastSavedAt ? ` · zuletzt gespeichert ${escapeHtml(formatDate(state.auth.lastSavedAt))}` : ''}</p></div>
+          <div class="account-actions"><button class="secondary" id="sync-now" type="button">↻ Jetzt synchronisieren</button><button class="danger" id="logout-btn" type="button">Abmelden</button></div>
+        </section>
+        ${state.auth.status ? `<div class="status account-status">${escapeHtml(state.auth.status)}</div>` : ''}
+      </div>`);
+    }
+    const isRegister = state.auth.mode === 'register';
+    return shell(`<div class="page narrow">
+      ${heading('KONTO',isRegister?'Kostenloses Konto erstellen':'Bei VocabFast anmelden','Mit einem Konto werden deine eigenen Wörter und Lernfortschritte serverseitig gespeichert und sind nicht mehr an einen einzelnen Browser gebunden.')}
+      <section class="panel auth-panel">
+        <div class="auth-switch"><button class="${!isRegister?'active':''}" data-auth-mode="login">Anmelden</button><button class="${isRegister?'active':''}" data-auth-mode="register">Registrieren</button></div>
+        <form id="auth-form">
+          <label for="auth-email">E-Mail-Adresse</label><input id="auth-email" type="email" autocomplete="email" required placeholder="name@beispiel.de">
+          <label for="auth-password">Passwort</label><input id="auth-password" type="password" autocomplete="${isRegister?'new-password':'current-password'}" minlength="8" required placeholder="Mindestens 8 Zeichen">
+          <button class="primary wide" type="submit">${isRegister?'Konto erstellen':'Anmelden'}</button>
+        </form>
+        <p class="field-help">Beim ersten Login werden deine aktuell im Browser vorhandenen Vokabeln automatisch in dein Konto übernommen, falls in der Cloud noch keine Daten vorhanden sind.</p>
+        ${state.auth.status ? `<div class="status account-status">${escapeHtml(state.auth.status)}</div>` : ''}
+      </section>
     </div>`);
   }
 
@@ -412,7 +530,7 @@
 
   function render() {
     try {
-      const pages = { home:homePage, trainer:trainerPage, add:addPage, words:wordsPage, achievements:achievementsPage, core:corePage, themes:themesPage, pdf:pdfPage, grammar:grammarPage };
+      const pages = { home:homePage, trainer:trainerPage, add:addPage, words:wordsPage, achievements:achievementsPage, core:corePage, themes:themesPage, pdf:pdfPage, grammar:grammarPage, account:accountPage };
       app.innerHTML = (pages[state.page] || homePage)();
       bind();
       if (state.page === 'trainer' && state.trainer.mode === 'write' && !state.trainer.result) setTimeout(() => document.getElementById('answer')?.focus(), 0);
@@ -435,41 +553,74 @@
 
     const addForm = document.getElementById('add-form');
     if (addForm) {
-      const english = document.getElementById('english'); const german = document.getElementById('german');
-      english.addEventListener('input', e => { state.add.english = e.target.value; state.add.lastEdited='english'; });
-      german.addEventListener('input', e => { state.add.german = e.target.value; state.add.lastEdited='german'; });
-      document.getElementById('translation-direction')?.addEventListener('change',e=>{state.add.direction=e.target.value;render();});
+      const input = document.getElementById('translate-input');
+      input?.addEventListener('input', e => {
+        state.add.input = e.target.value;
+        state.add.translation = '';
+        state.add.source = '';
+        state.add.target = '';
+        state.add.status = '';
+      });
       const translationContext = document.getElementById('translation-context');
       translationContext?.addEventListener('input', e => { state.profile.translationContext = e.target.value; saveProfile(); });
-      addForm.addEventListener('submit', e => {
-        e.preventDefault(); state.add.english=english.value.trim(); state.add.german=german.value.trim();
-        if(!state.add.english||!state.add.german){state.add.status='Bitte zuerst beide Seiten ausfüllen oder die freie Übersetzung verwenden.';render();return;}
-        if(hasWord(state.add.english)){state.add.status='Dieses englische Wort ist bereits gespeichert.';render();return;}
-        const word=createWord(state.add.english,state.add.german,'manual',{exampleEn:LOCAL_EXAMPLES[state.add.english.toLowerCase()]||''}); state.words.unshift(word); saveWords(); prefetchExample(word);
-        const added=word.english; const direction=state.add.direction; state.add={english:'',german:'',status:'',translating:false,listening:false,direction,lastEdited:'english'}; showToast(`„${added}“ wurde hinzugefügt.`);
-      });
+      addForm.addEventListener('submit',e=>{e.preventDefault();document.getElementById('translate-btn')?.click();});
       document.getElementById('translate-btn')?.addEventListener('click', async()=>{
-        state.add.english=english.value.trim(); state.add.german=german.value.trim();
-        let dir=state.add.direction;
-        if(dir==='auto'){
-          if(state.add.lastEdited==='german' && state.add.german) dir='de-en';
-          else if(state.add.lastEdited==='english' && state.add.english) dir='en-de';
-          else if(state.add.german && !state.add.english) dir='de-en'; else dir='en-de';
+        state.add.input = input?.value.trim() || '';
+        if (!state.add.input) { state.add.status='Bitte zuerst ein deutsches oder englisches Wort eingeben.'; render(); return; }
+        state.add.translating = true; state.add.status = ''; state.add.translation=''; state.add.source=''; state.add.target=''; render();
+        try {
+          const result = await autoTranslateWord(state.add.input, state.profile.translationContext || '');
+          state.add.translation = result.translation;
+          state.add.source = result.source;
+          state.add.target = result.target;
+          state.add.status = `Sprache erkannt: ${result.source==='EN'?'Englisch':'Deutsch'}. Übersetzung in ${result.target==='EN'?'Englisch':'Deutsch'} erfolgreich.`;
+        } catch (err) {
+          state.add.status = err.message || 'Autoübersetzung nicht verfügbar.';
         }
-        const sourceText=dir==='de-en'?state.add.german:state.add.english;
-        if(!sourceText){state.add.status=dir==='de-en'?'Bitte zuerst ein deutsches Wort eingeben.':'Bitte zuerst ein englisches Wort eingeben.';render();return;}
-        state.add.translating=true;state.add.status='';render();
-        try{
-          const translated=await translateWord(sourceText,undefined,dir==='de-en'?'DE':'EN',dir==='de-en'?'EN':'DE');
-          if(dir==='de-en') state.add.english=translated; else state.add.german=translated;
-          state.add.status=`Freie Online-Übersetzung ${dir==='de-en'?'Deutsch → Englisch':'Englisch → Deutsch'} eingefügt. Auch nicht hinterlegte Fachwörter werden online abgefragt.`;
-        }catch(err){state.add.status=err.message||'Übersetzung nicht verfügbar.';}
-        state.add.translating=false;render();
+        state.add.translating = false; render();
       });
-      document.getElementById('mic-en')?.addEventListener('click',()=>startSpeechRecognition('en-US','english'));
-      document.getElementById('mic-de')?.addEventListener('click',()=>startSpeechRecognition('de-DE','german'));
-      document.getElementById('speak-add')?.addEventListener('click',()=>{const value=document.getElementById('english')?.value.trim(); if(value)speak(value);});
+      document.getElementById('mic-auto-de')?.addEventListener('click',()=>startSpeechRecognition('de-DE','auto'));
+      document.getElementById('mic-auto-en')?.addEventListener('click',()=>startSpeechRecognition('en-US','auto'));
+      document.getElementById('speak-add')?.addEventListener('click',()=>{
+        const english = state.add.source==='EN' ? state.add.input : state.add.target==='EN' ? state.add.translation : '';
+        if (english) speak(english);
+      });
+      document.getElementById('save-translated-word')?.addEventListener('click',()=>{
+        if (!state.add.translation || !state.add.source || !state.add.target) return;
+        const english = state.add.source==='EN' ? state.add.input : state.add.translation;
+        const german = state.add.source==='DE' ? state.add.input : state.add.translation;
+        if (!english || !german) { state.add.status='Die erkannte Wortpaarung ist unvollständig.'; render(); return; }
+        if (hasWord(english)) { state.add.status='Dieses englische Wort ist bereits gespeichert.'; render(); return; }
+        const word=createWord(english,german,'manual',{exampleEn:LOCAL_EXAMPLES[english.toLowerCase()]||''});
+        state.words.unshift(word); saveWords(); prefetchExample(word);
+        const added=word.english;
+        state.add={input:'',translation:'',source:'',target:'',status:'',translating:false,listening:false};
+        showToast(`„${added}“ wurde hinzugefügt.`);
+      });
     }
+
+    document.querySelectorAll('[data-auth-mode]').forEach(el=>el.addEventListener('click',()=>{state.auth.mode=el.dataset.authMode;state.auth.status='';render();}));
+    document.getElementById('auth-form')?.addEventListener('submit', async e=>{
+      e.preventDefault();
+      const email=document.getElementById('auth-email')?.value.trim()||'';
+      const password=document.getElementById('auth-password')?.value||'';
+      state.auth.status=state.auth.mode==='register'?'Konto wird erstellt …':'Anmeldung läuft …';render();
+      try{
+        const endpoint=state.auth.mode==='register'?'/api/auth/register':'/api/auth/login';
+        const res=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password}),credentials:'same-origin'});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok) throw new Error(data.error||'Anmeldung fehlgeschlagen.');
+        saveGuestSnapshot();
+        state.auth.user=data.user||null;state.auth.status='';
+        await loadCloudData();
+        state.page='home';showToast(state.auth.mode==='register'?'Konto erstellt – Cloud-Sync ist aktiv.':'Angemeldet – Cloud-Daten wurden geladen.');
+      }catch(err){state.auth.status=err.message||'Anmeldung fehlgeschlagen.';render();}
+    });
+    document.getElementById('logout-btn')?.addEventListener('click',async()=>{
+      try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}catch(_){}
+      state.auth.user=null;state.auth.lastSavedAt='';state.auth.status='';restoreGuestSnapshot();state.page='account';render();
+    });
+    document.getElementById('sync-now')?.addEventListener('click',async()=>{await syncCloudData();showToast('Lerndaten synchronisiert.');});
 
     document.querySelectorAll('[data-mode]').forEach(el=>el.addEventListener('click',()=>{state.trainer.mode=el.dataset.mode;state.trainer.result=null;state.trainer.revealed=false;state.trainer.answer='';render();}));
     document.querySelectorAll('[data-trainer-level]').forEach(el=>el.addEventListener('click',()=>{state.trainer.levelFilter=el.dataset.trainerLevel;initTrainer(true);render();}));
@@ -573,11 +724,37 @@
     const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!Recognition){state.add.status='Spracherkennung wird hier nicht unterstützt. Nutze am besten Chrome oder Edge.';render();return;}
     try{
-      const rec=new Recognition();rec.lang=locale||'en-US';rec.interimResults=false;rec.continuous=false;state.add.listening=true;state.add.status=`Sprich jetzt ${targetField==='german'?'Deutsch':'Englisch'} …`;render();
-      rec.onresult=e=>{const value=(e.results?.[0]?.[0]?.transcript||'').trim();if(targetField==='german'){state.add.german=value;state.add.lastEdited='german';}else{state.add.english=value;state.add.lastEdited='english';}state.add.listening=false;state.add.status='Sprache erkannt. Du kannst jetzt übersetzen.';render();};
+      const rec=new Recognition();rec.lang=locale||'en-US';rec.interimResults=false;rec.continuous=false;state.add.listening=true;state.add.status=`Sprich jetzt ${String(locale||'').startsWith('de')?'Deutsch':'Englisch'} …`;render();
+      rec.onresult=e=>{
+        const value=(e.results?.[0]?.[0]?.transcript||'').trim();
+        if(targetField==='auto'){
+          state.add.input=value;state.add.translation='';state.add.source='';state.add.target='';
+        }
+        state.add.listening=false;state.add.status='Sprache erkannt. Klicke jetzt auf Autoübersetzung.';render();
+      };
       rec.onerror=()=>{state.add.listening=false;state.add.status='Mikrofon konnte nicht verwendet werden. Prüfe die Browser-Berechtigung.';render();};
       rec.onend=()=>{if(state.add.listening){state.add.listening=false;render();}};rec.start();
     }catch(_){state.add.listening=false;state.add.status='Spracherkennung konnte nicht gestartet werden.';render();}
+  }
+
+  async function autoTranslateWord(text, overrideContext) {
+    const cleanText=String(text||'').trim();
+    const contextText=String(overrideContext===undefined?(state.profile.translationContext||''):overrideContext).trim();
+    if(!cleanText) throw new Error('Bitte zuerst ein Wort oder einen Begriff eingeben.');
+    const cacheKey=translationCacheKey(cleanText,contextText,'AUTO','AUTO');
+    const cached=state.translationCache[cacheKey];
+    if(cached && cached.translation && cached.source && cached.target) return cached;
+    const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);
+    try{
+      const res=await fetch('/api/translate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:cleanText,source:'AUTO',target:'AUTO',context:contextText}),signal:controller.signal});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok||!data.translation||!data.source||!data.target) throw new Error(data.error||'Autoübersetzung konnte nicht abgeschlossen werden.');
+      const result={translation:data.translation,source:data.source,target:data.target};
+      state.translationCache[cacheKey]=result;saveTranslationCache();return result;
+    }catch(err){
+      if(err?.name==='AbortError') throw new Error('Die Autoübersetzung hat zu lange gebraucht. Bitte erneut versuchen.');
+      throw err;
+    }finally{clearTimeout(timer);}
   }
 
   function translationCacheKey(text, context, source, target) {
@@ -676,4 +853,5 @@
   }
 
   render();
+  initAuth();
 })();

@@ -1,3 +1,7 @@
-VocabFast Worker v8
-Cloudflare Workers Static Assets + Workers AI
-Translation: EN <-> DE, arbitrary words and specialist terms
+VocabFast Cloudflare Worker v9
+
+Autoübersetzung: automatische DE/EN-Erkennung via Workers AI
+Konten: E-Mail + Passwort
+Cloud-Sync: Durable Object USER_STORE (SQLite-backed)
+Static assets: ./public
+API: /api/translate, /api/example, /api/auth/*, /api/user-data
