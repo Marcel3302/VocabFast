@@ -1,4 +1,3 @@
-VocabFast v7 – Cloudflare Worker build
-Root directory: /vocabfast-web
-Deploy command: npx wrangler deploy
-Health endpoint: /api/health
+VocabFast Worker v8
+Cloudflare Workers Static Assets + Workers AI
+Translation: EN <-> DE, arbitrary words and specialist terms
