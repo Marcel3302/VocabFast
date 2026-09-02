@@ -1,86 +1,126 @@
-# VocabFast – Web-App v5
+# VocabFast – Web-App v6
 
-Stabile statische Web-App für Englisch ↔ Deutsch mit Cloudflare Pages Functions. Kein npm-Build und kein React-Setup nötig.
+Stabile statische Web-App für Englisch ↔ Deutsch mit Cloudflare Pages Functions. Kein npm-Build und kein React-Setup nötig: Dateien in GitHub hochladen, Cloudflare Pages verbinden, deployen.
 
-## Enthalten
+## Was in v6 neu ist
 
-- Eigene Vokabeln, lokal im Browser gespeichert
-- Trainer wahlweise **Alle / nur Stufe 3 / nur Stufe 2 / nur Stufe 1**
-- Lernlogik:
-  - Stufe 3: 5× richtig in Folge → Stufe 2
-  - Stufe 2: 5× richtig → Stufe 1; 1 Fehler → Stufe 3
-  - Stufe 1: 1 Fehler → Stufe 2; 5× richtig → dauerhaft als **Erfolg / gemeistert** gespeichert
-- Ab Stufe 2 zufällig **Deutsch → Englisch** oder **Englisch → Deutsch**
-- Kurzer englischer Beispielsatz nach der Lösung
-- Englische Aussprache über Browser Speech Synthesis
-- Mikrofon-Eingabe in unterstützten Browsern (besonders Chrome/Edge)
-- Exakt **4.500 Kernwörter** als frequenzbasierte Basis bis C1
-- Zusätzliche Themenpakete, getrennt von den 4.500 Kernwörtern
-- Themen u. a. Reisen, Luftfahrt, Basketball, Business, Essen, Technologie, Smalltalk, Gesundheit
-- PDF-Import für PDFs mit echtem Text; Wörter aus dem PDF auswählen und übernehmen
-- Basic-Grammar-Kapitel mit deutschen Erklärungen und englischen Beispielen
-- Eigene Bibliothek mit Suche, Stufenfiltern, Pausieren und Backup-Export
-- Separater Bereich für dauerhaft gemeisterte Wörter
+- **Exakt 4.500 Kernwörter liegen direkt im Projekt** (`data/core-vocabulary.js`). Die App lädt dafür keine externe GitHub-Wortliste mehr nach.
+- Kernwortschatz kann nach **A1, A2, B1, B2, C1** gefiltert und nach Häufigkeit, A–Z, A1→C1 oder C1→A1 sortiert werden.
+- Feste Lernband-Zähler: **A1 650 · A2 850 · B1 1.000 · B2 1.100 · C1 900 = 4.500**.
+- **1.086 zusätzliche Themenbegriffe**: Luftfahrt 201, Basketball 154, Reisen 165, Business 173, Restaurant/Essen 124, Alltag/flüssiges Sprechen 148, Gesundheit 121.
+- Freie Übersetzung funktioniert **Englisch → Deutsch und Deutsch → Englisch**.
+- Die Übersetzung ist **nicht** an die 4.500 Kernwörter oder Themenlisten gebunden. Neue Fachwörter und Phrasen werden an einen Online-Übersetzungsdienst geschickt.
+- Einfacherer Grammatikteil mit **Bauplan**, kurzer Erklärung, typischem Fehler und Beispielen.
 
-## Freie Übersetzung – auch für Fachwörter
+## Lernlogik
 
-Der Übersetzer ist **nicht** auf die 4.500 Kernwörter oder die Themenlisten begrenzt.
+Ein Wort ist **nicht** gemeistert, nur weil es Stufe 1 erreicht hat.
 
-Beim Hinzufügen kannst du beliebige englische Wörter oder Phrasen eingeben, z. B.:
+1. **Stufe 3 (rot)**
+   - 5× hintereinander richtig → Stufe 2
+   - Fehler → bleibt Stufe 3, Serie wieder 0/5
+2. **Stufe 2 (gelb)**
+   - Deutsch ↔ Englisch werden gemischt
+   - 5× hintereinander richtig → Stufe 1
+   - 1 Fehler → sofort zurück zu Stufe 3, Serie 0/5
+3. **Stufe 1 (grün)**
+   - bleibt weiterhin im normalen Trainer
+   - Deutsch ↔ Englisch werden gemischt
+   - 1 Fehler → sofort zurück zu Stufe 2
+   - erst **5× hintereinander richtig in Stufe 1** → Wort wird als **🏆 Gemeistert** gespeichert und aus dem Standard-Trainer entfernt
 
-- `angle of attack`
-- `hydraulic accumulator`
-- `thrust reverser`
-- `pick and roll coverage`
-- einen firmenspezifischen oder technischen Fachbegriff
+Gemeisterte Wörter haben einen eigenen Bereich **Erfolge**.
 
-Zusätzlich gibt es ein Feld **Fachgebiet / Lernkontext**, z. B.:
+## Freie Übersetzung in beide Richtungen
 
-`Luftfahrt – Flugzeugwartung / Airbus A320`
+Unter **Hinzufügen** gibt es drei Modi:
 
-Dieser Kontext wird bei der Übersetzung mitgesendet und auch beim PDF-Import verwendet.
+- Automatisch nach dem zuletzt bearbeiteten Feld
+- Englisch → Deutsch
+- Deutsch → Englisch
+
+Beispiele, die nicht in der App gespeichert sein müssen:
+
+- `hydraulic accumulator` → Deutsch
+- `angle of attack` → Deutsch
+- `Hydraulikspeicher` → Englisch
+- `Strömungsabriss` → Englisch
+- firmenspezifische Begriffe oder längere Fachphrasen
+
+Der optionale **Fachgebiet / Lernkontext** (z. B. `Luftfahrt – Flugzeugwartung / Airbus A320`) wird beim DeepL-Weg als Übersetzungskontext mitgesendet.
 
 ### Übersetzungsanbieter
 
-1. **DeepL (empfohlen, optional):** Wenn ein DeepL API-Key in Cloudflare hinterlegt ist, wird DeepL zuerst verwendet. Der Fachkontext wird dabei direkt als Übersetzungskontext mitgesendet.
-2. **Online-Fallback ohne API-Key:** Wenn kein DeepL-Key hinterlegt ist, nutzt die Function MyMemory für freie EN↔DE-Übersetzungen.
-3. **Lokaler Fallback:** Nur wenn die Online-Übersetzung ausfällt, können wenige bereits bekannte Wörter lokal übersetzt werden. Die lokale Liste begrenzt die Übersetzungsfunktion nicht mehr.
+Die Cloudflare Function `functions/api/translate.js` versucht:
 
-## DeepL in Cloudflare einrichten
+1. **DeepL API**, wenn `DEEPL_API_KEY` in Cloudflare hinterlegt ist.
+2. einen key-losen Online-Fallback für den Prototyp.
+3. MyMemory als zweiten Online-Fallback.
+4. nur als letzter Notfall existiert eine kleine lokale Basis für einige häufige Wörter.
 
-Die App funktioniert auch ohne DeepL-Key. Für Fachbegriffe und kontextabhängige Übersetzungen ist DeepL empfehlenswert.
+Für eine spätere produktive Veröffentlichung ist ein offizieller Übersetzungsanbieter mit eigenem API-Key empfehlenswert. API-Keys niemals in GitHub oder `app.js` speichern.
 
-1. DeepL API-Zugang erstellen und API-Key kopieren.
-2. Cloudflare Dashboard öffnen.
-3. **Workers & Pages → dein Pages-Projekt → Settings → Variables and Secrets**.
-4. Neues **Secret** anlegen:
+## DeepL in Cloudflare einrichten (optional)
+
+1. DeepL API-Key erstellen.
+2. Cloudflare Dashboard → **Workers & Pages** → dein Projekt.
+3. **Settings → Variables and Secrets**.
+4. Secret anlegen:
    - Name: `DEEPL_API_KEY`
-   - Wert: dein DeepL API-Key
+   - Wert: dein API-Key
 5. Neu deployen.
 
-Optional kannst du zusätzlich `DEEPL_API_URL` setzen, wenn du einen bestimmten DeepL-Endpunkt verwenden möchtest. Ohne diese Variable erkennt die Function API-Free-Keys mit `:fx` automatisch und verwendet ansonsten den normalen DeepL-Endpunkt.
-
-**Wichtig:** API-Keys niemals in `app.js`, GitHub oder andere öffentliche Dateien schreiben. `.env*` und `.dev.vars*` sind in `.gitignore` enthalten.
+Optional kann `DEEPL_API_URL` gesetzt werden. Ohne Variable erkennt die Function API-Free-Keys mit `:fx` und verwendet sonst den normalen API-Endpunkt.
 
 ## Cloudflare Pages veröffentlichen
 
-1. Inhalt dieses Ordners in dein GitHub-Repository hochladen.
-2. In Cloudflare Pages dein GitHub-Repository verbinden.
+1. **Den Inhalt dieses Ordners** in dein GitHub-Repository hochladen. `index.html` muss direkt im Repository-Root liegen.
+2. Cloudflare Pages mit dem Repository verbinden.
 3. Framework preset: **None**
-4. Build command: **leer lassen**
-5. Build output directory: **`.`** bzw. Repository-Root
-6. Deploy starten.
+4. Build command: **leer**
+5. Build output directory: **`.`**
+6. Deploy.
 
-Die Dateien unter `functions/api/` werden automatisch als Cloudflare Pages Functions bereitgestellt:
+Wichtig: Der Ordner **`functions/` muss mit hochgeladen werden**, sonst funktionieren Online-Übersetzung und Online-Beispielsätze nicht.
 
-- `/api/translate` – freie Übersetzung
-- `/api/core-words` – exakt 4.500 Kernwörter
-- `/api/example` – Beispielsatz, wenn online verfügbar
+Bereitgestellte Functions:
 
-## PDF-Hinweis
+- `/api/translate` – beliebige EN↔DE-Übersetzung
+- `/api/example` – kurzer englischer Beispielsatz, wenn online verfügbar
 
-Aktuell werden PDFs mit eingebettetem Text direkt gelesen. Bei reinen Scan-/Bild-PDFs ist zusätzlich OCR erforderlich; diese OCR-Erweiterung ist noch nicht Bestandteil dieser stabilen Version. PDF.js wird erst beim Auswählen eines PDFs geladen, damit ein PDF-Problem niemals den Start der App blockieren kann.
+Die 4.500 Kernwörter kommen **nicht** aus einer Function, sondern liegen direkt unter `data/`.
 
-## Daten und Firmen-PC
+## Kernwortschatz und A1–C1
 
-Eigene Wörter, Lernfortschritt, Erfolge, Übersetzungscache und dein Fachkontext werden derzeit in `localStorage` des jeweiligen Browsers gespeichert. Das ist für den Test am Firmen-PC einfach und datensparsam, bedeutet aber: Ein anderer Browser oder PC hat zunächst einen eigenen Datenstand. Unter **Meine Wörter** kannst du ein JSON-Backup exportieren.
+Der Kernwortschatz ist ein **häufigkeitsorientiertes VocabFast-Lernpaket**. Die 4.500 Wörter wurden aus einer lokalen englischen Häufigkeitsbasis zusammengestellt. Die Einteilung A1–C1 dient in dieser Version als Lernorientierung nach Häufigkeitsbändern und ist **keine offizielle Cambridge-/CEFR-Prüfungswortliste**.
+
+Das ist absichtlich transparent gehalten: Für eine spätere kommerzielle Version kann die Wortbasis noch gegen eine lizenzierte/validierte CEFR-Lexikquelle ausgetauscht werden, ohne das Lernsystem zu ändern.
+
+## Themenwortschatz
+
+Die Themenpakete sind umfangreiche, C1-orientierte Sammlungen. Ein Fachgebiet hat in der Realität keine endliche Liste „aller“ Wörter – besonders Luftfahrt oder Business können tausende Spezialbegriffe enthalten. Deshalb sind die Pakete breit aufgebaut und können mit dem freien Übersetzer beliebig um persönliche Fachwörter ergänzt werden.
+
+Aktueller Umfang:
+
+- Luftfahrt: **201**
+- Basketball: **154**
+- Reisen: **165**
+- Business & Büro: **173**
+- Restaurant & Essen: **124**
+- Alltag & flüssiges Sprechen: **148**
+- Gesundheit: **121**
+- Gesamt: **1.086 zusätzliche Begriffe**
+
+## PDF
+
+PDFs mit eingebettetem Text können ausgelesen werden. Erkannte englische Wörter lassen sich auswählen und werden beim Hinzufügen frei online übersetzt. PDF.js wird erst beim tatsächlichen PDF-Upload geladen, sodass die PDF-Funktion den App-Start nicht blockiert.
+
+Reine Scan-/Bild-PDFs benötigen OCR; OCR ist noch nicht Bestandteil dieser stabilen Version.
+
+## Aussprache
+
+Englische Wörter und Beispielsätze können über die Browser-Sprachausgabe angehört werden. Mikrofoneingabe ist in unterstützten Browsern möglich; Chrome/Edge eignen sich dafür am besten.
+
+## Datenspeicherung
+
+Eigene Wörter, Lernfortschritt, Erfolge, Übersetzungscache und Fachkontext werden derzeit im `localStorage` des jeweiligen Browsers gespeichert. Dadurch ist die Testversion ohne Login/Backend nutzbar. Ein anderer PC oder Browser hat einen eigenen Datenstand. Unter **Meine Wörter** kann ein JSON-Backup exportiert werden.

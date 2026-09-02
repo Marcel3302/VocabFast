@@ -19,52 +19,26 @@
     ['however','jedoch','B1'],['although','obwohl','B1'],['therefore','deshalb','B1'],['nevertheless','dennoch','B2'],['meanwhile','inzwischen','B2'],['moreover','darüber hinaus','B2'],['achievement','Erfolg / Errungenschaft','B1'],['environment','Umwelt','A2'],['opportunity','Möglichkeit / Gelegenheit','B1'],['development','Entwicklung','B1']
   ];
 
-  const THEMES = [
-    { id:'travel', icon:'✈️', title:'Reisen', description:'Flughafen, Hotel, Orientierung und unterwegs.', words:[
-      ['journey','Reise','Our journey starts early tomorrow.'],['destination','Reiseziel','Paris is our final destination.'],['departure','Abflug / Abfahrt','The departure is scheduled for six.'],['arrival','Ankunft','Our arrival was delayed by an hour.'],['luggage','Gepäck','My luggage is already checked in.'],['suitcase','Koffer','Her suitcase is quite heavy.'],['passport','Reisepass','Please keep your passport ready.'],['boarding pass','Bordkarte','I saved my boarding pass on my phone.'],['reservation','Reservierung','I have a reservation for two nights.'],['accommodation','Unterkunft','The accommodation is close to the station.'],['reception','Rezeption','Ask at reception for a city map.'],['available','verfügbar','Is this room still available?'],['single room','Einzelzimmer','I would like a single room.'],['double room','Doppelzimmer','We booked a double room.'],['check-in','Check-in / Anmeldung','Online check-in opens tomorrow.'],['check-out','Check-out / Abreise','Check-out is before eleven.'],['platform','Bahnsteig','The train leaves from platform four.'],['timetable','Fahrplan','I checked the timetable online.'],['delay','Verspätung','There is a twenty-minute delay.'],['connection','Verbindung / Anschluss','We missed our connection in Munich.'],['direction','Richtung / Wegbeschreibung','Can you point me in the right direction?'],['nearby','in der Nähe','There is a pharmacy nearby.'],['entrance','Eingang','The main entrance is around the corner.'],['exit','Ausgang','Take the next exit on the right.'],['currency','Währung','The local currency is the euro.']
-    ]},
-    { id:'aviation', icon:'🛫', title:'Luftfahrt', description:'Wichtige Begriffe rund um Flugzeug, Flughafen und Betrieb.', words:[
-      ['aircraft','Flugzeug / Luftfahrzeug','The aircraft is ready for departure.'],['airline','Fluggesellschaft','The airline changed our gate.'],['airport','Flughafen','We arrived at the airport early.'],['runway','Start- und Landebahn','The aircraft is taxiing toward the runway.'],['taxiway','Rollweg','The pilot followed the taxiway to the gate.'],['gate','Flugsteig / Gate','Boarding starts at gate twelve.'],['cockpit','Cockpit','Only authorized crew may enter the cockpit.'],['cabin','Kabine','The cabin lights were dimmed.'],['crew','Besatzung','The crew welcomed the passengers.'],['pilot','Pilot / Pilotin','The pilot announced some turbulence.'],['flight attendant','Flugbegleiter/in','A flight attendant helped with the bag.'],['passenger','Passagier/in','Every passenger needs a boarding pass.'],['altitude','Flughöhe','The aircraft reached cruising altitude.'],['airspeed','Fluggeschwindigkeit','The crew monitored the airspeed closely.'],['heading','Kurs / Flugrichtung','The aircraft changed its heading.'],['takeoff','Start','Takeoff was smooth despite the wind.'],['landing','Landung','The landing was very gentle.'],['approach','Landeanflug','The aircraft began its final approach.'],['turbulence','Turbulenzen','We experienced light turbulence.'],['weather','Wetter','Bad weather caused several delays.'],['visibility','Sichtweite','Visibility is poor this morning.'],['maintenance','Wartung','The aircraft is undergoing maintenance.'],['fuel','Treibstoff','The crew checked the fuel quantity.'],['emergency','Notfall','The crew practiced the emergency procedure.'],['air traffic control','Flugsicherung','Air traffic control cleared us for takeoff.']
-    ]},
-    { id:'basketball', icon:'🏀', title:'Basketball', description:'Spiel, Training, Taktik und typische Begriffe.', words:[
-      ['court','Spielfeld','The players ran onto the court.'],['basket','Korb','He drove straight to the basket.'],['rim','Ring','The ball bounced off the rim.'],['backboard','Brett','The shot hit the backboard first.'],['dribble','dribbeln','She can dribble with both hands.'],['pass','passen / Pass','Make the extra pass to the corner.'],['shoot','werfen','He likes to shoot from long range.'],['rebound','Rebound','She grabbed an important rebound.'],['assist','Vorlage / Assist','That pass gave him another assist.'],['steal','Ballgewinn / Steal','The guard made a clean steal.'],['block','Block','The center recorded three blocks.'],['turnover','Ballverlust','We made too many turnovers.'],['foul','Foul','The referee called a shooting foul.'],['free throw','Freiwurf','He made both free throws.'],['three-pointer','Dreipunktewurf','She hit a three-pointer at the buzzer.'],['layup','Korbleger','He finished the fast break with a layup.'],['dunk','Dunk','The crowd cheered after the dunk.'],['defense','Verteidigung','Good defense kept the game close.'],['offense','Angriff','Their offense moved the ball quickly.'],['screen','Block / Sperre','The center set a strong screen.'],['timeout','Auszeit','The coach called a timeout.'],['bench','Ersatzbank','The whole bench celebrated the shot.'],['coach','Trainer/in','The coach changed the defense.'],['teammate','Mitspieler/in','Trust your teammate with the pass.'],['score','Punktestand / punkten','The final score was very close.']
-    ]},
-    { id:'business', icon:'💼', title:'Business & Büro', description:'Meetings, Projekte, Zahlen und Kommunikation.', words:[
-      ['meeting','Besprechung','The meeting starts at nine.'],['deadline','Frist','We need to meet the deadline.'],['schedule','Zeitplan','The project is ahead of schedule.'],['task','Aufgabe','I finished the most urgent task.'],['priority','Priorität','Customer safety is our top priority.'],['project','Projekt','The project enters its final phase.'],['budget','Budget','The team stayed within the budget.'],['revenue','Umsatz','Revenue increased this quarter.'],['profit','Gewinn','The company reported a higher profit.'],['cost','Kosten','We need to reduce operating costs.'],['customer','Kunde / Kundin','The customer asked for an update.'],['supplier','Lieferant','Our supplier confirmed the delivery date.'],['invoice','Rechnung','Please send the invoice by email.'],['contract','Vertrag','Both sides signed the contract.'],['agreement','Vereinbarung','We reached an agreement yesterday.'],['proposal','Vorschlag / Angebot','I will present the proposal tomorrow.'],['feedback','Rückmeldung','Thanks for your detailed feedback.'],['responsibility','Verantwortung','This task is my responsibility.'],['department','Abteilung','She works in the finance department.'],['colleague','Kollege / Kollegin','I discussed it with a colleague.'],['manager','Führungskraft / Manager','The manager approved the request.'],['performance','Leistung','Team performance improved this month.'],['strategy','Strategie','We need a clear strategy for growth.'],['target','Ziel','The sales team reached its target.'],['decision','Entscheidung','We will make a decision on Friday.']
-    ]},
-    { id:'food', icon:'🍽️', title:'Restaurant & Essen', description:'Bestellen, Lebensmittel, Geschmack und Service.', words:[
-      ['menu','Speisekarte','Could we see the menu, please?'],['starter','Vorspeise','We shared a starter.'],['main course','Hauptgericht','The main course was excellent.'],['dessert','Nachspeise','Would you like a dessert?'],['bill','Rechnung','Could we have the bill, please?'],['tip','Trinkgeld','We left a small tip.'],['reservation','Reservierung','I made a reservation for seven.'],['table','Tisch','Your table is ready.'],['order','bestellen / Bestellung','Are you ready to order?'],['recommend','empfehlen','What would you recommend?'],['ingredient','Zutat','This dish contains fresh ingredients.'],['allergy','Allergie','I have a nut allergy.'],['vegetarian','vegetarisch','Do you have a vegetarian option?'],['spicy','scharf','The soup is quite spicy.'],['sweet','süß','This sauce is a little sweet.'],['sour','sauer','The lemon tastes sour.'],['bitter','bitter','The coffee is too bitter for me.'],['fresh','frisch','The bread is fresh.'],['delicious','köstlich','The meal was absolutely delicious.'],['hungry','hungrig','I am really hungry.'],['thirsty','durstig','After the walk, we were thirsty.'],['bottle','Flasche','Can we have a bottle of water?'],['glass','Glas','She ordered a glass of juice.'],['fork','Gabel','Could I have another fork?'],['knife','Messer','The knife is on the right.']
-    ]},
-    { id:'technology', icon:'💻', title:'Technik & Computer', description:'Digitale Geräte, Software und Internet.', words:[
-      ['device','Gerät','This device connects through Bluetooth.'],['computer','Computer','My computer needs an update.'],['screen','Bildschirm','The screen is too bright.'],['keyboard','Tastatur','This keyboard is very quiet.'],['mouse','Maus','The wireless mouse needs a new battery.'],['software','Software','We installed the latest software.'],['application','Anwendung / App','The application starts automatically.'],['browser','Browser','Open the page in your browser.'],['website','Webseite','The website loads quickly.'],['network','Netzwerk','The office network is down.'],['connection','Verbindung','The internet connection is unstable.'],['password','Passwort','Choose a strong password.'],['account','Konto','I created a new account.'],['file','Datei','Please attach the file to the email.'],['folder','Ordner','Save the document in this folder.'],['download','herunterladen','The download finished successfully.'],['upload','hochladen','You can upload the PDF here.'],['update','Aktualisierung / aktualisieren','The update fixes several bugs.'],['setting','Einstellung','Change this option in the settings.'],['data','Daten','The data is stored locally.'],['database','Datenbank','The database contains customer records.'],['server','Server','The server responded immediately.'],['cloud','Cloud','The files are backed up in the cloud.'],['security','Sicherheit','Security is important for every account.'],['backup','Sicherungskopie','Create a backup before the update.']
-    ]},
-    { id:'smalltalk', icon:'💬', title:'Small Talk & Alltag', description:'Schnell natürlicher sprechen und reagieren.', words:[
-      ['actually','eigentlich / tatsächlich','Actually, I have already seen that film.'],['probably','wahrscheinlich','I will probably be home by eight.'],['maybe','vielleicht','Maybe we can meet tomorrow.'],['anyway','jedenfalls','Anyway, we should get going.'],['especially','besonders','I especially like the old town.'],['quite','ziemlich','The restaurant is quite good.'],['really','wirklich','I really enjoyed the trip.'],['usually','normalerweise','I usually drink coffee in the morning.'],['sometimes','manchmal','Sometimes I walk to work.'],['recently','kürzlich','I recently started learning English again.'],['fortunately','glücklicherweise','Fortunately, nobody was hurt.'],['unfortunately','leider','Unfortunately, the shop is closed.'],['surprised','überrascht','I was surprised by the result.'],['excited','aufgeregt / begeistert','We are excited about the weekend.'],['worried','besorgt','She is worried about the exam.'],['relaxed','entspannt','I feel relaxed after the holiday.'],['interesting','interessant','That sounds really interesting.'],['boring','langweilig','The meeting was a little boring.'],['agree','zustimmen','I completely agree with you.'],['disagree','nicht zustimmen','I disagree with that point.'],['opinion','Meinung','What is your opinion?'],['experience','Erfahrung','It was a great experience.'],['suggest','vorschlagen','I suggest taking the earlier train.'],['prefer','bevorzugen','I prefer tea to coffee.'],['depends','kommt darauf an','It depends on the weather.']
-    ]},
-    { id:'health', icon:'🩺', title:'Gesundheit & Körper', description:'Arzt, Beschwerden und grundlegende Gesundheitssprache.', words:[
-      ['appointment','Termin','I have a doctor\'s appointment tomorrow.'],['doctor','Arzt / Ärztin','The doctor asked about my symptoms.'],['nurse','Pflegekraft','The nurse checked my temperature.'],['pharmacy','Apotheke','The pharmacy closes at six.'],['medicine','Medikament','Take the medicine with water.'],['pain','Schmerz','The pain is getting better.'],['headache','Kopfschmerzen','I have a slight headache.'],['fever','Fieber','He has a high fever.'],['cough','Husten','The cough lasted for a week.'],['injury','Verletzung','The player returned after an injury.'],['healthy','gesund','Regular exercise helps you stay healthy.'],['exercise','Bewegung / Training','I try to exercise three times a week.'],['sleep','Schlaf / schlafen','I need more sleep.'],['rest','Ruhe / sich ausruhen','You should get some rest.'],['breath','Atem','Take a slow, deep breath.'],['heart','Herz','Exercise is good for your heart.'],['blood','Blut','The test requires a small blood sample.'],['stomach','Magen','My stomach feels much better now.'],['back','Rücken','My back hurts after sitting all day.'],['shoulder','Schulter','He injured his shoulder during training.'],['knee','Knie','She felt pain in her knee.'],['emergency','Notfall','Call emergency services if necessary.'],['symptom','Symptom','A cough can be a common symptom.'],['treatment','Behandlung','The treatment worked well.'],['recover','sich erholen','He needs time to recover.']
-    ]}
-  ];
+  const THEMES = (window.VOCABFAST_THEME_PACKS || []).map(t => ({
+    id: t.id, icon: t.icon, title: t.title, description: t.description, level: t.level || 'B2–C1',
+    words: (t.words || []).map(word => [String(word), '', ''])
+  }));
 
   const GRAMMAR = [
-    { id:'word-order', title:'1. Satzbau', level:'A1–B1', summary:'Im normalen Aussagesatz steht das Verb meist an Position 2.', rules:[
-      'Grundform: Subjekt + Verb + Objekt/Ergänzung.',
-      'Beginnt der Satz mit Zeit oder Ort, bleibt das Verb an Position 2 und das Subjekt rutscht dahinter.',
-      'Adverbien stehen oft in der Reihenfolge Zeit – Art und Weise – Ort.'
-    ], examples:[['I learn English every day.','Ich lerne jeden Tag Englisch.'],['Tomorrow I will call you.','Morgen rufe ich dich an.'],['We usually meet at the office.','Wir treffen uns normalerweise im Büro.']] },
-    { id:'be', title:'2. To be', level:'A1', summary:'am / is / are für Zustände, Eigenschaften, Berufe und Orte.', rules:['I am, you/we/they are, he/she/it is.','Verneinung: am not / is not / are not.','Frage: Verb vor das Subjekt: Are you ready?'], examples:[['I am tired.','Ich bin müde.'],['She is at work.','Sie ist bei der Arbeit.'],['Are they ready?','Sind sie bereit?']] },
-    { id:'present-simple', title:'3. Present Simple', level:'A1–A2', summary:'Für Routinen, Fakten und regelmäßige Handlungen.', rules:['I/you/we/they work; he/she/it works.','Bei he/she/it kommt meist -s ans Verb.','Fragen und Verneinungen mit do/does.'], examples:[['I work from Monday to Friday.','Ich arbeite von Montag bis Freitag.'],['He speaks English well.','Er spricht gut Englisch.'],['Do you travel often?','Reist du oft?']] },
-    { id:'present-continuous', title:'4. Present Continuous', level:'A1–A2', summary:'Für Handlungen, die gerade jetzt oder vorübergehend passieren.', rules:['Form: am/is/are + Verb-ing.','Oft mit now, at the moment, currently.','Zustandsverben wie know oder believe stehen meist nicht im Continuous.'], examples:[['I am learning English right now.','Ich lerne gerade Englisch.'],['They are waiting at the gate.','Sie warten am Gate.'],['She is working from home this week.','Sie arbeitet diese Woche von zu Hause.']] },
-    { id:'past-simple', title:'5. Past Simple', level:'A2', summary:'Für abgeschlossene Ereignisse in der Vergangenheit.', rules:['Regelmäßige Verben: -ed.','Unregelmäßige Formen müssen gelernt werden: go → went.','Fragen/Verneinung mit did + Grundform.'], examples:[['We arrived yesterday.','Wir sind gestern angekommen.'],['I went to London last year.','Ich war letztes Jahr in London.'],['Did you see the game?','Hast du das Spiel gesehen?']] },
-    { id:'present-perfect', title:'6. Present Perfect', level:'A2–B1', summary:'Vergangenheit mit Bezug zur Gegenwart oder ohne konkrete abgeschlossene Zeitangabe.', rules:['Form: have/has + past participle.','Typisch mit already, yet, ever, never, just, since, for.','Bei konkreten vergangenen Zeitpunkten meist Past Simple.'], examples:[['I have already finished the task.','Ich habe die Aufgabe bereits erledigt.'],['Have you ever been to Canada?','Warst du schon einmal in Kanada?'],['She has lived here for five years.','Sie lebt seit fünf Jahren hier.']] },
-    { id:'future', title:'7. Zukunft: will & going to', level:'A2–B1', summary:'Will für spontane Entscheidungen/Prognosen; going to für Pläne oder klare Anzeichen.', rules:['will + Grundform.','am/is/are going to + Grundform.','Für feste Termine ist auch Present Continuous üblich.'], examples:[['I will call you later.','Ich rufe dich später an.'],['We are going to travel in October.','Wir werden im Oktober verreisen.'],['I am meeting Sarah tomorrow.','Ich treffe Sarah morgen.']] },
-    { id:'articles', title:'8. Artikel: a, an, the', level:'A1–B1', summary:'a/an für etwas nicht näher Bestimmtes, the für etwas Bestimmtes oder Bekanntes.', rules:['a vor Konsonantlaut, an vor Vokallaut.','the, wenn beide wissen, was gemeint ist.','Bei allgemeinen Plural- oder nicht zählbaren Begriffen oft kein Artikel.'], examples:[['I need a ticket.','Ich brauche ein Ticket.'],['The ticket is in my bag.','Das Ticket ist in meiner Tasche.'],['Information is important.','Information ist wichtig.']] },
-    { id:'modals', title:'9. Modalverben', level:'A2–B1', summary:'can, could, should, must, might für Fähigkeit, Möglichkeit, Rat und Pflicht.', rules:['Nach Modalverben steht die Grundform ohne to.','should = Rat; must = starke Pflicht; might = Möglichkeit.','could kann Fähigkeit in der Vergangenheit oder eine höfliche Bitte ausdrücken.'], examples:[['You should practice every day.','Du solltest jeden Tag üben.'],['Could you help me?','Könntest du mir helfen?'],['It might rain later.','Später könnte es regnen.']] },
-    { id:'questions', title:'10. Fragen', level:'A1–B1', summary:'Hilfsverb + Subjekt + Verb; Fragewörter stehen davor.', rules:['Do/does für Present Simple, did für Past Simple.','Bei be kommt am/is/are direkt vor das Subjekt.','Fragewörter: what, where, when, why, who, how.'], examples:[['Where do you work?','Wo arbeitest du?'],['Why did they leave?','Warum sind sie gegangen?'],['How are you?','Wie geht es dir?']] },
-    { id:'comparisons', title:'11. Vergleiche', level:'A2–B1', summary:'-er / more und -est / most für Vergleiche.', rules:['short → shorter → shortest.','important → more important → most important.','Unregelmäßig: good → better → best.'], examples:[['This route is shorter.','Diese Route ist kürzer.'],['English is more important for my job now.','Englisch ist für meinen Job jetzt wichtiger.'],['That was the best option.','Das war die beste Option.']] },
-    { id:'conditionals', title:'12. If-Sätze – Basics', level:'B1–B2', summary:'Bedingungen und ihre möglichen Folgen.', rules:['Zero Conditional: if + present, present für allgemeine Fakten.','First Conditional: if + present, will + Verb für reale Zukunftsmöglichkeiten.','Second Conditional: if + past, would + Verb für hypothetische Situationen.'], examples:[['If I have time, I will call you.','Wenn ich Zeit habe, rufe ich dich an.'],['If you heat ice, it melts.','Wenn man Eis erhitzt, schmilzt es.'],['If I had more time, I would travel more.','Wenn ich mehr Zeit hätte, würde ich mehr reisen.']] },
-    { id:'prepositions', title:'13. Häufige Präpositionen', level:'A1–B1', summary:'at, on, in sowie for, since, by und until sind besonders wichtig.', rules:['at für genaue Uhrzeiten; on für Tage/Daten; in für Monate/Jahre/längere Zeiträume.','since = Startpunkt; for = Dauer.','by = spätestens bis; until = bis zu einem Zeitpunkt andauernd.'], examples:[['The meeting starts at nine.','Das Meeting beginnt um neun.'],['I have worked here since 2024.','Ich arbeite seit 2024 hier.'],['Please finish it by Friday.','Bitte erledige es bis Freitag.']] },
-    { id:'countable', title:'14. Countable & Uncountable', level:'A2–B1', summary:'Zählbare und nicht zählbare Nomen beeinflussen Artikel und Mengenwörter.', rules:['many/few bei zählbaren Dingen; much/little bei nicht zählbaren.','information, advice, luggage und equipment sind im Englischen nicht zählbar.','Für einzelne Einheiten: a piece of information/advice.'], examples:[['We have many customers.','Wir haben viele Kunden.'],['I need some information.','Ich brauche einige Informationen.'],['She gave me a useful piece of advice.','Sie gab mir einen nützlichen Rat.']] }
+    { id:'word-order', title:'1. Satzbau', level:'A1', summary:'Englische Sätze sind meistens sehr geradlinig: Wer? – tut was? – mit wem oder was?', formula:'SUBJEKT + VERB + REST', rules:['I work in Vienna. → I = wer, work = was tut die Person, in Vienna = Rest.','Zeitangaben können auch vorne stehen: Tomorrow I work from home.','Wichtig: Das Verb steht im englischen Aussagesatz direkt nach dem Subjekt.'], mistake:'Nicht Wort für Wort aus dem Deutschen übersetzen. Baue zuerst Subjekt + Verb.', examples:[['I learn English every day.','Ich lerne jeden Tag Englisch.'],['My colleague works in London.','Mein Kollege arbeitet in London.'],['Tomorrow I will call you.','Morgen rufe ich dich an.']] },
+    { id:'be', title:'2. To be', level:'A1', summary:'„To be“ bedeutet sein. Du brauchst es für Zustände, Berufe, Eigenschaften und Orte.', formula:'I AM · he/she/it IS · you/we/they ARE', rules:['I am tired. = Ich bin müde.','She is a pilot. = Sie ist Pilotin.','Für Fragen drehst du um: Are you ready?'], mistake:'Nach I niemals „is“: richtig ist immer „I am“.', examples:[['I am ready.','Ich bin bereit.'],['She is at work.','Sie ist bei der Arbeit.'],['Are they ready?','Sind sie bereit?']] },
+    { id:'present-simple', title:'3. Present Simple', level:'A1–A2', summary:'Benutze es für Dinge, die regelmäßig passieren oder allgemein wahr sind.', formula:'I/you/we/they WORK · he/she/it WORKS', rules:['I work every day. = Routine.','He works every day. Bei he/she/it kommt meistens -s dazu.','Frage: Do you work here? / Does he work here?'], mistake:'Bei „does“ bekommt das Hauptverb kein -s: Does he work? – nicht „Does he works?“', examples:[['I work from Monday to Friday.','Ich arbeite von Montag bis Freitag.'],['He speaks English well.','Er spricht gut Englisch.'],['Do you travel often?','Reist du oft?']] },
+    { id:'present-continuous', title:'4. Gerade jetzt: -ing', level:'A1–A2', summary:'Benutze am/is/are + -ing, wenn etwas gerade jetzt oder nur vorübergehend passiert.', formula:'AM / IS / ARE + VERB-ING', rules:['I am learning now. = Ich lerne gerade.','They are waiting. = Sie warten gerade.','Typische Signale: now, right now, at the moment.'], mistake:'Nicht für normale Routinen: „I work every day“ statt „I am working every day“.', examples:[['I am learning English right now.','Ich lerne gerade Englisch.'],['They are waiting at the gate.','Sie warten am Gate.'],['She is working from home this week.','Sie arbeitet diese Woche von zu Hause.']] },
+    { id:'past-simple', title:'5. Past Simple', level:'A2', summary:'Benutze es, wenn etwas in der Vergangenheit passiert und abgeschlossen ist.', formula:'VERB-ED oder 2. FORM · Frage: DID + GRUNDFORM', rules:['Yesterday I worked. = Gestern habe ich gearbeitet.','Unregelmäßig: go → went, see → saw, have → had.','Frage: Did you see it?'], mistake:'Nach „did“ immer Grundform: Did you go? – nicht „Did you went?“', examples:[['We arrived yesterday.','Wir sind gestern angekommen.'],['I went to London last year.','Ich war letztes Jahr in London.'],['Did you see the game?','Hast du das Spiel gesehen?']] },
+    { id:'present-perfect', title:'6. Present Perfect', level:'A2–B1', summary:'Benutze es, wenn die Vergangenheit für jetzt wichtig ist oder kein genauer vergangener Zeitpunkt genannt wird.', formula:'HAVE / HAS + 3. VERBFORM', rules:['I have finished. = Ich bin fertig / habe es erledigt.','Typisch: already, yet, ever, never, just, since, for.','Mit „yesterday / last year / in 2024“ meistens Past Simple.'], mistake:'„I have seen him yesterday“ ist falsch. Mit yesterday: „I saw him yesterday.“', examples:[['I have already finished the task.','Ich habe die Aufgabe bereits erledigt.'],['Have you ever been to Canada?','Warst du schon einmal in Kanada?'],['She has lived here for five years.','Sie lebt seit fünf Jahren hier.']] },
+    { id:'future', title:'7. Zukunft', level:'A2', summary:'Für die Zukunft reichen am Anfang drei einfache Muster.', formula:'WILL · GOING TO · PRESENT CONTINUOUS', rules:['will: spontane Entscheidung oder Vermutung → I will call you.','going to: Plan → I am going to travel.','Present Continuous: fixer Termin → I am meeting Sarah tomorrow.'], mistake:'Du musst nicht immer „will“ verwenden. Bei einem schon geplanten Termin klingt Present Continuous oft natürlicher.', examples:[['I will call you later.','Ich rufe dich später an.'],['We are going to travel in October.','Wir planen, im Oktober zu verreisen.'],['I am meeting Sarah tomorrow.','Ich treffe Sarah morgen.']] },
+    { id:'articles', title:'8. A / an / the', level:'A1–A2', summary:'a/an = irgendein Exemplar. the = genau dieses bekannte Exemplar.', formula:'A TICKET → THE TICKET', rules:['a ticket = irgendein Ticket.','the ticket = das konkrete Ticket, über das wir schon sprechen.','an vor Vokallaut: an airport, an hour.'], mistake:'Nicht nach dem Buchstaben entscheiden, sondern nach dem Laut: „an hour“, aber „a university“.', examples:[['I need a ticket.','Ich brauche ein Ticket.'],['The ticket is in my bag.','Das Ticket ist in meiner Tasche.'],['She works at an airport.','Sie arbeitet an einem Flughafen.']] },
+    { id:'modals', title:'9. can / should / must / might', level:'A2–B1', summary:'Modalverben verändern die Bedeutung des Hauptverbs: können, sollen, müssen, vielleicht.', formula:'MODALVERB + GRUNDFORM', rules:['can = können: I can help.','should = Rat: You should practice.','must = starke Pflicht; might = vielleicht / könnte.'], mistake:'Nach Modalverben kein „to“: I can help – nicht „I can to help“.', examples:[['You should practice every day.','Du solltest jeden Tag üben.'],['Could you help me?','Könntest du mir helfen?'],['It might rain later.','Später könnte es regnen.']] },
+    { id:'questions', title:'10. Fragen', level:'A1–A2', summary:'Bei vielen Fragen brauchst du do/does/did vor der Person.', formula:'FRAGEWORT + DO/DOES/DID + PERSON + VERB?', rules:['Where do you work?','Why did they leave?','Bei „to be“ brauchst du kein do: Are you ready?'], mistake:'Nicht „Where you work?“ – richtig: „Where do you work?“', examples:[['Where do you work?','Wo arbeitest du?'],['Why did they leave?','Warum sind sie gegangen?'],['How are you?','Wie geht es dir?']] },
+    { id:'comparisons', title:'11. Vergleiche', level:'A2', summary:'Für „größer / besser / wichtiger“ brauchst du comparative forms.', formula:'SHORTER / MORE IMPORTANT · THE SHORTEST / THE MOST IMPORTANT', rules:['Kurz: fast → faster → fastest.','Länger: important → more important → most important.','Unregelmäßig: good → better → best.'], mistake:'Nicht „more better“. „better“ enthält die Steigerung bereits.', examples:[['This route is shorter.','Diese Route ist kürzer.'],['English is more important for my job now.','Englisch ist für meinen Job jetzt wichtiger.'],['That was the best option.','Das war die beste Option.']] },
+    { id:'conditionals', title:'12. If-Sätze', level:'B1–B2', summary:'If-Sätze verbinden eine Bedingung mit einer Folge.', formula:'IF + BEDINGUNG → FOLGE', rules:['Realistisch: If I have time, I will call you.','Hypothetisch: If I had more time, I would travel more.','Allgemeine Wahrheit: If you heat ice, it melts.'], mistake:'Im realistischen First Conditional nach „if“ normalerweise kein „will“: If I have time, I will call.', examples:[['If I have time, I will call you.','Wenn ich Zeit habe, rufe ich dich an.'],['If you heat ice, it melts.','Wenn man Eis erhitzt, schmilzt es.'],['If I had more time, I would travel more.','Wenn ich mehr Zeit hätte, würde ich mehr reisen.']] },
+    { id:'prepositions', title:'13. at / on / in', level:'A1–B1', summary:'Für Zeit hilft eine einfache Regel: at = sehr genau, on = Tag, in = größerer Zeitraum.', formula:'AT 9:00 · ON MONDAY · IN SEPTEMBER', rules:['at nine / at noon.','on Monday / on 5 May.','in September / in 2026 / in the morning.'], mistake:'„in Monday“ ist falsch. Für Tage benutzt du „on“.', examples:[['The meeting starts at nine.','Das Meeting beginnt um neun.'],['I will call you on Monday.','Ich rufe dich am Montag an.'],['We travel in September.','Wir reisen im September.']] },
+    { id:'countable', title:'14. Zählbar oder nicht?', level:'A2–B1', summary:'Manche englischen Wörter funktionieren anders als im Deutschen. Besonders wichtig: information, advice, luggage, equipment.', formula:'MANY + ZÄHLBAR · MUCH + NICHT ZÄHLBAR', rules:['many customers, many ideas.','much information, much time.','Ein einzelner Rat = a piece of advice.'], mistake:'Nicht „an information“ oder „informations“. Richtig: information / a piece of information.', examples:[['We have many customers.','Wir haben viele Kunden.'],['I need some information.','Ich brauche einige Informationen.'],['She gave me a useful piece of advice.','Sie gab mir einen nützlichen Rat.']] }
   ];
 
   const LOCAL_EXAMPLES = {
@@ -72,7 +46,8 @@
   };
 
   const FALLBACK_DICTIONARY = Object.fromEntries(CORE_FALLBACK.map(([en,de]) => [en.toLowerCase(), de]));
-  THEMES.forEach(theme => theme.words.forEach(([en,de]) => { FALLBACK_DICTIONARY[en.toLowerCase()] = de; LOCAL_EXAMPLES[en.toLowerCase()] = theme.words.find(x=>x[0]===en)[2]; }));
+  THEMES.forEach(theme => theme.words.forEach(([en,de,example]) => { if(de) FALLBACK_DICTIONARY[en.toLowerCase()] = de; if(example) LOCAL_EXAMPLES[en.toLowerCase()] = example; }));
+  const REVERSE_FALLBACK_DICTIONARY = {}; Object.entries(FALLBACK_DICTIONARY).forEach(([en,de])=>{String(de||'').split(/[\/;,]/).map(normalize).filter(Boolean).forEach(part=>{if(!REVERSE_FALLBACK_DICTIONARY[part])REVERSE_FALLBACK_DICTIONARY[part]=en;});});
 
   const state = {
     page: 'home',
@@ -85,9 +60,9 @@
     search: '',
     sort: 'new',
     trainer: { queue: [], index: 0, mode: 'write', result: null, answer: '', revealed: false, levelFilter: 'all', exampleLoading: false },
-    add: { english: '', german: '', status: '', translating: false, listening: false },
-    core: { words: [], loading: false, loaded: false, error: '', search: '', cefr: 'all', page: 0, adding: '', translating: '' },
-    themes: { selected: 'travel', search: '', addingAll: false },
+    add: { english: '', german: '', status: '', translating: false, listening: false, direction: 'auto', lastEdited: 'english' },
+    core: { words: [], loading: false, loaded: false, error: '', search: '', cefr: 'all', sort: 'rank', page: 0, adding: '', translating: '' },
+    themes: { selected: 'aviation', search: '', adding: '' },
     pdf: { fileName: '', status: '', words: [], selected: new Set(), search: '', loading: false, adding: false },
     grammarOpen: 'word-order'
   };
@@ -125,7 +100,7 @@
     return {
       id: w.id || makeId(), english: String(w.english || '').trim(), german: String(w.german || '').trim(),
       level: [1,2,3].includes(Number(w.level)) ? Number(w.level) : 3,
-      streak: Math.max(0, Math.min(5, Number(w.streak) || 0)), active: w.active !== false,
+      streak: Math.max(0, Math.min(5, Number(w.streak) || 0)), active: w.mastered ? false : w.active !== false,
       source: w.source || 'manual', correct: Number(w.correct) || 0, wrong: Number(w.wrong) || 0,
       createdAt: w.createdAt || now, updatedAt: w.updatedAt || now, mastered: !!w.mastered,
       exampleEn: w.exampleEn || ''
@@ -200,7 +175,7 @@
 
   function homePage() {
     const c = counts();
-    const progress = c.total ? Math.round(state.words.filter(w=>w.level===1).length / c.total * 100) : 0;
+    const progress = c.total ? Math.round(c.mastered / Math.max(1, c.active + c.mastered) * 100) : 0;
     const recent = [...state.words].sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0,5);
     return shell(`<div class="page">
       ${heading('DEIN LERNBEREICH','Schnell Wörter lernen.','Eigene Vokabeln, 4.500 Kernwörter, Themenpakete und Grammatik in einer übersichtlichen App.')}
@@ -208,7 +183,7 @@
         <div><span class="pill">⚡ Fokus: aktives Abrufen</span><h2>${c.active ? `${c.active} Wörter sind aktiv.` : 'Keine aktiven Wörter.'}</h2><p>Wähle eine Stufe oder starte eine gemischte Runde. Ab Stufe 2 trainierst du beide Übersetzungsrichtungen.</p>
           <div class="hero-actions"><button class="primary" data-train-level="all" ${c.active?'':'disabled'}>▶ Gemischt starten</button><button class="secondary" data-page="add">＋ Wort hinzufügen</button></div>
         </div>
-        <div class="hero-score"><div><strong>${progress}%</strong><small>in Stufe 1</small></div></div>
+        <div class="hero-score"><div><strong>${progress}%</strong><small>gemeistert</small></div></div>
       </section>
       <div class="stats">
         <button class="stat" data-train-level="3"><span class="dot red"></span><div><strong>${c.red}</strong><small>Stufe 3 · Neu</small></div></button>
@@ -235,27 +210,29 @@
   function addPage() {
     const a = state.add;
     return shell(`<div class="page narrow">
-      ${heading('VOKABEL HINZUFÜGEN','Neues Wort oder Fachbegriff','Beliebige englische Wörter und Fachbegriffe online übersetzen, anhören und direkt zum persönlichen Trainer hinzufügen.')}
+      ${heading('VOKABEL HINZUFÜGEN','Freier Übersetzer + neue Vokabel','Übersetze jedes beliebige Wort oder jeden Fachbegriff in beide Richtungen. Die 4.500 Kernwörter sind nur ein Lernpaket und begrenzen die Übersetzung nicht.')}
       <div class="form-grid">
         <section class="panel">
           <form id="add-form">
+            <label for="translation-direction">Übersetzungsrichtung</label>
+            <select id="translation-direction"><option value="auto" ${a.direction==='auto'?'selected':''}>Automatisch nach zuletzt bearbeitetem Feld</option><option value="en-de" ${a.direction==='en-de'?'selected':''}>Englisch → Deutsch</option><option value="de-en" ${a.direction==='de-en'?'selected':''}>Deutsch → Englisch</option></select>
             <label for="english">Englisch</label>
-            <div class="row"><input id="english" autocomplete="off" placeholder="z. B. achievement" value="${escapeHtml(a.english)}"><button class="secondary icon-btn" type="button" id="mic-btn" title="Englisches Wort sprechen">${a.listening?'●':'🎤'}</button><button class="secondary icon-btn" type="button" id="speak-add" title="Aussprache anhören">🔊</button></div>
+            <div class="row"><input id="english" autocomplete="off" placeholder="z. B. hydraulic accumulator" value="${escapeHtml(a.english)}"><button class="secondary icon-btn" type="button" id="mic-en" title="Englisch sprechen">🎤</button><button class="secondary icon-btn" type="button" id="speak-add" title="Englische Aussprache">🔊</button></div>
             <label for="german">Deutsch</label>
-            <input id="german" autocomplete="off" placeholder="z. B. Erfolg / Errungenschaft" value="${escapeHtml(a.german)}">
+            <div class="row"><input id="german" autocomplete="off" placeholder="z. B. Hydraulikspeicher" value="${escapeHtml(a.german)}"><button class="secondary icon-btn" type="button" id="mic-de" title="Deutsch sprechen">🎤</button></div>
             <label for="translation-context">Dein Fachgebiet / Lernkontext <span class="optional">optional</span></label>
             <input id="translation-context" autocomplete="off" placeholder="z. B. Luftfahrt – Flugzeugwartung / Airbus A320" value="${escapeHtml(state.profile.translationContext || '')}">
-            <small class="field-help">Die Übersetzung ist nicht auf hinterlegte Wörter begrenzt. Dieser Kontext hilft bei Fachbegriffen und mehrdeutigen Wörtern.</small>
-            <div class="row form-actions"><button class="secondary" type="button" id="translate-btn" ${a.translating?'disabled':''}>${a.translating?'Übersetze …':'✨ Frei online übersetzen'}</button><button class="primary" type="submit">＋ Hinzufügen</button></div>
+            <small class="field-help">Bei Fachbegriffen hilft der Kontext dem Übersetzungsdienst. Neue Begriffe müssen nicht in VocabFast hinterlegt sein.</small>
+            <div class="row form-actions"><button class="secondary" type="button" id="translate-btn" ${a.translating?'disabled':''}>${a.translating?'Übersetze …':'⇄ Frei übersetzen'}</button><button class="primary" type="submit">＋ Als Vokabel speichern</button></div>
           </form>
           <div class="level-hint"><span class="dot red"></span> Neue Wörter starten in Stufe 3 mit Serie 0/5.</div>
           ${a.status ? `<div class="status">${escapeHtml(a.status)}</div>` : ''}
         </section>
-        <section class="panel"><div class="panel-head"><div><p class="eyebrow">LERNSYSTEM</p><h3>Deine Regeln</h3></div></div>
+        <section class="panel"><div class="panel-head"><div><p class="eyebrow">LERNSYSTEM</p><h3>Wann ist ein Wort gemeistert?</h3></div></div>
           <div class="rule-list">
-            <div><span class="dot red"></span><b>Stufe 3</b><small>5× richtig → Stufe 2. Fehler bleibt in Stufe 3.</small></div>
+            <div><span class="dot red"></span><b>Stufe 3</b><small>5× richtig → Stufe 2. Fehler: Serie zurück auf 0.</small></div>
             <div><span class="dot yellow"></span><b>Stufe 2</b><small>Deutsch ↔ Englisch. 5× richtig → Stufe 1. Ein Fehler → Stufe 3.</small></div>
-            <div><span class="dot green"></span><b>Stufe 1</b><small>Deutsch ↔ Englisch. Ein Fehler → Stufe 2. 5× richtig → 🏆 Erfolg.</small></div>
+            <div><span class="dot green"></span><b>Stufe 1</b><small>Bleibt im normalen Trainer. Ein Fehler → Stufe 2. Erst 5× richtig in Stufe 1 → 🏆 Gemeistert und aus Standard-Training entfernt.</small></div>
           </div>
         </section>
       </div>
@@ -330,16 +307,16 @@
   function wordsPage() {
     const q = state.search.toLowerCase();
     let list = state.words.filter(w => w.english.toLowerCase().includes(q) || w.german.toLowerCase().includes(q));
-    if (state.filter === 'inactive') list = list.filter(w => !w.active);
-    else if (state.filter === 'mastered') list = list.filter(w => w.mastered);
-    else if (state.filter !== 'all') list = list.filter(w => w.active && String(w.level) === state.filter);
+    if (state.filter === 'mastered') list = list.filter(w => w.mastered);
+    else if (state.filter === 'inactive') list = list.filter(w => !w.active && !w.mastered);
+    else { list = list.filter(w => !w.mastered); if (state.filter !== 'all') list = list.filter(w => w.active && String(w.level) === state.filter); }
     if (state.sort === 'new') list.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
     if (state.sort === 'hard') list.sort((a,b) => b.level-a.level || b.wrong-a.wrong);
     if (state.sort === 'az') list.sort((a,b) => a.english.localeCompare(b.english));
     return shell(`<div class="page">
-      ${heading('BIBLIOTHEK','Meine Wörter',`${state.words.length} Wörter gespeichert · lokal in diesem Browser.`)}
+      ${heading('BIBLIOTHEK','Meine Wörter',`${state.words.filter(w=>!w.mastered).length} aktive/pausierte Lernwörter · ${state.achievements.length} gemeistert.`)}
       <div class="toolbar"><input id="word-search" placeholder="Englisch oder Deutsch suchen …" value="${escapeHtml(state.search)}"><select id="word-sort"><option value="new" ${state.sort==='new'?'selected':''}>Neueste zuerst</option><option value="hard" ${state.sort==='hard'?'selected':''}>Schwierigste zuerst</option><option value="az" ${state.sort==='az'?'selected':''}>A–Z</option></select></div>
-      <div class="filters">${[['all','Alle'],['3','🔴 Stufe 3'],['2','🟡 Stufe 2'],['1','🟢 Stufe 1'],['mastered','🏆 Gemeistert'],['inactive','Pausiert']].map(([k,l]) => `<button data-filter="${k}" class="${state.filter===k?'active':''}">${l}</button>`).join('')}<button id="export-btn">Backup exportieren</button></div>
+      <div class="filters">${[['all','Alle Lernwörter'],['3','🔴 Stufe 3'],['2','🟡 Stufe 2'],['1','🟢 Stufe 1'],['inactive','Pausiert']].map(([k,l]) => `<button data-filter="${k}" class="${state.filter===k?'active':''}">${l}</button>`).join('')}<button id="export-btn">Backup exportieren</button></div>
       <div class="word-list">${list.length ? list.map(w => `<div class="word-item ${w.active?'':'inactive'}">
         <div class="word-main"><strong>${escapeHtml(w.english)} ${w.mastered?'<span title="Gemeistert">🏆</span>':''}</strong><small>${escapeHtml(w.german)}</small></div>
         <span class="badge"><span class="dot ${levelColor(w.level)}"></span>Stufe ${w.level}</span>
@@ -353,7 +330,7 @@
   function achievementsPage() {
     const list = [...state.achievements].sort((a,b)=>(b.lastMasteredAt||'').localeCompare(a.lastMasteredAt||''));
     return shell(`<div class="page">
-      ${heading('ERFOLGE','Gemeisterte Wörter',`${list.length} Wörter wurden in Stufe 1 mindestens einmal mit einer zusätzlichen 5er-Serie abgeschlossen.`)}
+      ${heading('ERFOLGE','Gemeisterte Wörter',`${list.length} Wörter haben Stufe 1 mit fünf weiteren richtigen Antworten in Folge abgeschlossen und wurden aus dem Standard-Trainer entfernt.`)}
       <div class="achievement-summary"><div class="big-trophy">🏆</div><div><strong>${list.length}</strong><span>dauerhaft gespeicherte Erfolge</span></div></div>
       <div class="word-list achievements-list">${list.length ? list.map(a=>`<div class="achievement-row"><div><strong>${escapeHtml(a.english)}</strong><small>${escapeHtml(a.german)}</small></div><div><b>${a.times || 1}× gemeistert</b><small>zuletzt ${formatDate(a.lastMasteredAt)}</small></div><button class="ghost" data-ach-speak="${escapeHtml(a.english)}">🔊</button></div>`).join('') : '<div class="empty">Noch kein Wort gemeistert. In Stufe 1 brauchst du fünf weitere richtige Antworten in Folge.</div>'}</div>
     </div>`);
@@ -361,41 +338,46 @@
 
   function corePage() {
     const c = state.core;
-    let words = c.words;
+    let words = [...c.words];
     const q = c.search.trim().toLowerCase();
     if (q) words = words.filter(w => w.word.toLowerCase().includes(q));
     if (c.cefr !== 'all') words = words.filter(w=>String(w.cefr).toUpperCase()===c.cefr);
+    const order={A1:1,A2:2,B1:3,B2:4,C1:5};
+    if(c.sort==='az') words.sort((a,b)=>a.word.localeCompare(b.word));
+    else if(c.sort==='cefr') words.sort((a,b)=>(order[a.cefr]||9)-(order[b.cefr]||9)||a.rank-b.rank);
+    else if(c.sort==='cefr-desc') words.sort((a,b)=>(order[b.cefr]||0)-(order[a.cefr]||0)||a.rank-b.rank);
+    else words.sort((a,b)=>a.rank-b.rank);
     const perPage = 80;
     const pages = Math.max(1,Math.ceil(words.length/perPage));
     if (c.page >= pages) c.page = pages-1;
     const visible = words.slice(c.page*perPage,(c.page+1)*perPage);
     const known = new Set(state.words.map(w=>w.english.toLowerCase()));
+    const levelCounts=['A1','A2','B1','B2','C1'].map(level=>[level,c.words.filter(w=>w.cefr===level).length]);
     return shell(`<div class="page">
-      ${heading('KERNWORTSCHATZ',`${CORE_COUNT.toLocaleString('de-DE')} wichtige Wörter`,'Frequenzbasierter Wortschatz bis C1 als breite Grundlage für B2–C1 und flüssigeres Sprechen.')}
-      <section class="core-hero"><div><strong>${c.loaded ? c.words.length.toLocaleString('de-DE') : CORE_COUNT.toLocaleString('de-DE')}</strong><span>Wörter im Kernpaket</span></div><p>Die Reihenfolge folgt der Häufigkeit. A1–B1 stabilisieren die Basis; B2–C1 erweitern deinen aktiven Wortschatz.</p></section>
-      <div class="toolbar core-toolbar"><input id="core-search" placeholder="In 4.500 Wörtern suchen …" value="${escapeHtml(c.search)}"><select id="core-cefr"><option value="all">Alle CEFR-Stufen</option>${['A1','A2','B1','B2','C1'].map(x=>`<option value="${x}" ${c.cefr===x?'selected':''}>${x}</option>`).join('')}</select></div>
-      ${c.loading ? '<div class="loading-card">4.500 Kernwörter werden geladen …</div>' : ''}
+      ${heading('KERNWORTSCHATZ',`${CORE_COUNT.toLocaleString('de-DE')} Wörter – exakt im Projekt enthalten`,'Ein lokaler, häufigkeitsorientierter Basiswortschatz für flüssigeres Englisch. Du kannst nach A1 bis C1 filtern und sortieren. Die Stufen sind VocabFast-Lernbänder zur Orientierung, keine offizielle Prüfungswortliste.')}
+      <section class="core-hero"><div><strong>${c.words.length.toLocaleString('de-DE')}</strong><span>lokal gespeicherte Wörter</span></div><p>Die Liste wird zusammen mit der Website geladen – kein externer Wortlisten-Download ist nötig. Fachwörter bleiben zusätzlich jederzeit über den freien Übersetzer möglich.</p></section>
+      <div class="level-counts">${levelCounts.map(([level,n])=>`<button data-core-level="${level}"><b>${level}</b><span>${n.toLocaleString('de-DE')}</span></button>`).join('')}</div>
+      <div class="toolbar core-toolbar three"><input id="core-search" placeholder="In 4.500 Wörtern suchen …" value="${escapeHtml(c.search)}"><select id="core-cefr"><option value="all">Alle Stufen</option>${['A1','A2','B1','B2','C1'].map(x=>`<option value="${x}" ${c.cefr===x?'selected':''}>${x}</option>`).join('')}</select><select id="core-sort"><option value="rank" ${c.sort==='rank'?'selected':''}>Häufigkeit</option><option value="az" ${c.sort==='az'?'selected':''}>A–Z</option><option value="cefr" ${c.sort==='cefr'?'selected':''}>A1 → C1</option><option value="cefr-desc" ${c.sort==='cefr-desc'?'selected':''}>C1 → A1</option></select></div>
       ${c.error ? `<div class="notice warning">${escapeHtml(c.error)}</div>` : ''}
-      ${!c.loading && visible.length ? `<div class="core-list">${visible.map(item=>{
-        const cached=getCachedTranslation(item.word) || FALLBACK_DICTIONARY[item.word.toLowerCase()] || '';
+      ${visible.length ? `<div class="core-list">${visible.map(item=>{
+        const cached=getCachedTranslation(item.word, undefined, 'EN','DE') || FALLBACK_DICTIONARY[item.word.toLowerCase()] || '';
         const isKnown=known.has(item.word.toLowerCase());
-        return `<div class="core-row"><div class="rank">#${item.rank}</div><div class="core-main"><strong>${escapeHtml(item.word)}</strong><small>${cached?escapeHtml(cached):`${item.cefr || '–'} · ${item.pos || 'Wort'}`}</small></div><span class="cefr">${escapeHtml(item.cefr || '–')}</span><button class="ghost icon-btn" data-core-speak="${escapeHtml(item.word)}">🔊</button>${cached?'':`<button class="ghost" data-core-translate="${escapeHtml(item.word)}" ${c.translating===item.word?'disabled':''}>${c.translating===item.word?'…':'Deutsch'}</button>`}<button class="${isKnown?'ghost':'primary'}" data-core-add="${escapeHtml(item.word)}" ${isKnown||c.adding===item.word?'disabled':''}>${isKnown?'✓ Gespeichert':c.adding===item.word?'…':'+ Hinzufügen'}</button></div>`;
-      }).join('')}</div><div class="pagination"><button class="secondary" data-core-page="${c.page-1}" ${c.page<=0?'disabled':''}>← Zurück</button><span>Seite ${c.page+1} / ${pages}</span><button class="secondary" data-core-page="${c.page+1}" ${c.page>=pages-1?'disabled':''}>Weiter →</button></div>` : (!c.loading?'<div class="empty">Keine Wörter gefunden.</div>':'')}
-      <div class="notice">Für diese Testversion werden die 4.500 Wörter über eine Cloudflare Function geladen. Die deutsche Übersetzung wird frei online geladen und nur lokal zwischengespeichert. Der 4.500er-Wortschatz begrenzt den Übersetzer nicht; auch Fachbegriffe können hinzugefügt werden.</div>
+        return `<div class="core-row"><div class="rank">#${item.rank}</div><div class="core-main"><strong>${escapeHtml(item.word)}</strong><small>${cached?escapeHtml(cached):`${item.cefr} · Übersetzung bei Bedarf`}</small></div><span class="cefr">${escapeHtml(item.cefr)}</span><button class="ghost icon-btn" data-core-speak="${escapeHtml(item.word)}">🔊</button>${cached?'':`<button class="ghost" data-core-translate="${escapeHtml(item.word)}" ${c.translating===item.word?'disabled':''}>${c.translating===item.word?'…':'Deutsch'}</button>`}<button class="${isKnown?'ghost':'primary'}" data-core-add="${escapeHtml(item.word)}" ${isKnown||c.adding===item.word?'disabled':''}>${isKnown?'✓ Gespeichert':c.adding===item.word?'…':'+ Hinzufügen'}</button></div>`;
+      }).join('')}</div><div class="pagination"><button class="secondary" data-core-page="${c.page-1}" ${c.page<=0?'disabled':''}>← Zurück</button><span>${words.length.toLocaleString('de-DE')} Treffer · Seite ${c.page+1} / ${pages}</span><button class="secondary" data-core-page="${c.page+1}" ${c.page>=pages-1?'disabled':''}>Weiter →</button></div>` : '<div class="empty">Keine Wörter gefunden.</div>'}
     </div>`);
   }
 
   function themesPage() {
     const current = THEMES.find(t=>t.id===state.themes.selected) || THEMES[0];
     const q = state.themes.search.toLowerCase().trim();
-    const list = current.words.filter(([en,de])=>!q || en.toLowerCase().includes(q) || de.toLowerCase().includes(q));
+    const list = current.words.filter(([en])=>!q || en.toLowerCase().includes(q) || (getCachedTranslation(en, undefined, 'EN','DE')||'').toLowerCase().includes(q));
     const known = new Set(state.words.map(w=>w.english.toLowerCase()));
     return shell(`<div class="page">
-      ${heading('THEMENWORTSCHATZ','Wörter nach Thema','Zusätzliche Pakete neben dem 4.500er-Kernwortschatz. Jedes Paket kann einzeln oder komplett übernommen werden.')}
-      <div class="theme-tabs">${THEMES.map(t=>`<button data-theme="${t.id}" class="${current.id===t.id?'active':''}"><span>${t.icon}</span><b>${t.title}</b><small>${t.words.length} Wörter</small></button>`).join('')}</div>
-      <section class="theme-head"><div><span class="theme-icon">${current.icon}</span><div><h2>${current.title}</h2><p>${current.description}</p></div></div><button class="primary" id="add-theme-all" ${state.themes.addingAll?'disabled':''}>${state.themes.addingAll?'Füge hinzu …':`＋ Alle ${current.words.length} hinzufügen`}</button></section>
-      <div class="toolbar" style="grid-template-columns:1fr"><input id="theme-search" placeholder="In diesem Thema suchen …" value="${escapeHtml(state.themes.search)}"></div>
-      <div class="theme-word-grid">${list.map(([en,de,example])=>`<div class="theme-word"><div><strong>${escapeHtml(en)}</strong><small>${escapeHtml(de)}</small><p>${escapeHtml(example)}</p></div><div class="theme-actions"><button class="ghost icon-btn" data-theme-speak="${escapeHtml(en)}">🔊</button><button class="${known.has(en.toLowerCase())?'ghost':'primary'}" data-theme-add="${escapeHtml(en)}" ${known.has(en.toLowerCase())?'disabled':''}>${known.has(en.toLowerCase())?'✓':'＋'}</button></div></div>`).join('')}</div>
+      ${heading('THEMENWORTSCHATZ','Umfangreiche Fach- und Themenpakete',`${THEMES.reduce((n,t)=>n+t.words.length,0).toLocaleString('de-DE')} zusätzliche Begriffe neben dem 4.500er-Kernwortschatz. Die Pakete sind breit bis B2–C1 angelegt und können jederzeit durch deine eigenen Fachwörter ergänzt werden.`)}
+      <div class="theme-tabs">${THEMES.map(t=>`<button data-theme="${t.id}" class="${current.id===t.id?'active':''}"><span>${t.icon}</span><b>${t.title}</b><small>${t.words.length} Begriffe</small></button>`).join('')}</div>
+      <section class="theme-head"><div><span class="theme-icon">${current.icon}</span><div><h2>${current.title}</h2><p>${current.description}</p><small class="field-help">${current.words.length} Begriffe · ${current.level || 'B2–C1'} orientiert</small></div></div></section>
+      <div class="toolbar" style="grid-template-columns:1fr"><input id="theme-search" placeholder="In ${current.words.length} Begriffen suchen …" value="${escapeHtml(state.themes.search)}"></div>
+      <div class="theme-word-grid">${list.map(([en])=>{const de=getCachedTranslation(en,undefined,'EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]||'';return `<div class="theme-word"><div><strong>${escapeHtml(en)}</strong><small>${de?escapeHtml(de):'Deutsche Bedeutung wird beim Hinzufügen frei übersetzt.'}</small></div><div class="theme-actions"><button class="ghost icon-btn" data-theme-speak="${escapeHtml(en)}">🔊</button>${de?'':`<button class="ghost" data-theme-translate="${escapeHtml(en)}" ${state.themes.adding===en?'disabled':''}>DE</button>`}<button class="${known.has(en.toLowerCase())?'ghost':'primary'}" data-theme-add="${escapeHtml(en)}" ${known.has(en.toLowerCase())||state.themes.adding===en?'disabled':''}>${known.has(en.toLowerCase())?'✓':'＋'}</button></div></div>`;}).join('')}</div>
     </div>`);
   }
 
@@ -425,10 +407,7 @@
   }
 
   function renderGrammarLesson(g) {
-    return `<div class="grammar-card"><div class="grammar-title"><span class="cefr">${g.level}</span><h2>${g.title}</h2><p>${g.summary}</p></div>
-      <h3>Merke dir</h3><ul>${g.rules.map(r=>`<li>${escapeHtml(r)}</li>`).join('')}</ul>
-      <h3>Beispiele</h3><div class="grammar-examples">${g.examples.map(([en,de])=>`<div><div><strong>${escapeHtml(en)}</strong><small>${escapeHtml(de)}</small></div><button class="ghost icon-btn" data-grammar-speak="${escapeHtml(en)}">🔊</button></div>`).join('')}</div>
-    </div>`;
+    return `<div class="grammar-card"><div class="grammar-title"><span class="cefr">${g.level}</span><h2>${g.title}</h2><p>${g.summary}</p></div><div class="formula-box"><small>BAUPLAN</small><strong>${escapeHtml(g.formula||'')}</strong></div><h3>So merkst du es dir</h3><ul>${g.rules.map(r=>`<li>${escapeHtml(r)}</li>`).join('')}</ul>${g.mistake?`<div class="mistake-box"><b>Typischer Fehler</b><span>${escapeHtml(g.mistake)}</span></div>`:''}<h3>Beispiele</h3><div class="grammar-examples">${g.examples.map(([en,de])=>`<div><div><strong>${escapeHtml(en)}</strong><small>${escapeHtml(de)}</small></div><button class="ghost icon-btn" data-grammar-speak="${escapeHtml(en)}">🔊</button></div>`).join('')}</div></div>`;
   }
 
   function render() {
@@ -457,23 +436,38 @@
     const addForm = document.getElementById('add-form');
     if (addForm) {
       const english = document.getElementById('english'); const german = document.getElementById('german');
-      english.addEventListener('input', e => state.add.english = e.target.value); german.addEventListener('input', e => state.add.german = e.target.value);
+      english.addEventListener('input', e => { state.add.english = e.target.value; state.add.lastEdited='english'; });
+      german.addEventListener('input', e => { state.add.german = e.target.value; state.add.lastEdited='german'; });
+      document.getElementById('translation-direction')?.addEventListener('change',e=>{state.add.direction=e.target.value;render();});
       const translationContext = document.getElementById('translation-context');
       translationContext?.addEventListener('input', e => { state.profile.translationContext = e.target.value; saveProfile(); });
       addForm.addEventListener('submit', e => {
         e.preventDefault(); state.add.english=english.value.trim(); state.add.german=german.value.trim();
-        if(!state.add.english||!state.add.german){state.add.status='Bitte Englisch und Deutsch ausfüllen.';render();return;}
+        if(!state.add.english||!state.add.german){state.add.status='Bitte zuerst beide Seiten ausfüllen oder die freie Übersetzung verwenden.';render();return;}
         if(hasWord(state.add.english)){state.add.status='Dieses englische Wort ist bereits gespeichert.';render();return;}
         const word=createWord(state.add.english,state.add.german,'manual',{exampleEn:LOCAL_EXAMPLES[state.add.english.toLowerCase()]||''}); state.words.unshift(word); saveWords(); prefetchExample(word);
-        const added=word.english; state.add={english:'',german:'',status:'',translating:false,listening:false}; showToast(`„${added}“ wurde hinzugefügt.`);
+        const added=word.english; const direction=state.add.direction; state.add={english:'',german:'',status:'',translating:false,listening:false,direction,lastEdited:'english'}; showToast(`„${added}“ wurde hinzugefügt.`);
       });
       document.getElementById('translate-btn')?.addEventListener('click', async()=>{
-        state.add.english=english.value.trim(); if(!state.add.english){state.add.status='Bitte zuerst ein englisches Wort eingeben.';render();return;}
+        state.add.english=english.value.trim(); state.add.german=german.value.trim();
+        let dir=state.add.direction;
+        if(dir==='auto'){
+          if(state.add.lastEdited==='german' && state.add.german) dir='de-en';
+          else if(state.add.lastEdited==='english' && state.add.english) dir='en-de';
+          else if(state.add.german && !state.add.english) dir='de-en'; else dir='en-de';
+        }
+        const sourceText=dir==='de-en'?state.add.german:state.add.english;
+        if(!sourceText){state.add.status=dir==='de-en'?'Bitte zuerst ein deutsches Wort eingeben.':'Bitte zuerst ein englisches Wort eingeben.';render();return;}
         state.add.translating=true;state.add.status='';render();
-        try{state.add.german=await translateWord(state.add.english);state.add.status=state.profile.translationContext ? 'Übersetzung eingefügt. Dein Fachkontext wurde mitgesendet – bitte kurz prüfen.' : 'Online-Übersetzung eingefügt. Bitte kurz prüfen.';}catch(err){state.add.status=err.message||'Übersetzung nicht verfügbar.';}
+        try{
+          const translated=await translateWord(sourceText,undefined,dir==='de-en'?'DE':'EN',dir==='de-en'?'EN':'DE');
+          if(dir==='de-en') state.add.english=translated; else state.add.german=translated;
+          state.add.status=`Freie Online-Übersetzung ${dir==='de-en'?'Deutsch → Englisch':'Englisch → Deutsch'} eingefügt. Auch nicht hinterlegte Fachwörter werden online abgefragt.`;
+        }catch(err){state.add.status=err.message||'Übersetzung nicht verfügbar.';}
         state.add.translating=false;render();
       });
-      document.getElementById('mic-btn')?.addEventListener('click',startSpeechRecognition);
+      document.getElementById('mic-en')?.addEventListener('click',()=>startSpeechRecognition('en-US','english'));
+      document.getElementById('mic-de')?.addEventListener('click',()=>startSpeechRecognition('de-DE','german'));
       document.getElementById('speak-add')?.addEventListener('click',()=>{const value=document.getElementById('english')?.value.trim(); if(value)speak(value);});
     }
 
@@ -500,6 +494,8 @@
 
     document.getElementById('core-search')?.addEventListener('input',e=>{state.core.search=e.target.value;state.core.page=0;render();});
     document.getElementById('core-cefr')?.addEventListener('change',e=>{state.core.cefr=e.target.value;state.core.page=0;render();});
+    document.getElementById('core-sort')?.addEventListener('change',e=>{state.core.sort=e.target.value;state.core.page=0;render();});
+    document.querySelectorAll('[data-core-level]').forEach(el=>el.addEventListener('click',()=>{state.core.cefr=el.dataset.coreLevel;state.core.page=0;render();}));
     document.querySelectorAll('[data-core-page]').forEach(el=>el.addEventListener('click',()=>{state.core.page=Math.max(0,Number(el.dataset.corePage)||0);render();window.scrollTo({top:0,behavior:'smooth'});}));
     document.querySelectorAll('[data-core-speak]').forEach(el=>el.addEventListener('click',()=>speak(el.dataset.coreSpeak)));
     document.querySelectorAll('[data-core-translate]').forEach(el=>el.addEventListener('click',()=>translateCoreWord(el.dataset.coreTranslate)));
@@ -509,7 +505,7 @@
     document.getElementById('theme-search')?.addEventListener('input',e=>{state.themes.search=e.target.value;render();});
     document.querySelectorAll('[data-theme-speak]').forEach(el=>el.addEventListener('click',()=>speak(el.dataset.themeSpeak)));
     document.querySelectorAll('[data-theme-add]').forEach(el=>el.addEventListener('click',()=>addThemeWord(el.dataset.themeAdd)));
-    document.getElementById('add-theme-all')?.addEventListener('click',addCurrentTheme);
+    document.querySelectorAll('[data-theme-translate]').forEach(el=>el.addEventListener('click',()=>translateThemeWord(el.dataset.themeTranslate)));
 
     document.getElementById('pdf-context')?.addEventListener('input',e=>{state.profile.translationContext=e.target.value;saveProfile();});
     document.getElementById('pdf-input')?.addEventListener('change',e=>{const file=e.target.files&&e.target.files[0];if(file)processPdf(file);});
@@ -529,7 +525,7 @@
     const now=new Date().toISOString();
     let a=state.achievements.find(x=>x.wordId===word.id || x.english.toLowerCase()===word.english.toLowerCase());
     if(a){a.times=(a.times||1)+1;a.lastMasteredAt=now;a.german=word.german;} else {a={id:makeId(),wordId:word.id,english:word.english,german:word.german,firstMasteredAt:now,lastMasteredAt:now,times:1};state.achievements.push(a);}
-    word.mastered=true; saveAchievements();
+    word.mastered=true; word.active=false; word.streak=0; saveAchievements();
   }
 
   function grade(word, ok) {
@@ -573,89 +569,80 @@
     window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.88;window.speechSynthesis.speak(u);
   }
 
-  function startSpeechRecognition() {
+  function startSpeechRecognition(locale, targetField) {
     const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(!Recognition){state.add.status='Spracherkennung wird hier nicht unterstützt. Nutze am besten Chrome oder Edge.';render();return;}
     try{
-      const rec=new Recognition();rec.lang='en-US';rec.interimResults=false;rec.continuous=false;state.add.listening=true;state.add.status='Sprich jetzt ein englisches Wort …';render();
-      rec.onresult=e=>{state.add.english=(e.results?.[0]?.[0]?.transcript||'').trim();state.add.listening=false;state.add.status='Wort erkannt. Du kannst es jetzt übersetzen.';render();};
+      const rec=new Recognition();rec.lang=locale||'en-US';rec.interimResults=false;rec.continuous=false;state.add.listening=true;state.add.status=`Sprich jetzt ${targetField==='german'?'Deutsch':'Englisch'} …`;render();
+      rec.onresult=e=>{const value=(e.results?.[0]?.[0]?.transcript||'').trim();if(targetField==='german'){state.add.german=value;state.add.lastEdited='german';}else{state.add.english=value;state.add.lastEdited='english';}state.add.listening=false;state.add.status='Sprache erkannt. Du kannst jetzt übersetzen.';render();};
       rec.onerror=()=>{state.add.listening=false;state.add.status='Mikrofon konnte nicht verwendet werden. Prüfe die Browser-Berechtigung.';render();};
       rec.onend=()=>{if(state.add.listening){state.add.listening=false;render();}};rec.start();
     }catch(_){state.add.listening=false;state.add.status='Spracherkennung konnte nicht gestartet werden.';render();}
   }
 
-  function translationCacheKey(text, context) {
-    return `${String(text || '').toLowerCase().trim()}::${String(context || '').toLowerCase().trim()}`;
+  function translationCacheKey(text, context, source, target) {
+    return `${String(source||'EN').toUpperCase()}>${String(target||'DE').toUpperCase()}::${String(text || '').toLowerCase().trim()}::${String(context || '').toLowerCase().trim()}`;
   }
 
-  function getCachedTranslation(text, context) {
+  function getCachedTranslation(text, context, source, target) {
     const ctx = context === undefined ? (state.profile.translationContext || '') : context;
-    return state.translationCache[translationCacheKey(text, ctx)] || '';
+    return state.translationCache[translationCacheKey(text, ctx, source||'EN', target||'DE')] || '';
   }
 
-  async function translateWord(text, overrideContext) {
+  async function translateWord(text, overrideContext, source, target) {
     const cleanText = String(text || '').trim();
+    const sourceLang=String(source||'EN').toUpperCase(); const targetLang=String(target||'DE').toUpperCase();
     const contextText = String(overrideContext === undefined ? (state.profile.translationContext || '') : overrideContext).trim();
-    if (!cleanText) throw new Error('Bitte zuerst ein englisches Wort oder einen Fachbegriff eingeben.');
-    const key = translationCacheKey(cleanText, contextText);
+    if (!cleanText) throw new Error('Bitte zuerst ein Wort oder einen Begriff eingeben.');
+    if(sourceLang===targetLang) return cleanText;
+    const key = translationCacheKey(cleanText, contextText, sourceLang, targetLang);
     if (state.translationCache[key]) return state.translationCache[key];
 
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 10000);
+      const timer = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ text: cleanText, source: 'EN', target: 'DE', context: contextText }),
-        signal: controller.signal
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text: cleanText, source: sourceLang, target: targetLang, context: contextText }), signal: controller.signal
       });
       clearTimeout(timer);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.translation) {
-          state.translationCache[key] = data.translation;
-          saveTranslationCache();
-          return data.translation;
-        }
+      const data=await res.json().catch(()=>({}));
+      if (res.ok && data.translation) {
+        state.translationCache[key] = data.translation; saveTranslationCache(); return data.translation;
       }
-    } catch (_) {}
-
-    // Nur als Offline-/Provider-Fallback: Die lokale Liste begrenzt die Übersetzung NICHT mehr.
-    const fallback = FALLBACK_DICTIONARY[cleanText.toLowerCase()];
-    if (fallback) {
-      state.translationCache[key] = fallback;
-      saveTranslationCache();
-      return fallback;
+      if(data.error) throw new Error(data.error);
+    } catch (err) {
+      console.warn('Online translation failed',err);
     }
-    throw new Error('Die freie Online-Übersetzung ist gerade nicht erreichbar. Du kannst die deutsche Bedeutung trotzdem manuell eintragen.');
+
+    const fallback = sourceLang==='EN' && targetLang==='DE' ? FALLBACK_DICTIONARY[cleanText.toLowerCase()] : sourceLang==='DE' && targetLang==='EN' ? REVERSE_FALLBACK_DICTIONARY[normalize(cleanText)] : '';
+    if (fallback) { state.translationCache[key] = fallback; saveTranslationCache(); return fallback; }
+    throw new Error(`Die freie Online-Übersetzung ${sourceLang} → ${targetLang} ist gerade nicht erreichbar. Das Wort muss nicht in VocabFast vorhanden sein – bitte prüfe, ob Cloudflare Functions mit dem Ordner /functions deployed wurden.`);
   }
 
   async function loadCoreWords() {
     state.core.loading=true;state.core.error='';render();
     try{
-      const res=await fetch('/api/core-words');if(!res.ok)throw new Error('Kernwortschatz konnte nicht geladen werden.');
-      const data=await res.json();
-      if(!Array.isArray(data.words)||data.words.length!==CORE_COUNT)throw new Error(`Es wurden ${data.words?.length||0} statt ${CORE_COUNT} Wörter geliefert.`);
-      state.core.words=data.words;state.core.loaded=true;
-    }catch(err){
-      state.core.words=CORE_FALLBACK.map(([word,,cefr],i)=>({word,cefr,rank:i+1,pos:''}));state.core.loaded=true;state.core.error=`Online-Liste nicht erreichbar. Die App bleibt nutzbar und zeigt vorübergehend ${state.core.words.length} eingebaute Wörter. Nach Cloudflare-Deploy sollten exakt ${CORE_COUNT} geladen werden.`;
-    }
+      const bundled=Array.isArray(window.VOCABFAST_CORE_WORDS)?window.VOCABFAST_CORE_WORDS:[];
+      if(bundled.length!==CORE_COUNT) throw new Error(`Lokale Wortdatei enthält ${bundled.length} statt ${CORE_COUNT} Wörter.`);
+      state.core.words=bundled.map(x=>({...x})); state.core.loaded=true;
+    }catch(err){state.core.words=[];state.core.loaded=true;state.core.error=err.message||'Lokaler Kernwortschatz konnte nicht geladen werden.';}
     state.core.loading=false;render();
   }
 
   async function translateCoreWord(word) {
-    state.core.translating=word;render();try{await translateWord(word);showToast(`„${word}“ wurde übersetzt.`);}catch(err){showToast(err.message||'Übersetzung nicht verfügbar.');}state.core.translating='';render();
+    state.core.translating=word;render();try{await translateWord(word,undefined,'EN','DE');showToast(`„${word}“ wurde übersetzt.`);}catch(err){showToast(err.message||'Übersetzung nicht verfügbar.');}state.core.translating='';render();
   }
 
   async function addCoreWord(english) {
     if(hasWord(english))return;state.core.adding=english;render();
-    try{const german=await translateWord(english);const meta=state.core.words.find(x=>x.word===english)||{};const w=createWord(english,german,'core',{cefr:meta.cefr||'',exampleEn:LOCAL_EXAMPLES[english.toLowerCase()]||''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}
+    try{const german=await translateWord(english,undefined,'EN','DE');const meta=state.core.words.find(x=>x.word===english)||{};const w=createWord(english,german,'core',{cefr:meta.cefr||'',exampleEn:LOCAL_EXAMPLES[english.toLowerCase()]||''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}
     state.core.adding='';render();
   }
 
   function currentTheme(){return THEMES.find(t=>t.id===state.themes.selected)||THEMES[0];}
-  function addThemeWord(english){const item=currentTheme().words.find(x=>x[0]===english);if(!item||hasWord(english))return;state.words.unshift(createWord(item[0],item[1],`theme:${currentTheme().id}`,{exampleEn:item[2]}));saveWords();showToast(`„${english}“ wurde hinzugefügt.`);}
-  async function addCurrentTheme(){const theme=currentTheme();state.themes.addingAll=true;render();let added=0;theme.words.forEach(item=>{if(!hasWord(item[0])){state.words.unshift(createWord(item[0],item[1],`theme:${theme.id}`,{exampleEn:item[2]}));added++;}});saveWords();state.themes.addingAll=false;showToast(`${added} Wörter aus „${theme.title}“ hinzugefügt.`);}
+  async function translateThemeWord(english){state.themes.adding=english;render();try{await translateWord(english,undefined,'EN','DE');showToast(`„${english}“ wurde übersetzt.`);}catch(err){showToast(err.message||'Übersetzung nicht verfügbar.');}state.themes.adding='';render();}
+  async function addThemeWord(english){if(hasWord(english))return;state.themes.adding=english;render();try{const german=await translateWord(english,undefined,'EN','DE');const w=createWord(english,german,`theme:${currentTheme().id}`,{exampleEn:''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}state.themes.adding='';render();}
 
   async function processPdf(file) {
     state.pdf.fileName=file.name;state.pdf.status='PDF wird gelesen …';state.pdf.loading=true;state.pdf.words=[];state.pdf.selected=new Set();render();
@@ -679,7 +666,7 @@
     state.pdf.adding=true;let added=0,failed=0;
     for(let i=0;i<selected.length;i++){
       const en=selected[i];state.pdf.status=`Übersetze ${i+1} von ${selected.length}: ${en}`;render();
-      try{const de=await translateWord(en);const w=createWord(en,de,'pdf',{exampleEn:LOCAL_EXAMPLES[en]||''});state.words.unshift(w);added++;prefetchExample(w);}catch(_){failed++;}
+      try{const de=await translateWord(en,undefined,'EN','DE');const w=createWord(en,de,'pdf',{exampleEn:LOCAL_EXAMPLES[en]||''});state.words.unshift(w);added++;prefetchExample(w);}catch(_){failed++;}
     }
     saveWords();state.pdf.adding=false;state.pdf.selected.clear();state.pdf.status=`${added} Wörter hinzugefügt${failed?`, ${failed} konnten nicht automatisch übersetzt werden`:''}.`;render();
   }
