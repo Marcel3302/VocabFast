@@ -1,11 +1,12 @@
 {
   "name": "vocabfast-cloudflare-worker",
-  "version": "0.11.0",
+  "version": "0.13.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "validate": "node scripts/validate-data.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.68.0"

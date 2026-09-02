@@ -1,111 +1,120 @@
-# VocabFast – Worker v11
+# VocabFast – Cloudflare Worker v13
 
-Cloudflare-Worker-Version der VocabFast Web-App.
+VocabFast ist eine Englisch–Deutsch-Lernwebapp für Cloudflare Workers. Diese Version ist auf den aktuellen Aufbau mit GitHub + `npx wrangler deploy` abgestimmt.
 
-## Neu in v11
+## Was in v13 korrigiert wurde
 
-- **Ein einziges Übersetzungsfeld** statt Richtungs-Auswahl.
-- Button heißt **Autoübersetzung**.
-- VocabFast erkennt per Workers AI selbst, ob die Eingabe Deutsch oder Englisch ist.
-- Danach wird automatisch in die jeweils andere Sprache übersetzt.
-- Die Übersetzung ist **nicht** auf die 4.500 Kernwörter begrenzt und ist auch für Fachbegriffe gedacht.
-- Optionaler Fach-/Lernkontext bleibt erhalten.
-- **E-Mail + Passwort Registrierung und Login**.
-- Cloudflare-PBKDF2-Kompatibilität korrigiert: maximal 100.000 Iterationen, damit Registrierung im Worker funktioniert.
-- Neuer `/api/translate-batch`-Endpunkt für automatische Listenübersetzungen.
-- Die 4.500 Kernwörter laden ihre deutschen Bedeutungen automatisch im Hintergrund; kein „Deutsch“-Button mehr.
-- Themenpakete laden ihre deutschen Bedeutungen ebenfalls automatisch; kein „DE“-Button mehr.
-- Persönliche Wörter, Erfolge und Lernkontext werden nach Login **serverseitig bei Cloudflare** gespeichert.
-- Cloud-Sync läuft automatisch nach Änderungen.
-- Die 4.500 Kernwörter und Themenpakete bleiben statische Lerninhalte und werden nicht pro Benutzer gespeichert.
+- Gäste sehen **zuerst Anmeldung / Registrierung**. Ohne Konto ist der eigentliche Lernbereich nicht zugänglich.
+- Angemeldete Nutzer landen direkt im **Dashboard**.
+- **Passwort vergessen** ist eingebaut: Reset-Link per E-Mail, neues Passwort setzen, alte Sessions werden danach beendet.
+- **E-Mail-Bestätigung** ist vorbereitet und wird automatisch aktiviert, sobald der Mailversand konfiguriert ist.
+- PBKDF2 verwendet Cloudflare-kompatible **100.000 Iterationen**.
+- Autoübersetzung hat nur **ein Eingabefeld**. Deutsch oder Englisch wird automatisch erkannt.
+- Der Button heißt **Autoübersetzung**.
+- Das Cloudflare-M2M-Übersetzungsmodell bekommt jetzt die korrekten Sprachwerte `english` / `german`.
+- Für freie Begriffe verwendet VocabFast mehrere Übersetzungswege mit Cloudflare Workers AI.
+- Fachkontext kann weiterhin angegeben werden, z. B. `Luftfahrt – Flugzeugwartung / Airbus A320`.
+- Die Themenpakete besitzen **fest hinterlegte, themenspezifische deutsche Übersetzungen** und sind nicht mehr von einer allgemeinen Maschinenübersetzung abhängig.
+- Luftfahrt-Stichprobe: `approach = Anflug`, `bank angle = Querneigungswinkel`, `altimeter = Höhenmesser`.
+- **4.500 Kernwörter sind exakt 4.500 eindeutige Einträge**.
+- CEFR-Lernbänder: A1 650, A2 850, B1 1.000, B2 1.100, C1 900.
+- **1.086 Themenbegriffe sind jetzt ebenfalls 1.086 eindeutige Einträge** – keine Wiederholung zwischen den Themenpaketen.
+- Themenwörter zeigen die deutsche Bedeutung **sofort**, ohne DE-Button.
+- Kernwörter zeigen ihre deutsche Bedeutung automatisch; fehlende Bedeutungen der geöffneten Seite werden in kleinen Batches geladen und im Browser-Cache gespeichert.
 
-## GitHub / Cloudflare Einstellungen
+## Cloudflare-Einstellungen
 
 Der komplette Ordner `vocabfast-web` gehört in dein GitHub-Repository.
 
-Cloudflare Build-Einstellungen:
+Cloudflare:
 
 - **Stammverzeichnis:** `/vocabfast-web`
 - **Build-Befehl:** leer
 - **Bereitstellungsbefehl:** `npx wrangler deploy`
 - **Produktions-Branch:** `main`
 
-`wrangler.jsonc` enthält bereits:
+Die Datei `wrangler.jsonc` enthält bereits:
 
 - Workers-AI-Binding `AI`
 - Static Assets aus `./public`
-- Durable-Object-Binding `USER_STORE`
-- SQLite-Durable-Object-Migration für die Benutzerkonten
-
-Du musst für den Kontospeicher **keine Datenbank-ID manuell eintragen**.
+- Durable Object `USER_STORE` für Konten und Lerndaten
+- SQLite-Durable-Object-Migration
 
 ## Nach dem Deployment testen
 
-### 1. Worker / AI / Kontospeicher
-
-Öffne:
+### Worker
 
 `https://DEINE-DOMAIN/api/health`
 
-Erwartet werden unter anderem:
+Erwartet werden u. a.:
 
 ```json
 {
   "ok": true,
+  "service": "vocabfast-worker-v13",
   "aiBinding": true,
-  "accountStorage": true
+  "accountStorage": true,
+  "passwordKdfIterations": 100000
 }
 ```
 
-### 2. Automatische Spracherkennung + Übersetzung
-
-Englisch nach Deutsch, ohne Sprachparameter:
+### Autoübersetzung
 
 `https://DEINE-DOMAIN/api/translate?q=brick`
 
-Die Antwort soll ungefähr so aussehen:
+Erwartet: `Ziegelstein`, Quelle `EN`, Ziel `DE`.
 
-```json
-{
-  "translation": "Ziegelstein",
-  "source": "EN",
-  "target": "DE"
-}
+`https://DEINE-DOMAIN/api/translate?q=Beton`
+
+Erwartet: `concrete`, Quelle `DE`, Ziel `EN`.
+
+Mit Luftfahrtkontext:
+
+`/api/translate?q=approach&context=Luftfahrt`
+
+Erwartet: `Anflug`.
+
+## Passwort vergessen + E-Mail-Bestätigung aktivieren
+
+Der Code ist fertig eingebaut. Für echte E-Mails benötigt der Worker einen Mailanbieter. v13 verwendet **Resend**.
+
+Lege in Cloudflare unter den Worker-Einstellungen folgende Secrets / Variablen an:
+
+- `RESEND_API_KEY` – als Secret
+- `MAIL_FROM` – z. B. `VocabFast <noreply@deine-domain.de>`
+
+Für Produktion muss die Absenderdomain beim Mailanbieter verifiziert sein. API-Schlüssel niemals in GitHub eintragen.
+
+Ohne diese beiden Werte funktionieren Registrierung/Login und Cloud-Speicherung trotzdem; E-Mail-Bestätigung wird dann nicht erzwungen. „Passwort vergessen“ zeigt bewusst an, dass der Mailversand noch eingerichtet werden muss.
+
+## Cloud-Speicherung
+
+Persönliche Daten werden nach Anmeldung serverseitig im Durable Object gespeichert:
+
+- eigene Vokabeln
+- Stufe 1 / 2 / 3 und Serien
+- gemeisterte Wörter / Erfolge
+- Lern- und Fachkontext
+
+Der Browser dient nur noch als lokaler Cache. Nach dem Abmelden werden persönliche lokale Lerndaten entfernt.
+
+## Datenprüfung
+
+Im Projekt liegt eine automatische Prüfung:
+
+```bash
+npm run validate
 ```
 
-Deutsch nach Englisch:
+Sie prüft:
 
-`https://DEINE-DOMAIN/api/translate?q=Luftfahrt`
+- exakt 4.500 Kernwörter
+- keine Duplikate im Kernwortschatz
+- korrekte A1–C1-Anzahlen
+- alle 1.086 Themenbegriffe eindeutig
+- zu jedem Themenbegriff eine deutsche Übersetzung
+- die kritischen Luftfahrtübersetzungen `approach`, `bank angle`, `altimeter`
 
-Erwartet: `aviation`, Quelle `DE`, Ziel `EN`.
+## Hinweis zu den A1–C1-Stufen
 
-### 3. Konto
-
-In der App links auf **Konto** gehen, registrieren und danach ein Wort hinzufügen. Die App speichert Wörter, Erfolge und Profiländerungen automatisch in den Cloudflare-Kontospeicher.
-
-## Konten – aktueller Stand
-
-v11 unterstützt E-Mail + Passwort. Passwörter werden nicht im Klartext gespeichert, sondern mit PBKDF2 + individuellem Salt abgeleitet. Sitzungen laufen über ein HttpOnly/Secure-Cookie.
-
-Noch **nicht** enthalten:
-
-- Bestätigung der E-Mail-Adresse
-- Passwort-vergessen-E-Mail
-- Social Login (Google/Apple)
-
-Diese Punkte sollten vor einem öffentlichen kommerziellen Launch ergänzt werden.
-
-## Datenhaltung
-
-Ohne Login läuft VocabFast weiter im Gastmodus und hält Daten als lokalen Zwischenspeicher im Browser. Nach Login ist der Cloud-Speicher die geräteübergreifende Quelle. Beim ersten Login werden vorhandene lokale Vokabeln in ein noch leeres Konto übernommen.
-
-## DeepL
-
-DeepL bleibt optional. Für die Standard-Autoübersetzung wird Workers AI verwendet. Ein `DEEPL_API_KEY` kann später zusätzlich als Secret gesetzt werden.
-
-
-## Automatische Listenübersetzungen
-
-Beim ersten Öffnen des 4.500er-Kernwortschatzes lädt die App fehlende deutsche Bedeutungen automatisch in kleinen Batches über `/api/translate-batch`. Die sichtbare Seite wird priorisiert; anschließend wird der restliche Wortschatz im Hintergrund weiter übersetzt. Ergebnisse werden im Browser-Cache gespeichert. Themenpakete funktionieren genauso.
-
-Manuelles Anklicken von „Deutsch“ oder „DE“ ist nicht mehr nötig.
+Die A1–C1-Einteilung des Kernwortschatzes ist eine VocabFast-Lerneinteilung nach Häufigkeit/Rang und keine offizielle CEFR-Zertifizierung einzelner Wörter.

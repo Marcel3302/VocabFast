@@ -7,6 +7,12 @@
   const PROFILE_KEY = 'vocabfast.profile.v1';
   const GUEST_STATE_KEY = 'vocabfast.guest-state.v1';
   const CORE_COUNT = 4500;
+  const CORE_TRANSLATION_CONTEXT = 'General English vocabulary for a German learner from A1 to C1. Use the most common neutral German dictionary meaning. Prefer a short learner-friendly translation and avoid niche senses unless the word is clearly technical.';
+  const RESET_QUERY = new URLSearchParams(window.location.search);
+  const INITIAL_RESET_TOKEN = RESET_QUERY.get('reset') || '';
+  const INITIAL_RESET_EMAIL = RESET_QUERY.get('email') || '';
+  const INITIAL_VERIFY_TOKEN = RESET_QUERY.get('verify') || '';
+  const INITIAL_VERIFY_EMAIL = RESET_QUERY.get('email') || '';
   const app = document.getElementById('app');
 
   const CORE_FALLBACK = [
@@ -20,9 +26,10 @@
     ['however','jedoch','B1'],['although','obwohl','B1'],['therefore','deshalb','B1'],['nevertheless','dennoch','B2'],['meanwhile','inzwischen','B2'],['moreover','darüber hinaus','B2'],['achievement','Erfolg / Errungenschaft','B1'],['environment','Umwelt','A2'],['opportunity','Möglichkeit / Gelegenheit','B1'],['development','Entwicklung','B1']
   ];
 
+  const THEME_TRANSLATIONS = window.VOCABFAST_THEME_TRANSLATIONS || {};
   const THEMES = (window.VOCABFAST_THEME_PACKS || []).map(t => ({
     id: t.id, icon: t.icon, title: t.title, description: t.description, level: t.level || 'B2–C1',
-    words: (t.words || []).map(word => [String(word), '', ''])
+    words: (t.words || []).map(word => [String(word), String(THEME_TRANSLATIONS[t.id]?.[word] || ''), ''])
   }));
 
   const GRAMMAR = [
@@ -62,7 +69,7 @@
     sort: 'new',
     trainer: { queue: [], index: 0, mode: 'write', result: null, answer: '', revealed: false, levelFilter: 'all', exampleLoading: false },
     add: { input: '', translation: '', source: '', target: '', status: '', translating: false, listening: false },
-    auth: { loading: true, user: null, status: '', mode: 'login', saving: false, lastSavedAt: '' },
+    auth: { loading: true, user: null, status: '', mode: INITIAL_RESET_TOKEN ? 'reset' : (INITIAL_VERIFY_TOKEN ? 'verify' : 'login'), saving: false, lastSavedAt: '', resetToken: INITIAL_RESET_TOKEN, resetEmail: INITIAL_RESET_EMAIL, verifyToken: INITIAL_VERIFY_TOKEN, verifyEmail: INITIAL_VERIFY_EMAIL },
     core: { words: [], loading: false, loaded: false, error: '', search: '', cefr: 'all', sort: 'rank', page: 0, adding: '', translating: '' },
     themes: { selected: 'aviation', search: '', adding: '' },
     pdf: { fileName: '', status: '', words: [], selected: new Set(), search: '', loading: false, adding: false },
@@ -177,10 +184,42 @@
       if (!meRes.ok) throw new Error('Kontoserver nicht erreichbar.');
       const me = await meRes.json();
       state.auth.user = me.user || null;
+
+      // A verification link is processed before normal navigation. The endpoint
+      // does not require an active session, so it also works on a different device.
+      if (INITIAL_VERIFY_TOKEN && INITIAL_VERIFY_EMAIL) {
+        state.auth.status = 'E-Mail-Adresse wird bestätigt …';
+        try {
+          const verifyRes = await fetch('/api/auth/verify', {
+            method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin',
+            body: JSON.stringify({ email: INITIAL_VERIFY_EMAIL, token: INITIAL_VERIFY_TOKEN })
+          });
+          const verifyData = await verifyRes.json().catch(()=>({}));
+          if (!verifyRes.ok) throw new Error(verifyData.error || 'E-Mail-Adresse konnte nicht bestätigt werden.');
+          if (state.auth.user && normalize(state.auth.user.email) === normalize(INITIAL_VERIFY_EMAIL)) state.auth.user = { ...state.auth.user, emailVerified: true };
+          state.auth.status = 'E-Mail-Adresse bestätigt. Du kannst VocabFast jetzt vollständig verwenden.';
+          state.auth.verifyToken = '';
+          if (window.history?.replaceState) window.history.replaceState({},'',window.location.pathname);
+        } catch (verifyError) {
+          state.auth.status = verifyError.message || 'Bestätigungslink ist ungültig oder abgelaufen.';
+        }
+      }
+
       if (state.auth.user) await loadCloudData();
+      if (INITIAL_RESET_TOKEN) {
+        state.auth.mode = 'reset';
+        state.page = 'account';
+      } else if (INITIAL_VERIFY_TOKEN && !state.auth.user) {
+        state.auth.mode = 'login';
+        state.page = 'account';
+      } else {
+        state.page = state.auth.user ? 'home' : 'account';
+      }
     } catch (err) {
       console.warn('Auth init', err);
-      state.auth.status = 'Kontofunktion konnte nicht geladen werden. Die App läuft vorübergehend im Gastmodus.';
+      state.auth.user = null;
+      state.page = 'account';
+      state.auth.status = 'Anmeldung konnte gerade nicht geladen werden. Bitte Seite neu laden.';
     }
     state.auth.loading = false;
     render();
@@ -202,6 +241,18 @@
     } else {
       await syncCloudData();
     }
+  }
+
+  function clearLocalUserData() {
+    state.words = [];
+    state.achievements = [];
+    state.profile = { translationContext: '' };
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACHIEVEMENTS_KEY);
+      localStorage.removeItem(PROFILE_KEY);
+      localStorage.removeItem(GUEST_STATE_KEY);
+    } catch (_) {}
   }
 
   function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
@@ -244,7 +295,7 @@
       ? '<b>Konto wird geprüft …</b>'
       : state.auth.user
         ? `<b>☁ Cloud-Sync aktiv</b><br>${escapeHtml(state.auth.user.email)}${state.auth.saving?'<br>speichert …':''}`
-        : '<b>Gastmodus</b><br>Für geräteübergreifendes Speichern anmelden.';
+        : '<b>Anmeldung erforderlich</b><br>VocabFast speichert Lernfortschritte in deinem Konto.';
     return `<div class="shell">
       <aside class="sidebar">
         <button class="brand" data-page="home"><span class="brand-mark">V</span><span>VocabFast</span></button>
@@ -255,6 +306,10 @@
       <nav class="mobile-nav">${nav.map(([key,icon,label]) => `<button class="${state.page===key?'active':''}" data-page="${key}"><span>${icon}</span><small>${label}</small></button>`).join('')}</nav>
       ${state.toast ? `<div class="toast">✓ ${escapeHtml(state.toast)}</div>` : ''}
     </div>`;
+  }
+
+  function authShell(content) {
+    return `<div class="auth-gate"><div class="auth-gate-brand"><span class="brand-mark">V</span><strong>VocabFast</strong></div><main class="auth-gate-main">${content}</main></div>`;
   }
 
   function heading(eyebrow,title,subtitle) { return `<div class="heading"><p class="eyebrow">${escapeHtml(eyebrow)}</p><h1>${escapeHtml(title)}</h1><p class="subtitle">${escapeHtml(subtitle)}</p></div>`; }
@@ -336,7 +391,7 @@
 
   function accountPage() {
     const user = state.auth.user;
-    if (state.auth.loading) return shell(`<div class="page narrow">${heading('KONTO','Konto wird geladen …','Einen Moment bitte.')}</div>`);
+    if (state.auth.loading) return authShell(`<div class="page narrow">${heading('KONTO','Konto wird geladen …','Einen Moment bitte.')}</div>`);
     if (user) {
       return shell(`<div class="page narrow">
         ${heading('KONTO','Deine Lerndaten sind in der Cloud','Deine Wörter, Erfolge und dein Lernkontext sind an dein Konto gebunden und können auf anderen Geräten geladen werden.')}
@@ -345,12 +400,49 @@
           <div><p class="eyebrow">ANGEMELDET ALS</p><h3>${escapeHtml(user.email)}</h3><p class="subtitle small-subtitle">☁ Cloud-Synchronisierung aktiv${state.auth.lastSavedAt ? ` · zuletzt gespeichert ${escapeHtml(formatDate(state.auth.lastSavedAt))}` : ''}</p></div>
           <div class="account-actions"><button class="secondary" id="sync-now" type="button">↻ Jetzt synchronisieren</button><button class="danger" id="logout-btn" type="button">Abmelden</button></div>
         </section>
+        ${user.emailVerified===false ? `<div class="notice warning verification-notice"><div><b>E-Mail noch nicht bestätigt</b><span>Bestätige deine Adresse über den Link in der E-Mail.</span></div><button class="secondary" id="resend-verification" type="button">Bestätigung erneut senden</button></div>` : ''}
         ${state.auth.status ? `<div class="status account-status">${escapeHtml(state.auth.status)}</div>` : ''}
       </div>`);
     }
-    const isRegister = state.auth.mode === 'register';
-    return shell(`<div class="page narrow">
-      ${heading('KONTO',isRegister?'Kostenloses Konto erstellen':'Bei VocabFast anmelden','Mit einem Konto werden deine eigenen Wörter und Lernfortschritte serverseitig gespeichert und sind nicht mehr an einen einzelnen Browser gebunden.')}
+
+    const mode = state.auth.mode || 'login';
+    if (mode === 'forgot') {
+      return authShell(`<div class="page auth-page">
+        ${heading('PASSWORT VERGESSEN','Passwort zurücksetzen','Gib deine E-Mail-Adresse ein. Wenn ein Konto existiert, senden wir dir einen Link zum Zurücksetzen.')}
+        <section class="panel auth-panel">
+          <form id="forgot-form">
+            <label for="forgot-email">E-Mail-Adresse</label>
+            <input id="forgot-email" type="email" autocomplete="email" required placeholder="name@beispiel.de" value="${escapeHtml(state.auth.resetEmail || '')}">
+            <button class="primary wide" type="submit">Reset-Link senden</button>
+          </form>
+          <button class="text-button" type="button" data-auth-mode="login">← Zurück zur Anmeldung</button>
+          ${state.auth.status ? `<div class="status account-status">${escapeHtml(state.auth.status)}</div>` : ''}
+        </section>
+      </div>`);
+    }
+
+    if (mode === 'reset') {
+      return authShell(`<div class="page auth-page">
+        ${heading('NEUES PASSWORT','Neues Passwort festlegen','Wähle ein neues Passwort mit mindestens 8 Zeichen.')}
+        <section class="panel auth-panel">
+          <form id="reset-form">
+            <label for="reset-email">E-Mail-Adresse</label>
+            <input id="reset-email" type="email" autocomplete="email" required value="${escapeHtml(state.auth.resetEmail || '')}" placeholder="name@beispiel.de">
+            <label for="reset-password">Neues Passwort</label>
+            <input id="reset-password" type="password" autocomplete="new-password" minlength="8" required placeholder="Mindestens 8 Zeichen">
+            <label for="reset-password-confirm">Passwort wiederholen</label>
+            <input id="reset-password-confirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Passwort wiederholen">
+            <button class="primary wide" type="submit">Passwort speichern</button>
+          </form>
+          <button class="text-button" type="button" data-auth-mode="login">← Zurück zur Anmeldung</button>
+          ${state.auth.status ? `<div class="status account-status">${escapeHtml(state.auth.status)}</div>` : ''}
+        </section>
+      </div>`);
+    }
+
+    const isRegister = mode === 'register';
+    return authShell(`<div class="page auth-page">
+      ${heading('VOCABFAST',isRegister?'Kostenloses Konto erstellen':'Bei VocabFast anmelden',isRegister?'Erstelle dein Konto. Deine Vokabeln und Lernfortschritte werden danach sicher mit deinem Konto synchronisiert.':'Melde dich an, um auf deine Vokabeln und Lernfortschritte zuzugreifen.')}
       <section class="panel auth-panel">
         <div class="auth-switch"><button class="${!isRegister?'active':''}" data-auth-mode="login">Anmelden</button><button class="${isRegister?'active':''}" data-auth-mode="register">Registrieren</button></div>
         <form id="auth-form">
@@ -358,7 +450,8 @@
           <label for="auth-password">Passwort</label><input id="auth-password" type="password" autocomplete="${isRegister?'new-password':'current-password'}" minlength="8" required placeholder="Mindestens 8 Zeichen">
           <button class="primary wide" type="submit">${isRegister?'Konto erstellen':'Anmelden'}</button>
         </form>
-        <p class="field-help">Beim ersten Login werden deine aktuell im Browser vorhandenen Vokabeln automatisch in dein Konto übernommen, falls in der Cloud noch keine Daten vorhanden sind.</p>
+        ${!isRegister ? '<button class="text-button forgot-link" type="button" data-auth-mode="forgot">Passwort vergessen?</button>' : ''}
+        <p class="field-help">Deine persönlichen Wörter werden nach der Anmeldung serverseitig gespeichert und sind nicht mehr an diesen Browser gebunden.</p>
         ${state.auth.status ? `<div class="status account-status">${escapeHtml(state.auth.status)}</div>` : ''}
       </section>
     </div>`);
@@ -480,13 +573,13 @@
     const levelCounts=['A1','A2','B1','B2','C1'].map(level=>[level,c.words.filter(w=>w.cefr===level).length]);
     const translatedCount = c.words.reduce((n,item)=>n + Boolean(getCachedTranslation(item.word,'','EN','DE') || FALLBACK_DICTIONARY[item.word.toLowerCase()]) ,0);
 
-    // Visible words are always prioritized. The remaining 4,500 words continue
-    // loading automatically in the background and are cached in the browser.
-    setTimeout(()=>queueAutomaticTranslations(visible.map(x=>x.word), true),0);
+    // Visible words are translated automatically in small batches and cached.
+    // This avoids flooding the Worker with hundreds of AI requests at once.
+    setTimeout(()=>queueAutomaticTranslations(visible.map(x=>x.word), true, CORE_TRANSLATION_CONTEXT),0);
 
     return shell(`<div class="page">
       ${heading('KERNWORTSCHATZ',`${CORE_COUNT.toLocaleString('de-DE')} Wörter – Englisch + Deutsch`,'Alle Kernwörter zeigen ihre deutsche Bedeutung automatisch. Du musst keinen Übersetzungsbutton mehr anklicken. Filtere nach A1 bis C1 oder sortiere nach Häufigkeit und Alphabet.')}
-      <section class="core-hero"><div><strong>${c.words.length.toLocaleString('de-DE')}</strong><span>lokal gespeicherte englische Wörter</span></div><p><b>${translatedCount.toLocaleString('de-DE')} / ${CORE_COUNT.toLocaleString('de-DE')}</b> deutsche Bedeutungen sind bereits im Cache. Fehlende Bedeutungen lädt VocabFast automatisch im Hintergrund nach.</p></section>
+      <section class="core-hero"><div><strong>${c.words.length.toLocaleString('de-DE')}</strong><span>lokal gespeicherte englische Wörter</span></div><p><b>${translatedCount.toLocaleString('de-DE')} / ${CORE_COUNT.toLocaleString('de-DE')}</b> deutsche Bedeutungen sind bereits im Cache. Fehlende Bedeutungen auf der gerade geöffneten Seite werden automatisch nachgeladen.</p></section>
       <div class="level-counts">${levelCounts.map(([level,n])=>`<button data-core-level="${level}"><b>${level}</b><span>${n.toLocaleString('de-DE')}</span></button>`).join('')}</div>
       <div class="toolbar core-toolbar three"><input id="core-search" placeholder="Englisch oder Deutsch suchen …" value="${escapeHtml(c.search)}"><select id="core-cefr"><option value="all">Alle Stufen</option>${['A1','A2','B1','B2','C1'].map(x=>`<option value="${x}" ${c.cefr===x?'selected':''}>${x}</option>`).join('')}</select><select id="core-sort"><option value="rank" ${c.sort==='rank'?'selected':''}>Häufigkeit</option><option value="az" ${c.sort==='az'?'selected':''}>A–Z</option><option value="cefr" ${c.sort==='cefr'?'selected':''}>A1 → C1</option><option value="cefr-desc" ${c.sort==='cefr-desc'?'selected':''}>C1 → A1</option></select></div>
       ${c.error ? `<div class="notice warning">${escapeHtml(c.error)}</div>` : ''}
@@ -502,18 +595,17 @@
   function themesPage() {
     const current = THEMES.find(t=>t.id===state.themes.selected) || THEMES[0];
     const q = state.themes.search.toLowerCase().trim();
-    const list = current.words.filter(([en])=>!q || en.toLowerCase().includes(q) || (getCachedTranslation(en, '', 'EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]||'').toLowerCase().includes(q));
+    const list = current.words.filter(([en,de])=>!q || en.toLowerCase().includes(q) || String(de||'').toLowerCase().includes(q));
     const known = new Set(state.words.map(w=>w.english.toLowerCase()));
-    const translatedCount=current.words.reduce((n,[en])=>n+Boolean(getCachedTranslation(en,'','EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]),0);
+    const translatedCount=current.words.reduce((n,[,de])=>n+Boolean(de),0);
 
-    setTimeout(()=>queueAutomaticTranslations(current.words.map(([en])=>en), true),0);
 
     return shell(`<div class="page">
       ${heading('THEMENWORTSCHATZ','Umfangreiche Fach- und Themenpakete',`${THEMES.reduce((n,t)=>n+t.words.length,0).toLocaleString('de-DE')} zusätzliche Begriffe neben dem 4.500er-Kernwortschatz. Die deutsche Bedeutung erscheint automatisch – ohne zusätzlichen DE-Klick.`)}
       <div class="theme-tabs">${THEMES.map(t=>`<button data-theme="${t.id}" class="${current.id===t.id?'active':''}"><span>${t.icon}</span><b>${t.title}</b><small>${t.words.length} Begriffe</small></button>`).join('')}</div>
       <section class="theme-head"><div><span class="theme-icon">${current.icon}</span><div><h2>${current.title}</h2><p>${current.description}</p><small class="field-help">${current.words.length} Begriffe · ${current.level || 'B2–C1'} orientiert · ${translatedCount}/${current.words.length} übersetzt</small></div></div></section>
       <div class="toolbar" style="grid-template-columns:1fr"><input id="theme-search" placeholder="Englisch oder Deutsch in ${current.words.length} Begriffen suchen …" value="${escapeHtml(state.themes.search)}"></div>
-      <div class="theme-word-grid">${list.map(([en])=>{const de=getCachedTranslation(en,'','EN','DE')||FALLBACK_DICTIONARY[en.toLowerCase()]||'';return `<div class="theme-word"><div><strong>${escapeHtml(en)}</strong><small>${de?escapeHtml(de):'<span class="translation-loading">Übersetzung wird automatisch geladen …</span>'}</small></div><div class="theme-actions"><button class="ghost icon-btn" data-theme-speak="${escapeHtml(en)}">🔊</button><button class="${known.has(en.toLowerCase())?'ghost':'primary'}" data-theme-add="${escapeHtml(en)}" ${known.has(en.toLowerCase())||state.themes.adding===en?'disabled':''}>${known.has(en.toLowerCase())?'✓':'＋'}</button></div></div>`;}).join('')}</div>
+      <div class="theme-word-grid">${list.map(([en,de])=>{return `<div class="theme-word"><div><strong>${escapeHtml(en)}</strong><small>${escapeHtml(de||'Übersetzung nicht hinterlegt')}</small></div><div class="theme-actions"><button class="ghost icon-btn" data-theme-speak="${escapeHtml(en)}">🔊</button><button class="${known.has(en.toLowerCase())?'ghost':'primary'}" data-theme-add="${escapeHtml(en)}" ${known.has(en.toLowerCase())||state.themes.adding===en?'disabled':''}>${known.has(en.toLowerCase())?'✓':'＋'}</button></div></div>`;}).join('')}</div>
     </div>`);
   }
 
@@ -548,11 +640,16 @@
 
   function render() {
     try {
+      if (state.auth.loading) {
+        app.innerHTML = authShell(`<div class="page auth-page">${heading('VOCABFAST','Anmeldung wird geprüft …','Einen Moment bitte.')}</div>`);
+        return;
+      }
+      if (!state.auth.user) state.page = 'account';
       const pages = { home:homePage, trainer:trainerPage, add:addPage, words:wordsPage, achievements:achievementsPage, core:corePage, themes:themesPage, pdf:pdfPage, grammar:grammarPage, account:accountPage };
-      app.innerHTML = (pages[state.page] || homePage)();
+      app.innerHTML = (!state.auth.user ? accountPage() : (pages[state.page] || homePage)());
       bind();
-      if (state.page === 'trainer' && state.trainer.mode === 'write' && !state.trainer.result) setTimeout(() => document.getElementById('answer')?.focus(), 0);
-      if (state.page === 'core' && !state.core.loaded && !state.core.loading) setTimeout(loadCoreWords,0);
+      if (state.auth.user && state.page === 'trainer' && state.trainer.mode === 'write' && !state.trainer.result) setTimeout(() => document.getElementById('answer')?.focus(), 0);
+      if (state.auth.user && state.page === 'core' && !state.core.loaded && !state.core.loading) setTimeout(loadCoreWords,0);
     } catch (error) {
       console.error(error);
       app.innerHTML = `<div class="fatal-error" style="position:static;margin:20px">Die App hat einen Fehler erkannt statt leer zu bleiben: ${escapeHtml(error && error.message ? error.message : String(error))}</div>`;
@@ -560,6 +657,7 @@
   }
 
   function setPage(page) {
+    if (!state.auth.user) { state.page = 'account'; render(); return; }
     state.page = page;
     if (page === 'trainer') initTrainer(true);
     render();
@@ -617,26 +715,81 @@
       });
     }
 
-    document.querySelectorAll('[data-auth-mode]').forEach(el=>el.addEventListener('click',()=>{state.auth.mode=el.dataset.authMode;state.auth.status='';render();}));
+    document.querySelectorAll('[data-auth-mode]').forEach(el=>el.addEventListener('click',()=>{
+      state.auth.mode=el.dataset.authMode;
+      state.auth.status='';
+      render();
+    }));
+
     document.getElementById('auth-form')?.addEventListener('submit', async e=>{
       e.preventDefault();
       const email=document.getElementById('auth-email')?.value.trim()||'';
       const password=document.getElementById('auth-password')?.value||'';
-      state.auth.status=state.auth.mode==='register'?'Konto wird erstellt …':'Anmeldung läuft …';render();
+      const registering=state.auth.mode==='register';
+      state.auth.status=registering?'Konto wird erstellt …':'Anmeldung läuft …';render();
       try{
-        const endpoint=state.auth.mode==='register'?'/api/auth/register':'/api/auth/login';
+        const endpoint=registering?'/api/auth/register':'/api/auth/login';
         const res=await fetch(endpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password}),credentials:'same-origin'});
         const data=await res.json().catch(()=>({}));
         if(!res.ok) throw new Error(data.error||'Anmeldung fehlgeschlagen.');
         saveGuestSnapshot();
-        state.auth.user=data.user||null;state.auth.status='';
+        state.auth.user=data.user||null;
+        state.auth.status='';
         await loadCloudData();
-        state.page='home';showToast(state.auth.mode==='register'?'Konto erstellt – Cloud-Sync ist aktiv.':'Angemeldet – Cloud-Daten wurden geladen.');
+        state.page='home';
+        if(registering && data.verificationRequired){state.auth.status=data.verificationSent?'Konto erstellt. Bitte bestätige deine E-Mail-Adresse über den zugesandten Link.':'Konto erstellt. E-Mail-Bestätigung konnte noch nicht versendet werden.';}
+        showToast(registering?'Konto erstellt – deine Lerndaten werden synchronisiert.':'Angemeldet – Cloud-Daten wurden geladen.');
       }catch(err){state.auth.status=err.message||'Anmeldung fehlgeschlagen.';render();}
     });
+
+    document.getElementById('forgot-form')?.addEventListener('submit', async e=>{
+      e.preventDefault();
+      const email=document.getElementById('forgot-email')?.value.trim()||'';
+      state.auth.resetEmail=email;
+      state.auth.status='Reset-Link wird angefordert …';render();
+      try{
+        const res=await fetch('/api/auth/forgot',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email}),credentials:'same-origin'});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok) throw new Error(data.error||'Reset-Link konnte nicht versendet werden.');
+        state.auth.status=data.message||'Wenn ein Konto existiert, wurde eine E-Mail versendet.';
+        render();
+      }catch(err){state.auth.status=err.message||'Reset-Link konnte nicht versendet werden.';render();}
+    });
+
+    document.getElementById('reset-form')?.addEventListener('submit', async e=>{
+      e.preventDefault();
+      const email=document.getElementById('reset-email')?.value.trim()||'';
+      const password=document.getElementById('reset-password')?.value||'';
+      const confirmPassword=document.getElementById('reset-password-confirm')?.value||'';
+      if(password!==confirmPassword){state.auth.status='Die beiden Passwörter stimmen nicht überein.';render();return;}
+      if(!state.auth.resetToken){state.auth.status='Der Reset-Link ist ungültig oder unvollständig.';render();return;}
+      state.auth.status='Passwort wird geändert …';render();
+      try{
+        const res=await fetch('/api/auth/reset',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,token:state.auth.resetToken,password}),credentials:'same-origin'});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok) throw new Error(data.error||'Passwort konnte nicht geändert werden.');
+        state.auth.resetToken='';state.auth.resetEmail=email;state.auth.mode='login';
+        if(window.history?.replaceState) window.history.replaceState({},'',window.location.pathname);
+        state.auth.status=data.message||'Passwort wurde geändert. Du kannst dich jetzt anmelden.';
+        render();
+      }catch(err){state.auth.status=err.message||'Passwort konnte nicht geändert werden.';render();}
+    });
+
+    document.getElementById('resend-verification')?.addEventListener('click',async()=>{
+      state.auth.status='Bestätigungs-E-Mail wird versendet …';render();
+      try{
+        const res=await fetch('/api/auth/resend-verification',{method:'POST',credentials:'same-origin'});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok) throw new Error(data.error||'Bestätigungs-E-Mail konnte nicht versendet werden.');
+        state.auth.status=data.message||'Bestätigungs-E-Mail wurde versendet.';render();
+      }catch(err){state.auth.status=err.message||'Bestätigungs-E-Mail konnte nicht versendet werden.';render();}
+    });
+
     document.getElementById('logout-btn')?.addEventListener('click',async()=>{
-      try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}catch(_){}
-      state.auth.user=null;state.auth.lastSavedAt='';state.auth.status='';restoreGuestSnapshot();state.page='account';render();
+      try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}catch(_){ }
+      state.auth.user=null;state.auth.lastSavedAt='';state.auth.status='';state.auth.mode='login';
+      clearLocalUserData();
+      state.page='account';render();
     });
     document.getElementById('sync-now')?.addEventListener('click',async()=>{await syncCloudData();showToast('Lerndaten synchronisiert.');});
 
@@ -816,7 +969,7 @@
     throw new Error(`Die freie Online-Übersetzung ${sourceLang} → ${targetLang} ist gerade nicht erreichbar. Das Wort muss nicht in VocabFast vorhanden sein – bitte prüfe, ob die Cloudflare Worker API unter /api/translate erreichbar ist.`);
   }
 
-  function queueAutomaticTranslations(words, priority = false) {
+  function queueAutomaticTranslations(words, priority = false, context = '') {
     const now=Date.now();
     const candidates=[...new Set((words||[]).map(x=>String(x||'').trim()).filter(Boolean))];
     for(const word of candidates){
@@ -829,7 +982,7 @@
         if(priority){const [item]=automaticTranslationQueue.splice(existingIndex,1);automaticTranslationQueue.unshift(item);}
         continue;
       }
-      const item={key,word};
+      const item={key,word,context:String(context||'')};
       automaticTranslationQueued.add(key);
       if(priority) automaticTranslationQueue.unshift(item); else automaticTranslationQueue.push(item);
     }
@@ -839,14 +992,14 @@
   async function processAutomaticTranslationQueue(){
     if(automaticTranslationRunning || !automaticTranslationQueue.length) return;
     automaticTranslationRunning=true;
-    const batch=automaticTranslationQueue.splice(0,30);
+    const batch=automaticTranslationQueue.splice(0,10);
     batch.forEach(x=>automaticTranslationQueued.delete(x.key));
     try{
       const controller=new AbortController();
       const timer=setTimeout(()=>controller.abort(),30000);
       const res=await fetch('/api/translate-batch',{
         method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({texts:batch.map(x=>x.word),source:'EN',target:'DE'}),signal:controller.signal
+        body:JSON.stringify({texts:batch.map(x=>x.word),source:'EN',target:'DE',context:batch[0]?.context||''}),signal:controller.signal
       });
       clearTimeout(timer);
       const data=await res.json().catch(()=>({}));
@@ -879,21 +1032,18 @@
       const bundled=Array.isArray(window.VOCABFAST_CORE_WORDS)?window.VOCABFAST_CORE_WORDS:[];
       if(bundled.length!==CORE_COUNT) throw new Error(`Lokale Wortdatei enthält ${bundled.length} statt ${CORE_COUNT} Wörter.`);
       state.core.words=bundled.map(x=>({...x})); state.core.loaded=true;
-      // Load translations for the complete 4,500-word package progressively.
-      // Current/visible words are reprioritized by corePage().
-      queueAutomaticTranslations(state.core.words.map(x=>x.word), false);
     }catch(err){state.core.words=[];state.core.loaded=true;state.core.error=err.message||'Lokaler Kernwortschatz konnte nicht geladen werden.';}
     state.core.loading=false;render();
   }
 
   async function addCoreWord(english) {
     if(hasWord(english))return;state.core.adding=english;render();
-    try{const german=await translateWord(english,undefined,'EN','DE');const meta=state.core.words.find(x=>x.word===english)||{};const w=createWord(english,german,'core',{cefr:meta.cefr||'',exampleEn:LOCAL_EXAMPLES[english.toLowerCase()]||''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}
+    try{const german=getCachedTranslation(english,'','EN','DE')||await translateWord(english,CORE_TRANSLATION_CONTEXT,'EN','DE');const meta=state.core.words.find(x=>x.word===english)||{};const w=createWord(english,german,'core',{cefr:meta.cefr||'',exampleEn:LOCAL_EXAMPLES[english.toLowerCase()]||''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}
     state.core.adding='';render();
   }
 
   function currentTheme(){return THEMES.find(t=>t.id===state.themes.selected)||THEMES[0];}
-  async function addThemeWord(english){if(hasWord(english))return;state.themes.adding=english;render();try{const german=await translateWord(english,undefined,'EN','DE');const w=createWord(english,german,`theme:${currentTheme().id}`,{exampleEn:''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}state.themes.adding='';render();}
+  async function addThemeWord(english){if(hasWord(english))return;state.themes.adding=english;render();try{const theme=currentTheme();const entry=theme.words.find(([en])=>en===english);const german=entry?.[1]||'';if(!german) throw new Error('Für dieses Themenwort fehlt die geprüfte deutsche Übersetzung.');const w=createWord(english,german,`theme:${theme.id}`,{exampleEn:''});state.words.unshift(w);saveWords();prefetchExample(w);showToast(`„${english}“ wurde hinzugefügt.`);}catch(err){showToast(err.message||'Wort konnte nicht hinzugefügt werden.');}state.themes.adding='';render();}
 
   async function processPdf(file) {
     state.pdf.fileName=file.name;state.pdf.status='PDF wird gelesen …';state.pdf.loading=true;state.pdf.words=[];state.pdf.selected=new Set();render();

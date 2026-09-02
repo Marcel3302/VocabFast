@@ -36,3 +36,7 @@ button.primary,button.secondary,button.ghost,button.danger,button.success,.file-
   opacity: .7;
   font-style: italic;
 }
+
+/* Authentication gate: guests see only login / registration / password reset. */
+.auth-gate{min-height:100vh;background:var(--bg);display:flex;flex-direction:column}.auth-gate-brand{height:74px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 28px;font-size:17px;font-weight:850}.auth-gate-main{flex:1;display:grid;place-items:start center;width:100%}.auth-page{width:min(680px,100%);padding-top:64px}.auth-page .heading{max-width:560px}.auth-panel{width:100%;margin:0 auto}.text-button{border:0;background:transparent;color:#aab6c1;padding:10px 2px;margin-top:8px;cursor:pointer;font-weight:750;text-decoration:underline;text-decoration-color:#43505d;text-underline-offset:4px}.text-button:hover{color:var(--text)}.forgot-link{display:block;margin-left:auto}.verification-notice{max-width:760px;margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:16px}.verification-notice div{display:grid;gap:3px}.verification-notice span{color:var(--muted);font-size:12px}
+@media(max-width:720px){.auth-gate-brand{height:62px;padding:0 18px}.auth-page{padding:38px 18px 70px}.verification-notice{align-items:stretch;flex-direction:column}.verification-notice button{width:100%}}

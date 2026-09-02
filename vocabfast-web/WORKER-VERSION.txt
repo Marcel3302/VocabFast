@@ -1,4 +1,9 @@
-VocabFast Cloudflare Worker v11
-- PBKDF2 Worker fix
-- robust auto translation EN/DE
-- automatic 4,500-word and theme translation batches
+VocabFast Cloudflare Worker v13
+- login-first flow + dashboard after session check
+- password reset + email verification flow
+- Cloudflare PBKDF2 100000 fix
+- corrected Workers AI translation language parameters (english/german)
+- deterministic curated thematic translations
+- 4500 unique core words
+- 1086 globally unique thematic terms
+- approach=Anflug, bank angle=Querneigungswinkel, altimeter=Höhenmesser
