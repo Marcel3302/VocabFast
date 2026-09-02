@@ -1,70 +1,51 @@
-# VocabFast Web MVP
+# VocabFast – stabiler MVP
 
-Ein moderner Englisch/Deutsch-Vokabeltrainer als React-Web-App, optimiert für Desktop und Smartphone.
+Diese Version ist absichtlich ohne React-, OCR-, PDF- oder sonstige npm-Abhängigkeiten gebaut. Dadurch gibt es keinen Build-Schritt und deutlich weniger Möglichkeiten für eine leere Seite.
 
 ## Enthalten
-
-- Eigene Vokabeln manuell hinzufügen
-- Automatische Englisch→Deutsch-Übersetzung über eine Cloudflare Pages Function
-- Mikrofon-Eingabe über die Browser Speech Recognition API
-- Bild-OCR mit Tesseract.js
-- PDF-Textextraktion; bei Scan-Seiten OCR-Fallback
-- Lernsystem: Stufe 3 (rot) → nach 5 richtigen in Folge Stufe 2 (gelb) → nach weiteren 5 Stufe 1 (grün)
-- Wörter deaktivieren/reaktivieren
-- Suche, Filter und Sortierung
-- Top-2000-Englischwortliste über `popular-english-words`; Übersetzungen werden bei Bedarf geladen
+- Dashboard
+- Eigene Englisch/Deutsch-Vokabeln
+- Automatische Übersetzung über eine Cloudflare Pages Function
+- Offline-Fallback für häufige Wörter
+- Mikrofon-Eingabe in unterstützten Browsern (vor allem Chrome/Edge)
 - Aussprache über Browser Speech Synthesis
-- JSON-Backup der lokalen Vokabeln
-- Responsive UI für Firmen-PC und Handy
-- Pro/Abo-Oberfläche als Platzhalter; echte Zahlung ist im MVP bewusst noch nicht aktiviert
+- Trainer mit Schreiben- und Denken-Modus
+- Stufe 3 (rot) -> nach 5 richtigen in Folge Stufe 2 (gelb) -> nach weiteren 5 Stufe 1 (grün)
+- Falsche Antwort setzt nur die aktuelle Serie auf 0
+- Wörter pausieren / aktivieren
+- Suche, Filter, Sortierung
+- JSON-Backup der Wortliste
+- Eingebauter Basiswortschatz als stabiler Ersatz für die problematische externe Top-2000-Bibliothek
 
-## Datenhaltung
+## Bewusst noch nicht enthalten
+- Abo
+- Login / Cloud-Sync
+- Bild-OCR
+- PDF-Import
+- vollständige Top-2000-Liste
 
-Der MVP speichert Vokabeln und Fortschritt in `localStorage`. Dadurch ist keine Anmeldung nötig und du kannst die App sofort testen. Die Daten sind aber an den jeweiligen Browser gebunden.
+Diese Funktionen kommen erst nach dem Stabilitätstest der Kern-App.
 
-Für eine spätere Produktivversion sollte ein Backend für Login, Synchronisierung und Abo-Status ergänzt werden.
-
-## Lokal starten
+## Lokal testen
+Du kannst `index.html` direkt öffnen. Noch besser ist ein kleiner lokaler Webserver:
 
 ```bash
-npm install
-npm run dev
+python -m http.server 8000
 ```
 
-Hinweis: Die Cloudflare Function unter `/api/translate` läuft bei reinem `vite`-Dev-Server nicht automatisch. Für den vollständigen lokalen Test inklusive Übersetzung kannst du die App bauen und mit Wrangler als Pages-Projekt starten:
+Dann im Browser `http://localhost:8000` öffnen.
 
-```bash
-npm run build
-npx wrangler pages dev dist
-```
+Hinweis: `/api/translate` funktioniert lokal nur mit einer Cloudflare-Pages-Dev-Umgebung. Ohne diese API verwendet die App für viele häufige Wörter den eingebauten Übersetzungs-Fallback; manuelle Eingabe funktioniert immer.
 
-## GitHub + Cloudflare Pages veröffentlichen
+## Cloudflare Pages + GitHub
+1. Inhalt dieses Ordners in ein GitHub-Repository hochladen.
+2. In Cloudflare Pages das Repository verbinden.
+3. Framework preset: `None`.
+4. Build command: leer lassen.
+5. Build output directory: `/` bzw. Root des Repositorys (wenn Cloudflare ein Feld verlangt, `.` verwenden).
+6. Deploy starten.
 
-1. Neues GitHub-Repository anlegen.
-2. Diesen Projektordner in das Repository pushen.
-3. In Cloudflare: **Workers & Pages → Create application → Pages → Import an existing Git repository**.
-4. Repository auswählen.
-5. Build command: `npm run build`
-6. Build output directory: `dist`
-7. Deploy starten.
+Der Ordner `functions/api/translate.js` wird von Cloudflare Pages als Function unter `/api/translate` bereitgestellt.
 
-Der Ordner `/functions` liegt absichtlich im Projekt-Root. Cloudflare Pages erkennt daraus die serverseitige Route `/api/translate`.
-
-## Übersetzungsdienst
-
-Die Demo-Function verwendet MyMemory als externen Übersetzungsdienst. Das eignet sich zum Testen, hat aber Limits und sollte vor einer kommerziellen Veröffentlichung durch einen vertraglich passenden Übersetzungsanbieter ersetzt werden.
-
-## Browser-Hinweise
-
-- Mikrofon/Spracherkennung funktioniert am zuverlässigsten in aktuellen Chromium-Browsern wie Chrome oder Edge.
-- OCR kann bei großen Bildern oder gescannten PDFs einige Sekunden dauern und läuft clientseitig im Browser.
-- Firmenrichtlinien können Mikrofon, Datei-Uploads oder externe API-Zugriffe blockieren.
-
-## Nächste sinnvolle Ausbaustufe
-
-- Benutzerkonten und Cloud-Sync (z. B. Supabase oder Cloudflare D1)
-- Stripe-Abo für Web sowie Store-Abos für iOS/Android
-- echtes Spaced-Repetition-Timing zusätzlich zum 3-Stufen-Modell
-- Import-/Export als CSV
-- Beispielsätze, Wortarten und mehrere Übersetzungsvarianten
-- Admin-Analytics und Fehlertracking
+## Daten
+Alle eigenen Wörter werden aktuell in `localStorage` dieses Browsers gespeichert. Das ist für den Firmen-PC-Test praktisch, bedeutet aber auch: anderer Browser oder anderes Gerät = eigene lokale Daten. Dafür gibt es in „Meine Wörter“ einen Backup-Export.

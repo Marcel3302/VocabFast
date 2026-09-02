@@ -4,29 +4,25 @@ export async function onRequestGet(context) {
   const source = url.searchParams.get('source') || 'en';
   const target = url.searchParams.get('target') || 'de';
 
-  if (!q) {
-    return Response.json({ error: 'Missing q parameter' }, { status: 400 });
-  }
-
-  if (q.length > 200) {
-    return Response.json({ error: 'Text too long' }, { status: 400 });
-  }
-
-  const endpoint = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${encodeURIComponent(source)}%7C${encodeURIComponent(target)}`;
+  if (!q) return json({ error: 'Missing q parameter' }, 400);
+  if (q.length > 120) return json({ error: 'Text too long' }, 400);
 
   try {
-    const response = await fetch(endpoint, {
-      headers: { 'User-Agent': 'VocabFast/0.1' },
-    });
-    if (!response.ok) throw new Error('Translation provider failed');
+    const endpoint = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=${encodeURIComponent(source)}%7C${encodeURIComponent(target)}`;
+    const response = await fetch(endpoint, { headers: { 'User-Agent': 'VocabFast/0.2' } });
+    if (!response.ok) throw new Error('Translation provider unavailable');
     const data = await response.json();
-    const translation = data?.responseData?.translatedText;
+    const translation = data && data.responseData && data.responseData.translatedText;
     if (!translation) throw new Error('No translation found');
-    return Response.json({ translation });
+    return json({ translation }, 200);
   } catch (error) {
-    return Response.json(
-      { error: error instanceof Error ? error.message : 'Translation failed' },
-      { status: 502 },
-    );
+    return json({ error: error instanceof Error ? error.message : 'Translation failed' }, 502);
   }
+}
+
+function json(data, status) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+  });
 }
