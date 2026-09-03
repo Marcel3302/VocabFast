@@ -1,7 +1,7 @@
 import {rm,mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const root=resolve(import.meta.dirname,'..'),dist=resolve(root,'dist');
-const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css'];
+const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css'];
 await rm(dist,{recursive:true,force:true});await mkdir(dist,{recursive:true});
 for(const f of files)await copyFile(resolve(root,f),resolve(dist,f));
 const indexPath=resolve(dist,'index.html');
@@ -14,5 +14,7 @@ if(!html.includes('practice-grammar-v6.js'))html=html.replace('</body>','  <scri
 if(!html.includes('grammar-topic-scores-v7.js'))html=html.replace('</body>','  <script src="grammar-topic-scores-v7.js"></script>\n</body>');
 if(!html.includes('exam-admin-v8.css'))html=html.replace('</head>','  <link rel="stylesheet" href="exam-admin-v8.css">\n</head>');
 if(!html.includes('exam-admin-v8.js'))html=html.replace('</body>','  <script src="exam-admin-v8.js"></script>\n</body>');
+if(!html.includes('v9-polish.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v9-polish.css">\n</head>');
+if(!html.includes('v9-polish.js'))html=html.replace('</body>','  <script src="v9-polish.js"></script>\n</body>');
 await writeFile(indexPath,html);
 console.log(`VocabFast build complete: ${files.length} public files -> dist/`);
