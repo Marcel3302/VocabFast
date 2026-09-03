@@ -18,4 +18,10 @@ if(!html.includes('v9-polish.css'))html=html.replace('</head>','  <link rel="sty
 if(!html.includes('v9-polish.js'))html=html.replace('</body>','  <script src="v9-polish.js"></script>\n</body>');
 if(!html.includes('v9-observer-guard.js'))html=html.replace('<script src="v9-polish.js"></script>','<script src="v9-observer-guard.js"></script>\n  <script src="v9-polish.js"></script>\n  <script src="v9-observer-restore.js"></script>');
 await writeFile(indexPath,html);
+
+const v10js=await readFile(resolve(root,'v10-admin-tools.js'),'utf8');
+const v10css=await readFile(resolve(root,'v10-admin-tools.css'),'utf8');
+await writeFile(resolve(dist,'v9-polish.js'),(await readFile(resolve(dist,'v9-polish.js'),'utf8'))+'\n'+v10js);
+await writeFile(resolve(dist,'v9-polish.css'),(await readFile(resolve(dist,'v9-polish.css'),'utf8'))+'\n'+v10css);
+
 console.log(`VocabFast build complete: ${files.length} public files -> dist/`);
