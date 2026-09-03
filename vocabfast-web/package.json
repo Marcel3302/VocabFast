@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "check": "node --check app.js && node --check grammar-data.js && node --check vocab-data.js && node --check level-index.js && node --check ui-overrides.js && node --check v4-features.js && node --check practice-grammar-v6.js && node --check src/worker.js && node --check src/worker-v3.js && node --check src/worker-v4.js",
+    "check": "node --check app.js && node --check grammar-data.js && node --check vocab-data.js && node --check level-index.js && node --check ui-overrides.js && node --check v4-features.js && node --check practice-grammar-v6.js && node --check grammar-topic-scores-v7.js && node --check src/worker.js && node --check src/worker-v3.js && node --check src/worker-v4.js",
     "deploy": "wrangler deploy",
     "preview": "wrangler dev",
     "selftest": "npm run check && npm run build && node scripts/selftest.mjs && node scripts/worker-selftest.mjs"
