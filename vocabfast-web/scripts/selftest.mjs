@@ -1,0 +1,28 @@
+import {readFile,readdir,stat} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import vm from 'node:vm';
+const root=resolve(import.meta.dirname,'..'),dist=resolve(root,'dist');
+const expected=['app.js','grammar-data.js','index.html','styles.css','ui-overrides.js','vocab-data.js'].sort();
+const got=(await readdir(dist)).sort();
+if(JSON.stringify(got)!==JSON.stringify(expected))throw new Error(`dist mismatch: ${got.join(', ')}`);
+const html=await readFile(resolve(root,'index.html'),'utf8');
+for(const id of ['cefrEstimate','cefrLevel','cefrTitle','cefrDetail','view-topics','view-words','view-practice','view-pdf','view-grammar','view-progress','view-account','selectAllLearn','selectAllPdf','selectVisiblePdfWords','toggleTopicSelection','newGrammarQuiz','newPractice','globalSort','rankPill'])if(!html.includes(`id="${id}"`))throw new Error(`missing #${id}`);
+if(/VocabFast\s+MAX/i.test(html))throw new Error('MAX still present in UI');
+for(const bad of ['_redirects','_headers'])if(got.includes(bad))throw new Error(`${bad} must not be in dist`);
+const wranglerText=await readFile(resolve(root,'wrangler.jsonc'),'utf8');
+const wrangler=JSON.parse(wranglerText);
+if(wrangler.main!=='./src/worker.js')throw new Error('Worker main missing');
+if(wrangler.d1_databases?.length)throw new Error('D1 must not be required by this version');
+if(!wrangler.r2_buckets?.some(x=>x.binding==='PDFS'))throw new Error('R2 PDFS binding missing');
+if(!wrangler.assets?.run_worker_first?.includes('/api/*'))throw new Error('/api worker routing missing');
+const ctx={window:{}};vm.createContext(ctx);vm.runInContext(await readFile(resolve(root,'vocab-data.js'),'utf8'),ctx);vm.runInContext(await readFile(resolve(root,'grammar-data.js'),'utf8'),ctx);
+let words=[];const walk=n=>{words.push(...(n.words||[]));for(const c of n.children||[])walk(c)};for(const n of ctx.window.VOCAB_DATA||[])walk(n);
+const c2=words.filter(w=>w.level==='C2').length;
+if(words.length<6600)throw new Error(`Too few vocab entries: ${words.length}`);
+if(c2<900)throw new Error(`Too few C2 entries: ${c2}`);
+const grammar=ctx.window.GRAMMAR_DATA||[];if(grammar.length<15)throw new Error('Grammar explanations too small');
+for(const level of ['A1','A2','B1','B2','C1','C2']){const q=grammar.filter(g=>g.level===level).flatMap(g=>g.questions||[]).length;if(q<8)throw new Error(`${level} has too few grammar questions: ${q}`);}
+for(const f of got){if((await stat(resolve(dist,f))).size===0)throw new Error(`${f} is empty`);}
+const app=await readFile(resolve(root,'app.js'),'utf8');
+for(const phrase of ['Geschätztes Niveau','switchView(\'words\')','Alles abwählen','Sichtbare abwählen','10 neue Fragen','Cloud-Synchronisierung'])if(!app.includes(phrase)&&!html.includes(phrase))throw new Error(`Feature marker missing: ${phrase}`);
+console.log(`Selftest OK: ${words.length} vocab entries (${c2} C2), ${grammar.length} grammar modules, R2 cloud storage, selection toggles, practice and static assets verified.`);

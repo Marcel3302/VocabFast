@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09111a">
+  <meta name="description" content="VocabFast – umfangreiches Englisch-, Fachsprachen- und Grammatiktraining mit Cloud-Synchronisierung.">
+  <title>VocabFast</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <button id="mobileMenu" class="icon-btn mobile-only" aria-label="Menü öffnen">☰</button>
+  <div class="brand" data-view-link="words" title="VocabFast">
+    <div class="logo">VF</div>
+    <div class="brand-copy"><strong>VocabFast</strong><small>Englisch • Fachsprache • Grammatik • PDF</small></div>
+  </div>
+  <nav id="mainNav" class="main-nav" aria-label="Hauptnavigation">
+    <button data-view="topics">Themen</button>
+    <button data-view="words" class="active">Meine Wörter</button>
+    <button data-view="practice">Üben</button>
+    <button data-view="pdf">PDF-Bibliothek</button>
+    <button data-view="grammar">Grammatik</button>
+    <button data-view="progress">Fortschritt</button>
+    <button data-view="account">Konto</button>
+  </nav>
+  <div class="top-tools">
+    <label class="compact-control" title="Diese Sortierung gilt für Wortlisten auf der gesamten Website">
+      <span>Sortierung</span>
+      <select id="globalSort">
+        <option value="importance-desc">Wichtigkeit ↓</option>
+        <option value="level-asc">Level A1 → C2</option>
+        <option value="level-desc">Level C2 → A1</option>
+        <option value="alpha">A → Z</option>
+      </select>
+    </label>
+    <button id="rankPill" class="rank-pill" data-view-link="progress" title="Fortschritt ansehen">Bronze III · 0 XP</button>
+    <button id="userPill" class="user-pill" data-view-link="account">Anmelden</button>
+  </div>
+</header>
+
+<div id="syncBanner" class="sync-banner hidden"></div>
+
+<main>
+  <section id="view-topics" class="view">
+    <div class="topics-layout">
+      <aside id="topicSidebar" class="sidebar">
+        <div class="side-head">
+          <div><div class="eyebrow">Wortschatz</div><h2>Themen</h2></div>
+          <button id="collapseSidebar" class="icon-btn" title="Seitenleiste einklappen">‹</button>
+        </div>
+        <input id="topicSearch" class="search" placeholder="Themen suchen …" autocomplete="off">
+        <div class="tree-toolbar">
+          <button id="toggleAllTopics" class="tiny-btn">Alle öffnen</button>
+          <span class="muted tiny">Start: eingeklappt</span>
+        </div>
+        <div id="topicTree" class="topic-tree"></div>
+        <button id="newTopic" class="btn primary full">＋ Eigenes Thema</button>
+      </aside>
+
+      <div class="content topic-content">
+        <div class="hero">
+          <div>
+            <div id="crumb" class="crumb">Themen</div>
+            <h1 id="topicTitle">Alle Themen</h1>
+            <p id="topicSubtitle" class="muted"></p>
+          </div>
+          <div class="actions wrap">
+            <button id="toggleTopicSelection" class="btn">Sichtbare markieren</button>
+            <button id="addSelectedTopic" class="btn">Markierte hinzufügen</button>
+            <button id="addAllTopic" class="btn primary">＋ Alle sichtbaren Wörter</button>
+          </div>
+        </div>
+
+        <div class="filterbar">
+          <input id="wordSearch" class="search grow" placeholder="Wörter suchen …">
+          <select id="levelFilter">
+            <option value="">A1–C2 / alle Level</option>
+            <option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option>
+          </select>
+          <select id="importanceFilter">
+            <option value="">Alle Wichtigkeiten</option>
+            <option value="5">5 – sehr wichtig</option>
+            <option value="4">4 – wichtig</option>
+            <option value="3">3 – mittel</option>
+            <option value="2">2 – speziell</option>
+            <option value="1">1 – selten</option>
+          </select>
+          <label class="check-label"><input type="checkbox" id="missingOnly"> nur nicht gespeichert</label>
+        </div>
+        <p class="hint">„Wichtigkeit“ ist eine Lernpriorität: häufige Grundlagen und sicherheits-/fachrelevante Kernbegriffe stehen höher; seltene C2-/Native-Begriffe bleiben trotzdem vollständig verfügbar.</p>
+        <div id="subcats" class="cards"></div>
+        <div id="topicSelectionInfo" class="selection-line muted"></div>
+        <div id="wordTable" class="word-table"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-words" class="view active">
+    <div class="panel wide">
+      <div class="hero">
+        <div><div class="eyebrow">Deine Sammlung</div><h1>Meine Wörter</h1><p class="muted">Markieren, sortieren, gesammelt löschen oder direkt in eine Übung übernehmen.</p></div>
+        <div class="actions wrap">
+          <button id="selectAllLearn" class="btn">Alle markieren</button>
+          <button id="practiceSelected" class="btn success">Markierte üben</button>
+          <button id="deleteSelectedLearn" class="btn danger">Markierte löschen</button>
+          <button id="deleteAllLearn" class="btn danger">Alle Wörter löschen</button>
+          <button id="exportLearn" class="btn">CSV</button>
+        </div>
+      </div>
+      <div class="filterbar">
+        <input id="learnSearch" class="search grow" placeholder="Gespeicherte Wörter durchsuchen …">
+        <select id="learnLevelFilter"><option value="">Alle Level</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select>
+        <select id="learnImportanceFilter"><option value="">Alle Wichtigkeiten</option><option value="5">5 – sehr wichtig</option><option value="4">4 – wichtig</option><option value="3">3 – mittel</option><option value="2">2 – speziell</option><option value="1">1 – selten</option></select>
+        <span id="learnSelectionInfo" class="muted"></span>
+      </div>
+      <div id="learningTable" class="word-table"></div>
+    </div>
+  </section>
+
+  <section id="view-practice" class="view">
+    <div class="panel wide">
+      <div class="hero">
+        <div><div class="eyebrow">Worttraining</div><h1>Üben</h1><p class="muted">10 Fragen pro Runde. Richtige Antworten bringen XP und bauen deinen Rang aus.</p></div>
+        <div class="actions wrap">
+          <select id="practiceMode"><option value="mixed">Gemischt</option><option value="en-de">Englisch → Deutsch</option><option value="de-en">Deutsch → Englisch</option><option value="typing">Tippen</option></select>
+          <select id="practiceLevel"><option value="">Alle Level</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select>
+          <button id="newPractice" class="btn primary">10 neue Fragen</button>
+        </div>
+      </div>
+      <div class="practice-summary">
+        <div><span class="muted">Runde</span><strong id="practiceRoundScore">0 / 0</strong></div>
+        <div><span class="muted">Quelle</span><strong id="practiceSource">Meine Wörter</strong></div>
+        <div><span class="muted">Tipp</span><strong>Regelmäßig kurze Runden sind effektiver als seltene Marathon-Sessions.</strong></div>
+      </div>
+      <div id="practiceBox" class="quiz"></div>
+    </div>
+  </section>
+
+  <section id="view-pdf" class="view">
+    <div class="panel wide">
+      <div class="hero">
+        <div><div class="eyebrow">Dokumente</div><h1>PDF-Bibliothek</h1><p class="muted">Angemeldete Nutzer speichern PDFs im Cloudflare-Speicher und können sie auf jedem Gerät wieder öffnen.</p></div>
+        <label class="btn primary filebtn">＋ PDF hinzufügen<input id="pdfInput" type="file" accept="application/pdf" multiple></label>
+      </div>
+      <div class="contextbox">
+        <label>Fachgebiet / Dokumentkontext <span class="muted">optional</span></label>
+        <input id="pdfContext" placeholder="z. B. Luftfahrt – Wartungshandbuch / Hydraulik">
+      </div>
+      <div class="actions pdf-actions wrap">
+        <button id="selectAllPdf" class="btn">Alle PDFs markieren</button>
+        <button id="deleteSelectedPdf" class="btn danger">Markierte PDFs löschen</button>
+        <button id="deleteAllPdf" class="btn danger">Alle PDFs löschen</button>
+      </div>
+      <div id="pdfLibrary" class="pdf-library"></div>
+
+      <div id="pdfAnalysis" class="analysis hidden">
+        <div class="analysis-head">
+          <div><div class="eyebrow">PDF-Wortanalyse</div><h2 id="analysisTitle">PDF analysieren</h2><p id="analysisStatus" class="muted"></p></div>
+          <button id="closeAnalysis" class="btn">Schließen</button>
+        </div>
+        <div class="filterbar">
+          <input id="pdfWordSearch" class="search grow" placeholder="Erkannte Wörter filtern …">
+          <button id="selectVisiblePdfWords" class="btn">Sichtbare markieren</button>
+          <button id="addPdfWords" class="btn primary">0 Wörter hinzufügen</button>
+        </div>
+        <div id="pdfWordCloud" class="word-cloud"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-grammar" class="view">
+    <div class="panel wide">
+      <div class="hero">
+        <div><div class="eyebrow">A1 bis C2</div><h1>Grammatik</h1><p class="muted">Erklärung verstehen, Beispiele ansehen und anschließend direkt trainieren.</p></div>
+        <div class="actions wrap">
+          <select id="grammarLevel"><option value="">Alle Stufen</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select>
+          <button id="newGrammarQuiz" class="btn primary">10 neue Übungen</button>
+        </div>
+      </div>
+      <div class="grammar-intro">
+        <h2>So lernst du hier</h2>
+        <p>Jedes Grammatikthema zeigt <strong>Verwendung</strong>, <strong>Form</strong>, <strong>Signalwörter</strong>, <strong>Beispiele</strong> und typische <strong>Fehlerquellen</strong>. Darunter werden automatisch zehn passende Aufgaben erstellt. Mit „10 neue Übungen“ bekommst du sofort eine neue Runde.</p>
+      </div>
+      <div id="grammarTopics" class="grammar-list"></div>
+      <div class="section-divider"><span>Deine 10 Übungen</span></div>
+      <div id="grammarQuiz" class="quiz"></div>
+    </div>
+  </section>
+
+  <section id="view-progress" class="view">
+    <div class="panel wide">
+      <div class="hero"><div><div class="eyebrow">Motivation & Erfolge</div><h1>Fortschritt</h1><p class="muted">Dein Rang wächst mit Worttraining, Grammatik, Lernlisten und PDF-Arbeit.</p></div></div>
+      <div class="rank-dashboard">
+        <div class="rank-emblem" id="rankEmblem">B3</div>
+        <div class="rank-main">
+          <div class="muted">Aktueller Rang</div><h2 id="rankName">Bronze III</h2><div id="rankXpText" class="muted">0 XP</div>
+          <div class="progress"><div id="rankProgressBar"></div></div>
+          <div id="nextRankText" class="tiny muted"></div>
+        </div>
+      </div>
+      <div id="cefrEstimate" class="cefr-estimate">
+        <div class="cefr-badge" id="cefrLevel">A1</div>
+        <div>
+          <div class="eyebrow">Grobe Sprachlevel-Schätzung</div>
+          <h2 id="cefrTitle">Noch zu wenig Lerndaten</h2>
+          <p id="cefrDetail" class="muted">Die Schätzung wird genauer, sobald du Wörter übst und Grammatikfragen beantwortest.</p>
+          <p class="tiny muted">Orientierung nach CEFR A1–C2, kein offizieller Einstufungstest.</p>
+        </div>
+      </div>
+      <div id="statsGrid" class="stats-grid"></div>
+      <h2>Achievements</h2>
+      <div id="achievementGrid" class="achievement-grid"></div>
+      <h2>Rang-Ligen</h2>
+      <div id="rankRoadmap" class="rank-roadmap"></div>
+    </div>
+  </section>
+
+  <section id="view-account" class="view">
+    <div class="panel account-panel">
+      <div class="hero"><div><div class="eyebrow">Cloud-Synchronisierung</div><h1>Konto</h1><p class="muted">Mit E-Mail und Passwort kannst du auf jedem Gerät an deinem Lernstand weiterarbeiten.</p></div></div>
+      <div id="accountLoggedOut" class="auth-grid">
+        <form id="loginForm" class="account-card">
+          <h2>Anmelden</h2>
+          <label>E-Mail</label><input id="loginEmail" type="email" autocomplete="email" required placeholder="name@example.com">
+          <label>Passwort</label><input id="loginPassword" type="password" autocomplete="current-password" required minlength="8">
+          <button class="btn primary full" type="submit">Anmelden</button>
+        </form>
+        <form id="registerForm" class="account-card">
+          <h2>Neues Konto</h2>
+          <label>Anzeigename</label><input id="registerName" autocomplete="name" maxlength="60" placeholder="Dein Name">
+          <label>E-Mail</label><input id="registerEmail" type="email" autocomplete="email" required placeholder="name@example.com">
+          <label>Passwort</label><input id="registerPassword" type="password" autocomplete="new-password" required minlength="8" placeholder="mindestens 8 Zeichen">
+          <button class="btn primary full" type="submit">Konto erstellen</button>
+          <p class="tiny muted">Die E-Mail dient als Login. Diese Version verschickt noch keine Verifizierungs-E-Mail.</p>
+        </form>
+      </div>
+      <div id="accountLoggedIn" class="hidden">
+        <div class="account-grid">
+          <div class="account-card">
+            <h2>Profil</h2>
+            <div class="account-email" id="accountEmail"></div>
+            <label>Anzeigename</label><input id="profileName" maxlength="60">
+            <div class="actions wrap"><button id="saveProfile" class="btn primary">Profil speichern</button><button id="logout" class="btn">Abmelden</button></div>
+            <p id="syncStatus" class="muted tiny"></p>
+          </div>
+          <div class="account-card">
+            <h2>Alte Browserdaten übernehmen</h2>
+            <p>Falls du die frühere VocabFast-Version auf diesem Gerät benutzt hast, kannst du Lernwörter, eigene Themen und gespeicherte PDFs einmalig in dein Cloud-Konto importieren.</p>
+            <button id="importLegacy" class="btn">Lokale Alt-Daten importieren</button>
+            <p id="legacyStatus" class="muted tiny"></p>
+          </div>
+          <div class="account-card danger-zone">
+            <h2>Konto löschen</h2>
+            <p>Entfernt dein Konto, Lernstand und alle zugehörigen PDFs endgültig aus VocabFast.</p>
+            <label>Passwort zur Bestätigung</label><input id="deletePassword" type="password" autocomplete="current-password">
+            <button id="deleteAccount" class="btn danger">Konto endgültig löschen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<dialog id="topicDialog">
+  <form method="dialog" class="modal">
+    <div class="modal-head"><h2>Eigenes Thema erstellen</h2><button value="cancel" class="x" aria-label="Schließen">×</button></div>
+    <label>Themenname</label><input id="customTopicName" placeholder="z. B. Helicopter Hydraulics">
+    <label>Unter welchem Thema?</label><select id="customParent"></select>
+    <label>Wörter – eine Zeile pro Wort</label>
+    <textarea id="customTopicWords" rows="12" placeholder="accumulator = Hydraulikspeicher | C1"></textarea>
+    <div class="actions wrap"><button type="button" id="autoGenerateTopic" class="btn">⚡ automatisch füllen</button><button type="button" id="saveCustomTopic" class="btn primary">Thema speichern</button></div>
+  </form>
+</dialog>
+
+<script src="vocab-data.js"></script>
+<script src="grammar-data.js"></script>
+<script src="app.js"></script>
+  <script src="ui-overrides.js"></script>
+</body>
+</html>
