@@ -7,6 +7,7 @@ const USER_SESSION_DAYS=30;
 const PASSWORD_ITERATIONS=100000;
 const API_VERSION='vocabfast-v5-admin-tests';
 const TEST_MODEL='@cf/google/gemma-4-26b-a4b-it';
+const ADMIN_BOOTSTRAP_SHA256='37f6f11060b8d58072efe74ff4e891491cc8c524afa3e44a325193eae47b6f12';
 const enc=new TextEncoder();
 
 function json(data,status=200,headers={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-VocabFast-API':API_VERSION,...headers}})}
@@ -45,7 +46,7 @@ async function changeOwnPassword(req,env){const u=await regularUser(req,env);if(
 
 async function adminSession(req,env){const raw=parseCookies(req)[ADMIN_COOKIE];if(!raw)return null;const h=await hexHash(raw),b=bucket(env),s=await getJson(b,adminSessionKey(h));if(!s||s.expiresAt<=Date.now())return null;return {username:'admin',createdAt:s.createdAt,expiresAt:s.expiresAt}}
 async function requireAdmin(req,env){const a=await adminSession(req,env);if(!a)throw Object.assign(new Error('Admin-Anmeldung erforderlich.'),{status:401,code:'ADMIN_REQUIRED'});return a}
-async function adminLogin(req,env){const x=await body(req),username=clean(x.username,40),password=String(x.password||''),expectedUser=String(env.ADMIN_USERNAME||'admin');if(username!==expectedUser)return json({error:'Admin-Zugangsdaten sind falsch.'},401);if(!env.ADMIN_PASSWORD)return json({error:'Admin-Passwort ist in Cloudflare noch nicht als Secret eingerichtet.',code:'ADMIN_SECRET_MISSING'},503);if(!safeEqual(password,String(env.ADMIN_PASSWORD)))return json({error:'Admin-Zugangsdaten sind falsch.'},401);const token=rand(),h=await hexHash(token),now=Date.now();await putJson(bucket(env),adminSessionKey(h),{createdAt:now,expiresAt:now+ADMIN_SESSION_HOURS*3600000});return json({ok:true,admin:{username:expectedUser}},200,{'Set-Cookie':cookie(ADMIN_COOKIE,token,req,ADMIN_SESSION_HOURS*3600)})}
+async function adminLogin(req,env){const x=await body(req),username=clean(x.username??x.email??x.login,80),password=String(x.password||''),expectedUser=String(env.ADMIN_USERNAME||'admin');if(username.toLowerCase()!==expectedUser.toLowerCase())return json({error:'Benutzername oder Passwort ist falsch.'},401);const passOk=env.ADMIN_PASSWORD?safeEqual(password,String(env.ADMIN_PASSWORD)):safeEqual(await hexHash(password),ADMIN_BOOTSTRAP_SHA256);if(!passOk)return json({error:'Benutzername oder Passwort ist falsch.'},401);const token=rand(),h=await hexHash(token),now=Date.now();await putJson(bucket(env),adminSessionKey(h),{createdAt:now,expiresAt:now+ADMIN_SESSION_HOURS*3600000});return json({ok:true,admin:{username:expectedUser,role:'admin'}},200,{'Set-Cookie':cookie(ADMIN_COOKIE,token,req,ADMIN_SESSION_HOURS*3600)})}
 async function adminLogout(req,env){const raw=parseCookies(req)[ADMIN_COOKIE];if(raw)await bucket(env).delete(adminSessionKey(await hexHash(raw))).catch(()=>{});return json({ok:true},200,{'Set-Cookie':cookie(ADMIN_COOKIE,'',req,0)})}
 async function usersList(req,env){await requireAdmin(req,env);const b=bucket(env),keys=await listKeys(b,'accounts/profiles/'),users=[];for(const k of keys){const p=await getJson(b,k);if(!p?.id)continue;const s=await getJson(b,stateKey(p.id))||{};users.push({...publicProfile(p),words:Array.isArray(s.learning)?s.learning.length:0,xp:Number(s.stats?.xp||0),grammarAnswered:Number(s.stats?.grammarAnswered||0),vocabAnswered:Number(s.stats?.vocabAnswered||0)});}users.sort((a,z)=>(z.createdAt||0)-(a.createdAt||0));return json({users})}
 async function userDetail(req,env,id){await requireAdmin(req,env);const b=bucket(env),p=await getJson(b,profileKey(id));if(!p)return json({error:'Konto nicht gefunden.'},404);const s=await getJson(b,stateKey(id))||{};const pdfCount=(await listKeys(b,`pdfmeta/${id}/`)).length;return json({profile:publicProfile(p),state:s,pdfCount})}
@@ -70,6 +71,6 @@ export default{async fetch(request,env){const path=new URL(request.url).pathname
   if(path==='/api/tests/grammar/generate'&&request.method==='POST')return grammarTest(request,env);
   if(path==='/api/account/password'&&request.method==='POST')return changeOwnPassword(request,env);
   if(path==='/api/me'&&request.method==='GET')return augmentedMe(request,env);
-  if(path==='/api/auth/login'&&request.method==='POST'){const blocked=await blockDisabledLogin(request,env);if(blocked)return blocked}
+  if(path==='/api/auth/login'&&request.method==='POST'){const x=await body(request.clone()),identifier=clean(x.email??x.username??x.login,80),expectedUser=String(env.ADMIN_USERNAME||'admin');if(identifier.toLowerCase()===expectedUser.toLowerCase())return adminLogin(request,env);const blocked=await blockDisabledLogin(request,env);if(blocked)return blocked}
   return workerV4.fetch(request,env);
 }catch(e){console.error('v5 error',e?.stack||e);return json({error:e?.message||'Interner Serverfehler.',code:e?.code},e?.status||500)}}};
