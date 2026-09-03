@@ -1,6 +1,6 @@
 {
   "name": "vocabfast-web",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,6 @@
     "preview": "wrangler dev"
   },
   "devDependencies": {
-    "wrangler": "^4.40.0"
+    "wrangler": "4.128.0"
   }
 }

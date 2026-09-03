@@ -1,17 +1,18 @@
-# VocabFast – Cloudflare Worker Ready
+# VocabFast – GitHub / Cloudflare Worker
 
-Dieser Ordner `vocabfast-web` ist das komplette Cloudflare-Projekt.
+Dieser Ordner `vocabfast-web` ist das komplette Projekt.
 
-## Cloudflare Build-Konfiguration
+## Cloudflare Workers Builds
 
 - Build-Befehl: `npm run build`
 - Bereitstellungsbefehl: `npx wrangler deploy`
 - Versionsbefehl: `npx wrangler versions upload`
-- Stammverzeichnis: `vocabfast-web` (ohne führenden Slash)
+- Stammverzeichnis: `vocabfast-web` (ohne führenden `/`)
 - Produktions-Branch: `main`
 
-`wrangler.jsonc` veröffentlicht automatisch `./dist` als statische Website.
+`wrangler.jsonc` veröffentlicht `./dist` als Workers Static Assets.
+Compatibility-Date: `2026-09-02`.
 
-## GitHub
+## Update
 
-Den Ordner `vocabfast-web` direkt im Repository ablegen. Alte Dateien außerhalb dieses Ordners werden ignoriert, wenn Cloudflare als Stammverzeichnis `vocabfast-web` verwendet.
+Den bestehenden Ordner `vocabfast-web` im Repository durch den Inhalt dieser Version ersetzen, committen und auf `main` pushen.
