@@ -2,7 +2,7 @@ import {readFile,readdir,stat} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import vm from 'node:vm';
 const root=resolve(import.meta.dirname,'..'),dist=resolve(root,'dist');
-const expected=['app.js','grammar-data.js','index.html','styles.css','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css','v9-observer-guard.js','v9-observer-restore.js','vocab-data.js'].sort();
+const expected=['app.js','grammar-data.js','index.html','styles.css','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css','v9-observer-guard.js','v9-observer-restore.js','v11-admin-dashboard.js','v11-admin-dashboard.css','vocab-data.js'].sort();
 const got=(await readdir(dist)).sort();
 if(JSON.stringify(got)!==JSON.stringify(expected))throw new Error(`dist mismatch: ${got.join(', ')}`);
 const html=await readFile(resolve(root,'index.html'),'utf8');
@@ -28,5 +28,7 @@ if(workerV5.includes("ADMIN_PASSWORD||'admin'")||workerV5.includes("ADMIN_PASSWO
 const v9=await readFile(resolve(root,'v9-polish.js'),'utf8');for(const marker of ['installUnifiedAdminLogin','cleanLegacyUi','renderCertificateArchive','previewCertificate','v9-quick-pro','v9-quick-lock','Urkunde als PDF'])if(!v9.includes(marker))throw new Error(`V9 UI missing: ${marker}`);
 if(!v9.includes('0,5 Sekunden'))throw new Error('Corrected practice sentence missing');
 const workerV9=await readFile(resolve(root,'src/worker-v5.js'),'utf8');for(const marker of ['ADMIN_BOOTSTRAP_SHA256','identifier.toLowerCase()===expectedUser.toLowerCase()'])if(!workerV9.includes(marker))throw new Error(`Unified admin login missing: ${marker}`);
-const built=await readFile(resolve(dist,'index.html'),'utf8');for(const asset of ['exam-admin-v8.js','exam-admin-v8.css','v9-observer-guard.js','v9-polish.js','v9-observer-restore.js','v9-polish.css'])if(!built.includes(asset))throw new Error(`${asset} not injected into dist index`);
-console.log(`Selftest OK: ${words.length} vocab (${c2} C2), ${grammar.length} grammar modules, v9 tests/certificates/unified-admin/Pro controls verified.`);
+const v11=await readFile(resolve(root,'v11-admin-dashboard.js'),'utf8');for(const marker of ['VocabFast Verwaltung','Prüfungen & Kapitelbewertungen','Kapitelbewertungen speichern','Gespeicherte Wörter'])if(!v11.includes(marker))throw new Error(`V11 admin dashboard missing: ${marker}`);
+const css11=await readFile(resolve(root,'v11-admin-dashboard.css'),'utf8');if(!css11.includes('.v11-admin-stats')||!css11.includes('.v11-tabs'))throw new Error('V11 admin styles missing');
+const built=await readFile(resolve(dist,'index.html'),'utf8');for(const asset of ['exam-admin-v8.js','exam-admin-v8.css','v9-observer-guard.js','v9-polish.js','v9-observer-restore.js','v9-polish.css','v11-admin-dashboard.js','v11-admin-dashboard.css'])if(!built.includes(asset))throw new Error(`${asset} not injected into dist index`);
+console.log(`Selftest OK: ${words.length} vocab (${c2} C2), ${grammar.length} grammar modules, visual admin dashboard verified.`);
