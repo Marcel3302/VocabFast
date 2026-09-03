@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vocabfast",
-  "main": "./src/worker-v5.js",
+  "main": "./src/worker-v6.js",
   "compatibility_date": "2026-09-02",
   "assets": {
     "directory": "./dist",
