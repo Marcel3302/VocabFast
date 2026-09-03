@@ -1,7 +1,7 @@
 import {rm,mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const root=resolve(import.meta.dirname,'..'),dist=resolve(root,'dist');
-const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css','v9-observer-guard.js','v9-observer-restore.js','v11-admin-dashboard.js','v11-admin-dashboard.css'];
+const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css','v9-observer-guard.js','v9-observer-restore.js','v11-admin-dashboard.js','v11-admin-dashboard.css','v12-pro.js','v12-pro.css'];
 await rm(dist,{recursive:true,force:true});await mkdir(dist,{recursive:true});
 for(const f of files)await copyFile(resolve(root,f),resolve(dist,f));
 const indexPath=resolve(dist,'index.html');
@@ -19,6 +19,8 @@ if(!html.includes('v9-polish.js'))html=html.replace('</body>','  <script src="v9
 if(!html.includes('v9-observer-guard.js'))html=html.replace('<script src="v9-polish.js"></script>','<script src="v9-observer-guard.js"></script>\n  <script src="v9-polish.js"></script>\n  <script src="v9-observer-restore.js"></script>');
 if(!html.includes('v11-admin-dashboard.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v11-admin-dashboard.css">\n</head>');
 if(!html.includes('v11-admin-dashboard.js'))html=html.replace('</body>','  <script src="v11-admin-dashboard.js"></script>\n</body>');
+if(!html.includes('v12-pro.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v12-pro.css">\n</head>');
+if(!html.includes('v12-pro.js'))html=html.replace('</body>','  <script src="v12-pro.js"></script>\n</body>');
 await writeFile(indexPath,html);
 
 const v10js=await readFile(resolve(root,'v10-admin-tools.js'),'utf8');
