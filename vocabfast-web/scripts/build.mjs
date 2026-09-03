@@ -1,11 +1,12 @@
 import {rm,mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const root=resolve(import.meta.dirname,'..'),dist=resolve(root,'dist');
-const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','ui-overrides.js'];
+const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js'];
 await rm(dist,{recursive:true,force:true});await mkdir(dist,{recursive:true});
 for(const f of files)await copyFile(resolve(root,f),resolve(dist,f));
 const indexPath=resolve(dist,'index.html');
 let html=await readFile(indexPath,'utf8');
+if(!html.includes('level-index.js'))html=html.replace('<script src="app.js"></script>','<script src="level-index.js"></script>\n<script src="app.js"></script>');
 if(!html.includes('ui-overrides.js'))html=html.replace('</body>','  <script src="ui-overrides.js"></script>\n</body>');
 await writeFile(indexPath,html);
 console.log(`VocabFast build complete: ${files.length} public files -> dist/`);
