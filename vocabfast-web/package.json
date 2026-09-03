@@ -1,14 +1,10 @@
 {
-  "name": "vocabfast-cloudflare-worker",
-  "version": "0.13.0",
+  "name": "vocabfast-web",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "validate": "node scripts/validate-data.mjs"
-  },
-  "devDependencies": {
-    "wrangler": "^4.68.0"
+    "build": "node scripts/build.mjs",
+    "check": "node --check app.js && node --check vocab-data.js"
   }
 }

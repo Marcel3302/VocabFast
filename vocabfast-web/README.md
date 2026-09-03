@@ -1,29 +1,27 @@
-# VocabFast MAX
+# VocabFast – Cloudflare One-Folder Version
 
-Statische Vokabel-, PDF- und Grammatik-Lernapp für GitHub Pages oder Cloudflare Pages.
+Dieser Ordner ist ein vollständiges eigenständiges Webprojekt.
 
-## Funktionen
-- Mehr als 6.000 integrierte Vokabeleinträge von A1 bis C2/Native, inklusive tiefer Luftfahrt-/Hubschrauber-Fachthemen.
-- Komplette Themen oder Unterthemen mit einem Klick zur Lernliste hinzufügen.
-- Eigene Themen erstellen und automatisch mit passenden vorhandenen Wörtern füllen.
-- Lernliste: Mehrfachauswahl, markierte Wörter löschen, alles löschen, CSV-Export.
-- PDF-Bibliothek: PDFs werden per IndexedDB lokal im Browser gespeichert; einzelne, markierte oder alle PDFs können gelöscht werden.
-- PDF-Wortanalyse: Beim Markieren eines Wortes bleibt die Scrollposition erhalten.
-- Grammatiktrainer A1–C2.
-- Konto-/Datenbereich zum Löschen aller lokal gespeicherten Daten.
+## Wichtig für das vorhandene GitHub-Repository
 
-## GitHub Pages
-1. Den Inhalt dieses Ordners in ein Repository hochladen.
-2. Settings → Pages → Deploy from a branch.
-3. Branch `main`, Ordner `/ (root)`.
+Wenn der Ordner `vocabfast-web` im Repository liegt, stelle Cloudflare Pages **einmalig** so ein:
 
-## Cloudflare Pages
-- Framework preset: **None**
-- Build command: **leer lassen**
-- Build output directory: **/** (Repository-Root)
-- `index.html` liegt direkt im Root.
+- Root directory: `vocabfast-web`
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Production branch: `main`
 
-Die App benötigt keinen Server und keinen Build-Schritt. Für die PDF-Textauswertung wird PDF.js im Browser von jsDelivr geladen. Hochgeladene PDFs und Lernfortschritt verbleiben lokal im jeweiligen Browser/Profil und werden nicht auf GitHub gespeichert.
+Danach wird ausschließlich dieser Ordner als Website gebaut. Alte Dateien außerhalb des Ordners beeinflussen die Website nicht mehr.
 
-## Hinweis zur Kontofunktion
-Diese statische Version besitzt kein serverseitiges Benutzerkonto. „Konto löschen“ löscht daher vollständig die lokalen App-Daten dieses Browsers (localStorage + IndexedDB). Für serverseitige Accounts wäre ein Auth-/Backend-Dienst nötig.
+## Künftige Updates
+
+Für spätere Updates einfach den Inhalt dieses Ordners durch die neue VocabFast-Version ersetzen bzw. committen. Cloudflare deployt nach jedem Push automatisch neu.
+
+## Lokal testen
+
+```bash
+npm run check
+npm run build
+```
+
+Die fertige statische Website liegt danach in `dist/`.
