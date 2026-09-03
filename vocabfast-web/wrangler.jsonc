@@ -1,18 +1,25 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vocabfast",
-  "main": "./src/worker-v3.js",
+  "main": "./src/worker-v4.js",
   "compatibility_date": "2026-09-02",
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "r2_buckets": [
-    { "binding": "PDFS" }
+    {
+      "binding": "PDFS"
+    }
   ],
   "observability": {
     "enabled": true
+  },
+  "ai": {
+    "binding": "AI"
   }
 }
