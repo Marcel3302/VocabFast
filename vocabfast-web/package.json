@@ -1,0 +1,16 @@
+{
+  "name": "vocabfast-web",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node --check app.js && node --check grammar-data.js && node --check vocab-data.js && node --check src/worker.js",
+    "deploy": "wrangler deploy",
+    "preview": "wrangler dev",
+    "selftest": "npm run check && npm run build && node scripts/selftest.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.128.0"
+  }
+}
