@@ -8,7 +8,7 @@ if(JSON.stringify(got)!==JSON.stringify(expected))throw new Error(`dist mismatch
 const html=await readFile(resolve(root,'index.html'),'utf8');
 for(const id of ['cefrEstimate','cefrLevel','cefrTitle','cefrDetail','view-topics','view-words','view-practice','view-pdf','view-grammar','view-progress','view-account','selectAllLearn','selectAllPdf','selectVisiblePdfWords','toggleTopicSelection','newPractice','globalSort','rankPill'])if(!html.includes(`id="${id}"`))throw new Error(`missing #${id}`);
 if(/VocabFast\s+MAX/i.test(html))throw new Error('MAX still present in UI');
-const wrangler=JSON.parse(await readFile(resolve(root,'wrangler.jsonc'),'utf8');
+const wrangler=JSON.parse(await readFile(resolve(root,'wrangler.jsonc'),'utf8'));
 if(wrangler.main!=='./src/worker-v5.js')throw new Error('Worker v5 main missing');
 if(wrangler.d1_databases?.length)throw new Error('D1 must not be required');
 if(!wrangler.r2_buckets?.some(x=>x.binding==='PDFS'))throw new Error('R2 PDFS binding missing');
@@ -24,9 +24,9 @@ const v6=await readFile(resolve(root,'practice-grammar-v6.js'),'utf8');for(const
 const v7=await readFile(resolve(root,'grammar-topic-scores-v7.js'),'utf8');if(!v7.includes('grammarTopicScores'))throw new Error('Persistent grammar scores missing');
 const v8=await readFile(resolve(root,'exam-admin-v8.js'),'utf8');for(const marker of ['10 Übungsfragen','20-Fragen-Kapiteltest','50-Fragen-Grammatiktest','50-Fragen-Wortschatztest','Urkunde als PDF','percent>90','/admin/users','Temporäres Passwort','VocabFast Pro'])if(!v8.includes(marker))throw new Error(`V8 UI missing: ${marker}`);
 const workerV5=await readFile(resolve(root,'src/worker-v5.js'),'utf8');for(const marker of ['ADMIN_PASSWORD','mustChangePassword','effectivePlan','proUntil','/api/account/password','/api/tests/grammar/generate','count=Math.max(5,Math.min(50','accounts/sessions/'])if(!workerV5.includes(marker))throw new Error(`Worker v5 missing: ${marker}`);
-if(workerV5.includes("ADMIN_PASSWORD||'admin'")||workerV5.includes('ADMIN_PASSWORD || \'admin\''))throw new Error('Insecure admin password fallback detected');
+if(workerV5.includes("ADMIN_PASSWORD||'admin'")||workerV5.includes("ADMIN_PASSWORD || 'admin'"))throw new Error('Insecure admin password fallback detected');
 const v9=await readFile(resolve(root,'v9-polish.js'),'utf8');for(const marker of ['installUnifiedAdminLogin','cleanLegacyUi','renderCertificateArchive','previewCertificate','v9-quick-pro','v9-quick-lock','Urkunde als PDF'])if(!v9.includes(marker))throw new Error(`V9 UI missing: ${marker}`);
 if(!v9.includes('0,5 Sekunden'))throw new Error('Corrected practice sentence missing');
-const workerV9=await readFile(resolve(root,'src/worker-v5.js'),'utf8');for(const marker of ['ADMIN_BOOTSTRAP_SHA256','identifier.toLowerCase()===expectedUser.toLowerCase()'])if(!workerV9.includes(marker))throw new Error(`Unified admin login missing: ${marker}`);
+for(const marker of ['ADMIN_BOOTSTRAP_SHA256','identifier.toLowerCase()===expectedUser.toLowerCase()'])if(!workerV5.includes(marker))throw new Error(`Unified admin login missing: ${marker}`);
 const built=await readFile(resolve(dist,'index.html'),'utf8');for(const asset of ['exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css'])if(!built.includes(asset))throw new Error(`${asset} not injected into dist index`);
 console.log(`Selftest OK: ${words.length} vocab (${c2} C2), ${grammar.length} grammar modules, v9 tests/certificates/unified-admin/Pro controls verified.`);
