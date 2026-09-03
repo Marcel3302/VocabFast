@@ -1,7 +1,7 @@
 import {rm,mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const root=resolve(import.meta.dirname,'..'),dist=resolve(root,'dist');
-const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css'];
+const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js'];
 await rm(dist,{recursive:true,force:true});await mkdir(dist,{recursive:true});
 for(const f of files)await copyFile(resolve(root,f),resolve(dist,f));
 const indexPath=resolve(dist,'index.html');
@@ -10,9 +10,7 @@ if(!html.includes('level-index.js'))html=html.replace('<script src="app.js"></sc
 if(!html.includes('ui-overrides.js'))html=html.replace('</body>','  <script src="ui-overrides.js"></script>\n</body>');
 if(!html.includes('v4-features.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v4-features.css">\n</head>');
 if(!html.includes('v4-features.js'))html=html.replace('</body>','  <script src="v4-features.js"></script>\n</body>');
-const practiceV5=await readFile(resolve(root,'practice-v5.js'),'utf8');
-if(!practiceV5.includes('queue=pool()')||!practiceV5.includes('setTimeout(next,650)'))throw new Error('practice-v5.js self-check failed');
-html=html.replace('10 Fragen pro Runde. Richtige Antworten bringen XP und bauen deinen Rang aus.','Alle ausgewählten Wörter werden pro Runde genau einmal abgefragt. Richtige Antworten wechseln automatisch weiter; bei falschen Antworten klickst du selbst auf Weiter.').replace('>10 neue Fragen<','>Neue Runde starten<');
-if(!html.includes('practice-v5-runtime'))html=html.replace('</body>',`  <script data-feature="practice-v5-runtime">${practiceV5.replaceAll('</script>','<\\/script>')}</script>\n</body>`);
+if(!html.includes('practice-grammar-v6.js'))html=html.replace('</body>','  <script src="practice-grammar-v6.js"></script>\n</body>');
+if(!html.includes('grammar-topic-scores-v7.js'))html=html.replace('</body>','  <script src="grammar-topic-scores-v7.js"></script>\n</body>');
 await writeFile(indexPath,html);
 console.log(`VocabFast build complete: ${files.length} public files -> dist/`);
