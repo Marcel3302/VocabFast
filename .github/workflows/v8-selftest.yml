@@ -1,7 +1,7 @@
-name: VocabFast v8 selftest
+name: VocabFast selftest
 on:
   push:
-    branches: [feature-tests-admin-v8]
+    branches: [main]
   workflow_dispatch:
 jobs:
   selftest:
