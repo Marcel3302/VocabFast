@@ -1,29 +1,9 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vocabfast",
-  "main": "./src/index.js",
-  "compatibility_date": "2026-09-02",
-  "ai": {
-    "binding": "AI"
-  },
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "USER_STORE",
-        "class_name": "UserStore"
-      }
-    ]
-  },
-  "migrations": [
-    {
-      "tag": "v1-user-store",
-      "new_sqlite_classes": ["UserStore"]
-    }
-  ],
+  "compatibility_date": "2026-09-03",
   "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    "run_worker_first": ["/api/*"],
+    "directory": "./dist",
     "not_found_handling": "single-page-application"
   },
   "observability": {
