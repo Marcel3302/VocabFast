@@ -1,6 +1,6 @@
 const SESSION_COOKIE = 'vf_session';
 const SESSION_DAYS = 30;
-const API_VERSION = 'r2-account-v1';
+const API_VERSION = 'r2-account-v2';
 
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
@@ -32,13 +32,13 @@ function bytesToBase64(bytes) {
   return btoa(s);
 }
 function base64ToBytes(s) {
-  const raw = atob(s);
-  return Uint8Array.from(raw, c => c.charCodeAt(0));
+  if (typeof s !== 'string' || !s.length) throw Object.assign(new Error('Kontodaten sind beschädigt. Bitte Konto neu erstellen.'), { status: 409, code: 'ACCOUNT_DATA_INVALID' });
+  try { const raw = atob(s); return Uint8Array.from(raw, c => c.charCodeAt(0)); }
+  catch { throw Object.assign(new Error('Kontodaten sind beschädigt. Bitte Konto neu erstellen.'), { status: 409, code: 'ACCOUNT_DATA_INVALID' }); }
 }
 function bytesToHex(bytes) { return [...bytes].map(b => b.toString(16).padStart(2, '0')).join(''); }
 function randomToken(bytes = 32) {
-  return bytesToBase64(crypto.getRandomValues(new Uint8Array(bytes)))
-    .replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+  return bytesToBase64(crypto.getRandomValues(new Uint8Array(bytes))).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 }
 async function sha256Hex(input) {
   const data = new TextEncoder().encode(input);
@@ -170,13 +170,20 @@ async function apiRouter(request, env) {
       if (!/^\S+@\S+\.\S+$/.test(email)) return error('Bitte eine gültige E-Mail eingeben.');
       if (password.length < 8) return error('Das Passwort muss mindestens 8 Zeichen lang sein.');
       const eKey = await emailKey(email);
-      if (await bucket.head(eKey)) return error('Für diese E-Mail existiert bereits ein Konto.', 409);
+      const oldIndex = await getJson(bucket, eKey);
+      if (oldIndex?.userId) {
+        const oldProfile = await getJson(bucket, profileKey(oldIndex.userId));
+        if (oldProfile?.passwordHash && oldProfile?.passwordSalt) return error('Für diese E-Mail existiert bereits ein Konto.', 409);
+        await bucket.delete(eKey).catch(() => {});
+      }
 
       const id = crypto.randomUUID();
       const salt = crypto.getRandomValues(new Uint8Array(16));
-      const passwordHash = await hashPassword(password, salt);
+      let passwordHash;
+      try { passwordHash = await hashPassword(password, salt); }
+      catch { return error('Konto konnte wegen eines Problems bei der Passwortverschlüsselung nicht erstellt werden. Bitte erneut versuchen.', 503, 'AUTH_CRYPTO_ERROR'); }
       const now = Date.now();
-      const profile = { id, email, name, passwordHash, passwordSalt: bytesToBase64(salt), createdAt: now };
+      const profile = { id, email, name, passwordHash, passwordSalt: bytesToBase64(salt), passwordAlgo: 'PBKDF2-SHA256', passwordIterations: 120000, createdAt: now };
       try {
         await putJson(bucket, profileKey(id), profile);
         await putJson(bucket, stateKey(id), defaultState());
@@ -193,12 +200,21 @@ async function apiRouter(request, env) {
       const body = await readBody(request);
       const email = normalizeEmail(body.email);
       const password = String(body.password || '');
+      if (!/^\S+@\S+\.\S+$/.test(email) || !password) return error('E-Mail oder Passwort ist falsch.', 401);
       const index = await getJson(bucket, await emailKey(email));
       if (!index?.userId) return error('E-Mail oder Passwort ist falsch.', 401);
       const profile = await getJson(bucket, profileKey(index.userId));
-      if (!profile) return error('E-Mail oder Passwort ist falsch.', 401);
-      const candidate = await hashPassword(password, base64ToBytes(profile.passwordSalt));
-      if (!safeEqual(candidate, profile.passwordHash)) return error('E-Mail oder Passwort ist falsch.', 401);
+      if (!profile) return error('Dieses Konto ist unvollständig gespeichert. Bitte registriere die E-Mail erneut.', 409, 'ACCOUNT_PROFILE_MISSING');
+      const saltValue = profile.passwordSalt ?? profile.password_salt;
+      const hashValue = profile.passwordHash ?? profile.password_hash;
+      if (!saltValue || !hashValue) return error('Dieses Konto stammt aus einer älteren fehlerhaften Version. Bitte registriere die E-Mail erneut.', 409, 'ACCOUNT_DATA_INVALID');
+      let candidate;
+      try { candidate = await hashPassword(password, base64ToBytes(saltValue)); }
+      catch (cryptoErr) {
+        if (cryptoErr?.status) throw cryptoErr;
+        return error('Passwortprüfung ist momentan nicht verfügbar. Bitte erneut versuchen.', 503, 'AUTH_CRYPTO_ERROR');
+      }
+      if (!safeEqual(candidate, hashValue)) return error('E-Mail oder Passwort ist falsch.', 401);
       const session = await createSession(bucket, profile.id, request);
       return json({ user: { id: profile.id, email: profile.email, name: profile.name, createdAt: profile.createdAt } }, 200, { 'Set-Cookie': session.cookie });
     }
@@ -209,9 +225,7 @@ async function apiRouter(request, env) {
         const dot = raw.indexOf('.');
         if (dot > 0) {
           const userId = raw.slice(0, dot), token = raw.slice(dot + 1);
-          if (/^[0-9a-f-]{20,60}$/i.test(userId) && token) {
-            await bucket.delete(sessionKey(userId, await sha256Hex(token))).catch(() => {});
-          }
+          if (/^[0-9a-f-]{20,60}$/i.test(userId) && token) await bucket.delete(sessionKey(userId, await sha256Hex(token))).catch(() => {});
         }
       }
       return json({ ok: true }, 200, { 'Set-Cookie': clearSessionCookie(request) });
@@ -319,9 +333,11 @@ async function apiRouter(request, env) {
       const password = String(body.password || '');
       const profile = await getJson(bucket, profileKey(u.id));
       if (!profile) return error('Konto nicht gefunden.', 404);
-      const candidate = await hashPassword(password, base64ToBytes(profile.passwordSalt));
-      if (!safeEqual(candidate, profile.passwordHash)) return error('Passwort ist falsch.', 401);
-
+      const saltValue = profile.passwordSalt ?? profile.password_salt;
+      const hashValue = profile.passwordHash ?? profile.password_hash;
+      if (!saltValue || !hashValue) return error('Kontodaten sind beschädigt.', 409, 'ACCOUNT_DATA_INVALID');
+      const candidate = await hashPassword(password, base64ToBytes(saltValue));
+      if (!safeEqual(candidate, hashValue)) return error('Passwort ist falsch.', 401);
       const sessionKeys = await listKeys(bucket, sessionPrefix(u.id));
       const metaKeys = await listKeys(bucket, pdfMetaPrefix(u.id));
       const fileKeys = await listKeys(bucket, `pdfs/${u.id}/`);
@@ -334,7 +350,9 @@ async function apiRouter(request, env) {
   } catch (err) {
     console.error('VocabFast API error', err?.stack || err);
     if (err?.status) return error(err.message, err.status, err.code);
-    return error('Interner Serverfehler.', 500, 'UNEXPECTED_API_ERROR');
+    const msg = String(err?.message || '');
+    if (/R2|bucket|storage|object/i.test(msg)) return error('Cloud-Speicher ist momentan nicht erreichbar. Bitte in Cloudflare die R2-Bindung PDFS prüfen.', 503, 'R2_OPERATION_FAILED');
+    return error('Interner Serverfehler. Bitte erneut versuchen.', 500, 'UNEXPECTED_API_ERROR');
   }
 }
 
