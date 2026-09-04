@@ -46,7 +46,7 @@ export const specialties: Specialty[] = [
 ];
 
 export const learningUnits: LearningUnit[] = [
-  { id: 1, title: 'Erste Gespräche', subtitle: 'Begrüßen, vorstellen, höflich reagieren & im Café bestellen', progress: 0, state: 'active', lessons: 8 },
+  { id: 1, title: 'Erste Gespräche', subtitle: 'Begrüßen, vorstellen, höflich reagieren & im Café bestellen', progress: 0, state: 'active', lessons: 3 },
   { id: 2, title: 'Menschen & Dinge', subtitle: 'Personen beschreiben, Artikel, Zahlen und Besitz ausdrücken', progress: 0, state: 'locked', lessons: 10 },
   { id: 3, title: 'Mein Alltag', subtitle: 'Tagesablauf, Uhrzeit, Gewohnheiten und einfache Fragen', progress: 0, state: 'locked', lessons: 10 },
   { id: 4, title: 'Unterwegs', subtitle: 'Orientierung, Verkehr, Reisen und einfache Reisesituationen', progress: 0, state: 'locked', lessons: 12 }

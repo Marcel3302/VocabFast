@@ -53,9 +53,13 @@ export function recordConceptAnswer(conceptIds: string[], correct: boolean) {
   return all;
 }
 
+export function getMasterySnapshot() {
+  return Object.values(readAll()).sort((a, b) => a.strength - b.strength || b.attempts - a.attempts);
+}
+
 export function getDueConcepts(reference = new Date()) {
   const now = reference.getTime();
-  return Object.values(readAll())
+  return getMasterySnapshot()
     .filter(item => new Date(item.dueAt).getTime() <= now)
     .sort((a, b) => a.strength - b.strength);
 }
