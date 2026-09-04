@@ -31,6 +31,7 @@ export default {async fetch(req,env){const path=new URL(req.url).pathname;try{
   let m=path.match(/^\/api\/admin\/users\/([^/]+)\/permissions$/);if(m)return await permissionEndpoint(req,env,decodeURIComponent(m[1]));
   m=path.match(/^\/api\/admin\/users\/([^/]+)\/progress$/);if(m)return await progressEndpoint(req,env,decodeURIComponent(m[1]));
   m=path.match(/^\/api\/admin\/users\/([^/]+)\/tests$/);if(m)return await testsEndpoint(req,env,decodeURIComponent(m[1]));
+  if(path==='/api/admin/login'||path==='/api/admin/logout')return workerV7.fetch(req,env);
   if(path.startsWith('/api/admin/'))await enforceAdmin(req,env,path);
   return workerV7.fetch(req,env);
 }catch(e){console.error('v8 staff/admin error',e);return json({error:e?.message||'Interner Serverfehler.',code:e?.code},e?.status||500)}}};
