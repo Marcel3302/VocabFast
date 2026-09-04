@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let modCtx=null,issues=[];
 async function api(path,{method='GET',body=null}={}){const o={method,credentials:'same-origin',headers:{}};if(body!==null){o.headers['Content-Type']='application/json';o.body=JSON.stringify(body)}const r=await fetch(`/api${path}`,o);let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||`Serverfehler ${r.status}`);return d}
 function toast(m){const t=$('#toast');if(!t)return alert(m);t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2800)}
