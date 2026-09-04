@@ -124,11 +124,15 @@
   }
 
   function watchAccessState(){
+    if(ADMIN_ROUTE){
+      const observer=new MutationObserver(records=>{
+        const relevant=records.some(r=>r.type==='childList'&&[...r.addedNodes].some(n=>n.nodeType===1&&(n.matches?.('#v8AdminLogin,#view-admin')||n.querySelector?.('#v8AdminLogin,#view-admin'))));
+        if(relevant)scheduleAdminCheck(40);
+      });
+      observer.observe(document.documentElement,{subtree:true,childList:true});
+      return;
+    }
     const observer=new MutationObserver(()=>{
-      if(ADMIN_ROUTE){
-        scheduleAdminCheck(100);
-        return;
-      }
       $('#v8AdminLogin')?.remove();
       const loggedIn=$('#accountLoggedIn'),loggedOut=$('#accountLoggedOut');
       if(loggedIn&&!loggedIn.classList.contains('hidden'))unlockUserApp();
