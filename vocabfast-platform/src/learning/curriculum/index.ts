@@ -1,9 +1,11 @@
 import { englishA1Lessons as englishA1Unit1Lessons } from './en-a1';
 import { englishA1Unit2Lessons } from './en-a1-unit2';
-import { englishA2Units, englishB1Units, englishB2Units, englishC1Units } from './advanced';
+import { englishA2Units as englishA2UnitsRaw, englishB1Units as englishB1UnitsRaw, englishB2Units as englishB2UnitsRaw, englishC1Units as englishC1UnitsRaw } from './advanced';
+import { englishC2Units as englishC2UnitsRaw } from './c2';
+import { expandLesson } from '../lesson-expansion';
 import type { Lesson } from '../types';
 
-export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
 
 export type CourseUnit = {
   id: string;
@@ -22,7 +24,11 @@ export type CourseLevel = {
   productionTargetUnits: number;
 };
 
-export const englishA1Units: CourseUnit[] = [
+function expandUnits(units:CourseUnit[]):CourseUnit[] {
+  return units.map(unit=>({...unit,lessons:unit.lessons.map(expandLesson)}));
+}
+
+export const englishA1Units: CourseUnit[] = expandUnits([
   {
     id: 'en-a1-u1',
     number: 1,
@@ -37,7 +43,13 @@ export const englishA1Units: CourseUnit[] = [
     subtitle: 'Familie, Tagesablauf, Uhrzeit, Einkaufen, Zuhause und unterwegs.',
     lessons: englishA1Unit2Lessons
   }
-];
+]);
+
+export const englishA2Units=expandUnits(englishA2UnitsRaw);
+export const englishB1Units=expandUnits(englishB1UnitsRaw);
+export const englishB2Units=expandUnits(englishB2UnitsRaw);
+export const englishC1Units=expandUnits(englishC1UnitsRaw);
+export const englishC2Units=expandUnits(englishC2UnitsRaw);
 
 export const englishCourseLevels: CourseLevel[] = [
   {
@@ -64,6 +76,11 @@ export const englishCourseLevels: CourseLevel[] = [
     id:'C1', title:'Fortgeschritten', descriptor:'Nuance, Register & professionelle Wirkung',
     goal:'Komplexe Inhalte präzise, spontan und adressatengerecht ausdrücken und implizite Bedeutungen sicher erfassen.',
     units:englishC1Units, productionTargetUnits:12
+  },
+  {
+    id:'C2', title:'Feinschliff', descriptor:'Nahezu muttersprachliche Kontrolle',
+    goal:'Subtile Bedeutungsunterschiede, Register, Synthese und anspruchsvolle professionelle Kommunikation sehr präzise steuern.',
+    units:englishC2Units, productionTargetUnits:8
   }
 ];
 

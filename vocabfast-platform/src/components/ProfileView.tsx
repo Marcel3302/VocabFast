@@ -25,12 +25,12 @@ export default function ProfileView({ preferences, progress, onSave, onResetProg
   }
 
   function reset() {
-    if (!window.confirm('Lokalen Lernfortschritt wirklich löschen? Diese Aktion kann im Prototyp nicht rückgängig gemacht werden.')) return;
+    if (!window.confirm('Deinen Lernfortschritt wirklich zurücksetzen? Die Änderung wird auch mit deinem Preview-Konto synchronisiert.')) return;
     onResetProgress();
   }
 
   return <section className="profile-view platform-view">
-    <div className="view-hero profile-hero"><div><span className="eyebrow">DEIN PROFIL</span><h1>Dein Lernplan soll zu deinem echten Alltag passen.</h1><p>Diese Einstellungen steuern Tagesziel, Audio und die persönliche Ansprache im Prototyp.</p></div><div className="profile-avatar">{draft.name.slice(0,2).toUpperCase()}</div></div>
+    <div className="view-hero profile-hero"><div><span className="eyebrow">DEIN PROFIL</span><h1>Dein Lernplan soll zu deinem echten Alltag passen.</h1><p>Tagesziel, Lernfokus und Audio werden mit deinem Preview-Konto gespeichert. Der Browser hält zusätzlich eine lokale Arbeitskopie für schnelle Reaktionen.</p></div><div className="profile-avatar">{draft.name.slice(0,2).toUpperCase()}</div></div>
     <div className="profile-grid">
       <article className="profile-panel">
         <div className="view-section-head inner"><div><span className="eyebrow">LERNPLAN</span><h2>Persönliche Einstellungen</h2></div></div>
@@ -42,10 +42,10 @@ export default function ProfileView({ preferences, progress, onSave, onResetProg
       </article>
 
       <article className="profile-panel stats-panel">
-        <div className="view-section-head inner"><div><span className="eyebrow">DEINE DATEN</span><h2>Lokaler Prototyp</h2></div></div>
+        <div className="view-section-head inner"><div><span className="eyebrow">DEINE DATEN</span><h2>Konto-Synchronisierung</h2></div></div>
         <div className="profile-stats"><div><strong>{progress.totalXp}</strong><span>XP</span></div><div><strong>{progress.sessions}</strong><span>Sessions</span></div><div><strong>{progress.currentStreak}</strong><span>Streak</span></div><div><strong>{progress.completedLessonIds.length}</strong><span>Lektionen</span></div></div>
-        <div className="local-note"><strong>Aktuell lokal gespeichert</strong><p>Für diese Testphase liegen Lernfortschritt und Einstellungen im Browser. Vor dem Produktivstart werden diese Daten an das VocabFast-Konto angebunden.</p></div>
-        <button className="danger-button" onClick={reset}>Lokalen Lernfortschritt zurücksetzen</button>
+        <div className="local-note"><strong>Preview-Konto + lokaler Cache</strong><p>Lektionen, Ergebnisse, XP, Streak, Einstellungen, Einstufung und Mastery werden in dieser Testumgebung deinem Preview-Konto zugeordnet. Diese Konten sind bewusst von den produktiven VocabFast-Konten getrennt.</p></div>
+        <button className="danger-button" onClick={reset}>Lernfortschritt zurücksetzen</button>
       </article>
     </div>
   </section>;

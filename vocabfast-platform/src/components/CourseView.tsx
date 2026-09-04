@@ -23,10 +23,10 @@ export default function CourseView({ progress, courseState, onSelectLevel, openL
   return <section className="course-hub platform-view">
     <div className="course-hub-hero">
       <div>
-        <span className="eyebrow">ENGLISCH · CEFR A1 BIS C1</span>
-        <h1>Ein Lernsystem vom ersten Satz bis zu professioneller Nuance.</h1>
-        <p>Die neue Plattform besitzt jetzt einen durchgängigen spielbaren Kursrücken über fünf CEFR-Stufen. Die Inhalte werden weiter ausgebaut und vor Veröffentlichung didaktisch geprüft.</p>
-        <div className="course-hub-actions"><button className="view-primary" onClick={openPlacement}>Niveau einschätzen →</button><button className="course-ghost" onClick={()=>openLesson(levelLessons(courseState.activeLevel)[0])}>Aktuelles Level testen</button></div>
+        <span className="eyebrow">ENGLISCH · CEFR A1 BIS C2</span>
+        <h1>Ein Lernsystem vom ersten Satz bis zum sprachlichen Feinschliff.</h1>
+        <p>Die neue Plattform besitzt jetzt einen durchgängigen spielbaren Kursrücken über sechs CEFR-Stufen. Jede vorhandene Lektion enthält durch Active Recall inzwischen bis zu zwölf Aufgaben. Die Inhalte werden weiter ausgebaut und vor Veröffentlichung didaktisch geprüft.</p>
+        <div className="course-hub-actions"><button className="view-primary" onClick={openPlacement}>36-Fragen-Einstufung →</button><button className="course-ghost" onClick={()=>openLesson(levelLessons(courseState.activeLevel)[0])}>Aktuelles Level testen</button></div>
       </div>
       <div className="course-stat-cluster">
         <article><strong>{stats.levels}</strong><span>CEFR-Stufen</span></article>
@@ -36,7 +36,7 @@ export default function CourseView({ progress, courseState, onSelectLevel, openL
       </div>
     </div>
 
-    {courseState.placement&&<div className="placement-summary"><div><span className="eyebrow">LETZTE EINSTUFUNG</span><strong>{courseState.placement.recommendedLevel}</strong><p>{courseState.placement.score}/{courseState.placement.total} Orientierungsfragen richtig</p></div><button onClick={openPlacement}>Neu einstufen</button></div>}
+    {courseState.placement&&<div className="placement-summary"><div><span className="eyebrow">LETZTE EINSTUFUNG</span><strong>{courseState.placement.recommendedLevel}</strong><p>{courseState.placement.score}/{courseState.placement.total} Orientierungsfragen richtig</p>{courseState.placement.focus?.[0]&&<small>Fokus: {courseState.placement.focus[0]}</small>}</div><button onClick={openPlacement}>Neu einstufen</button></div>}
 
     <div className="course-levels">
       {englishCourseLevels.map(level=>{
@@ -59,6 +59,6 @@ export default function CourseView({ progress, courseState, onSelectLevel, openL
       })}
     </div>
 
-    <div className="course-roadmap-note"><strong>Wichtig zur Kursqualität</strong><p>Die sichtbaren A1–C1-Stufen sind jetzt technisch und inhaltlich spielbar. Sie sind noch kein vollständig abgeschlossener CEFR-Kurs. Vor einem öffentlichen Versprechen wie „vollständiges C1“ werden deutlich mehr Units, Wortschatzabdeckung, Grammatikprogression, Hörmaterial, freie Produktion und externe Content-QA ergänzt.</p></div>
+    <div className="course-roadmap-note"><strong>Wichtig zur Kursqualität</strong><p>Die sichtbaren A1–C2-Stufen sind jetzt technisch und inhaltlich spielbar, aber noch kein vollständig abgeschlossener CEFR-Gesamtkurs. Vor öffentlichen Versprechen wie „vollständiges C2“ werden deutlich mehr Units, Wortschatzabdeckung, Grammatikprogression, Hörmaterial, freie Produktion und externe Content-QA ergänzt.</p></div>
   </section>;
 }

@@ -1,10 +1,18 @@
 import type { CefrLevel } from './curriculum';
 
+export type PlacementBreakdown = {
+  grammar:{score:number;total:number};
+  vocabulary:{score:number;total:number};
+  communication:{score:number;total:number};
+};
+
 export type PlacementResult = {
   score: number;
   total: number;
   recommendedLevel: CefrLevel;
   completedAt: string;
+  breakdown?: PlacementBreakdown;
+  focus?: string[];
 };
 
 export type CourseState = {
@@ -13,12 +21,19 @@ export type CourseState = {
 };
 
 const STORAGE_KEY = 'vocabfast.platform.course.v1';
-const levels: CefrLevel[] = ['A1','A2','B1','B2','C1'];
+const levels: CefrLevel[] = ['A1','A2','B1','B2','C1','C2'];
 
 const emptyState: CourseState = {
   activeLevel:'A1',
   placement:null
 };
+
+function normalizeBreakdown(value:unknown):PlacementBreakdown|undefined {
+  if(!value||typeof value!=='object')return undefined;
+  const raw=value as Partial<PlacementBreakdown>;
+  const make=(part:PlacementBreakdown[keyof PlacementBreakdown]|undefined)=>({score:Number(part?.score)||0,total:Number(part?.total)||0});
+  return {grammar:make(raw.grammar),vocabulary:make(raw.vocabulary),communication:make(raw.communication)};
+}
 
 export function readCourseState(): CourseState {
   try {
@@ -29,9 +44,11 @@ export function readCourseState(): CourseState {
     const placement = parsed.placement && levels.includes(parsed.placement.recommendedLevel as CefrLevel)
       ? {
           score:Number(parsed.placement.score) || 0,
-          total:Number(parsed.placement.total) || 10,
+          total:Number(parsed.placement.total) || 36,
           recommendedLevel:parsed.placement.recommendedLevel as CefrLevel,
-          completedAt:String(parsed.placement.completedAt || '')
+          completedAt:String(parsed.placement.completedAt || ''),
+          breakdown:normalizeBreakdown(parsed.placement.breakdown),
+          focus:Array.isArray(parsed.placement.focus)?parsed.placement.focus.map(String).slice(0,4):undefined
         }
       : null;
     return { activeLevel, placement };
@@ -47,10 +64,10 @@ export function saveActiveLevel(level: CefrLevel) {
   return next;
 }
 
-export function savePlacement(score: number, total: number, recommendedLevel: CefrLevel) {
+export function savePlacement(score:number,total:number,recommendedLevel:CefrLevel,breakdown?:PlacementBreakdown,focus?:string[]) {
   const next: CourseState = {
     activeLevel:recommendedLevel,
-    placement:{ score, total, recommendedLevel, completedAt:new Date().toISOString() }
+    placement:{ score, total, recommendedLevel, completedAt:new Date().toISOString(), breakdown, focus }
   };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* standalone preview may block storage */ }
   return next;
