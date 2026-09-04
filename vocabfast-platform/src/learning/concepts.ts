@@ -1,3 +1,5 @@
+import { advancedConceptCatalog } from './curriculum/advanced';
+
 export type ConceptMeta = {
   id: string;
   label: string;
@@ -5,7 +7,7 @@ export type ConceptMeta = {
   category: 'Wortschatz' | 'Grammatik' | 'Kommunikation';
 };
 
-export const conceptCatalog: ConceptMeta[] = [
+const baseConceptCatalog: ConceptMeta[] = [
   { id:'greeting.hello', label:'hello / hi', translation:'hallo', category:'Kommunikation' },
   { id:'greeting.goodbye', label:'goodbye', translation:'auf Wiedersehen', category:'Kommunikation' },
   { id:'intro.name', label:'my name is …', translation:'mein Name ist …', category:'Kommunikation' },
@@ -41,7 +43,6 @@ export const conceptCatalog: ConceptMeta[] = [
   { id:'demonstrative.that', label:'that', translation:'das dort', category:'Grammatik' },
   { id:'noun.book', label:'book', translation:'Buch', category:'Wortschatz' },
   { id:'noun.apple', label:'apple', translation:'Apfel', category:'Wortschatz' },
-
   { id:'family.mother', label:'mother', translation:'Mutter', category:'Wortschatz' },
   { id:'family.father', label:'father', translation:'Vater', category:'Wortschatz' },
   { id:'family.brother', label:'brother', translation:'Bruder', category:'Wortschatz' },
@@ -85,6 +86,8 @@ export const conceptCatalog: ConceptMeta[] = [
   { id:'travel.need', label:'I need …', translation:'ich brauche …', category:'Kommunikation' },
   { id:'travel.to', label:'to + destination', translation:'nach / zu + Ziel', category:'Grammatik' }
 ];
+
+export const conceptCatalog: ConceptMeta[] = [...baseConceptCatalog, ...advancedConceptCatalog];
 
 export function conceptMeta(id: string) {
   return conceptCatalog.find(item => item.id === id) ?? { id, label: id, category: 'Wortschatz' as const };
