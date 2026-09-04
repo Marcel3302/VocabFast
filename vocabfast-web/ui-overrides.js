@@ -5,9 +5,10 @@ const ADMIN_ROUTE=location.pathname.replace(/\/+$/,'')==='/admin';
 const nativeFetch=window.fetch.bind(window),cache=new Map();
 
 function cacheKey(input){try{return new URL(typeof input==='string'?input:input.url,location.origin).pathname}catch{return ''}}
+function publishState(state){window.VF_STATE_SNAPSHOT=state;window.dispatchEvent(new CustomEvent('vocabfast:state',{detail:{state}}))}
 function cacheStateFromBody(body){
   if(typeof body!=='string')return;
-  try{const state=JSON.parse(body),response=new Response(JSON.stringify({state}),{status:200,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});cache.set('/api/state',{until:Date.now()+30000,promise:Promise.resolve(response)});window.VF_STATE_SNAPSHOT=state}catch{}
+  try{const state=JSON.parse(body),response=new Response(JSON.stringify({state}),{status:200,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});cache.set('/api/state',{until:Date.now()+30000,promise:Promise.resolve(response)});publishState(state)}catch{}
 }
 window.fetch=(input,init={})=>{
   const method=String(init.method||(input instanceof Request?input.method:'GET')).toUpperCase();
@@ -26,16 +27,17 @@ window.fetch=(input,init={})=>{
   if(!ttl)return nativeFetch(input,init);
   const hit=cache.get(path),now=Date.now();
   if(hit&&hit.until>now)return hit.promise.then(r=>r.clone());
-  const promise=nativeFetch(input,init).then(r=>{if(!r.ok)cache.delete(path);return r}).catch(e=>{cache.delete(path);throw e});
+  const promise=nativeFetch(input,init).then(async r=>{if(!r.ok){cache.delete(path);return r}if(path==='/api/state'){try{const d=await r.clone().json();if(d?.state)publishState(d.state)}catch{}}return r}).catch(e=>{cache.delete(path);throw e});
   cache.set(path,{until:now+ttl,promise});
   return promise.then(r=>r.clone());
 };
 
 function installStyles(){
+  if($('#vfAccessGateStyles'))return;
   const s=document.createElement('style');s.id='vfAccessGateStyles';s.textContent=`
   html.vf-auth-pending body{visibility:hidden!important}
   html.vf-guest body{visibility:visible!important}
-  html.vf-guest .topbar,html.vf-guest #syncBanner,html.vf-guest #toast,html.vf-guest dialog{display:none!important}
+  html.vf-guest .topbar,html.vf-guest #syncBanner,html.vf-guest #toast,html.vf-guest dialog,html.vf-guest #v15BottomNav{display:none!important}
   html.vf-guest main>.view{display:none!important}
   html.vf-guest #view-account{display:block!important;min-height:100vh!important;padding:28px!important}
   html.vf-guest #view-account .account-panel{max-width:920px!important;margin:0 auto!important}
@@ -44,7 +46,7 @@ function installStyles(){
   html.vf-guest #accountLoggedOut *{pointer-events:auto!important}
   html:not(.vf-admin-route) #v8AdminLogin,html:not(.vf-admin-route) #v8AdminNav,html:not(.vf-admin-route) #view-admin,html:not(.vf-admin-route) [data-view="admin"]{display:none!important}
   html.vf-admin-route body{visibility:visible!important;min-height:100vh!important;background:#071019!important}
-  html.vf-admin-route .topbar,html.vf-admin-route #syncBanner,html.vf-admin-route #toast,html.vf-admin-route dialog{display:none!important}
+  html.vf-admin-route .topbar,html.vf-admin-route #syncBanner,html.vf-admin-route #toast,html.vf-admin-route dialog,html.vf-admin-route #v15BottomNav{display:none!important}
   html.vf-admin-route main{display:none!important}
   html.vf-admin-route.vf-admin-authorized main{display:block!important;padding:24px!important}
   html.vf-admin-route.vf-admin-authorized main>.view{display:none!important}
@@ -69,14 +71,14 @@ function ensureAdminGate(){
   document.body.insertAdjacentHTML('beforeend',`<div id="vfAdminGate"><form class="vf-admin-card" id="vfAdminForm"><h1>VocabFast Admin</h1><p>Separater Verwaltungszugang</p><label>Benutzername</label><input id="vfAdminUser" autocomplete="username" value="admin"><label>Passwort</label><input id="vfAdminPassword" type="password" autocomplete="current-password" autofocus><button id="vfAdminSubmit" type="submit">Admin anmelden</button><div class="vf-admin-status" id="vfAdminStatus"></div></form></div>`);
   $('#vfAdminForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#vfAdminSubmit'),st=$('#vfAdminStatus');b.disabled=true;st.textContent='Anmeldung …';try{const r=await nativeFetch('/api/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#vfAdminUser').value,password:$('#vfAdminPassword').value})}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Admin-Anmeldung fehlgeschlagen.');location.reload()}catch(err){st.textContent=err.message;b.disabled=false}})
 }
-async function checkAdmin(){if(!ADMIN_ROUTE)return;ensureAdminGate();try{const r=await nativeFetch('/api/admin/me',{credentials:'same-origin',cache:'no-store'}),d=await r.json().catch(()=>({}));if(r.ok&&d?.admin){document.documentElement.classList.add('vf-admin-authorized');$('#vfAdminGate')?.setAttribute('hidden','');setTimeout(()=>{const v=$('#view-admin');if(v){v.removeAttribute('hidden');activate('admin')}},120)}else{document.documentElement.classList.remove('vf-admin-authorized');$('#vfAdminGate')?.removeAttribute('hidden')}}catch{$('#vfAdminGate')?.removeAttribute('hidden')}}
+async function checkAdmin(){if(!ADMIN_ROUTE)return;ensureAdminGate();try{const r=await nativeFetch('/api/admin/me',{credentials:'same-origin',cache:'no-store'}),d=await r.json().catch(()=>({}));if(r.ok&&d?.admin){document.documentElement.classList.add('vf-admin-authorized');$('#vfAdminGate')?.setAttribute('hidden','');setTimeout(()=>{const v=$('#view-admin');if(v){v.removeAttribute('hidden');activate('admin')}},80)}else{document.documentElement.classList.remove('vf-admin-authorized');$('#vfAdminGate')?.removeAttribute('hidden')}}catch{$('#vfAdminGate')?.removeAttribute('hidden')}}
 
 installStyles();
-if(ADMIN_ROUTE){document.documentElement.classList.add('vf-admin-route');document.title='VocabFast Admin';if(document.body)ensureAdminGate();else addEventListener('DOMContentLoaded',ensureAdminGate,{once:true});checkAdmin()}else{document.documentElement.classList.add('vf-auth-pending');checkUser()}
+if(ADMIN_ROUTE){document.documentElement.classList.add('vf-admin-route');document.title='VocabFast Admin';let robots=document.querySelector('meta[name="robots"]');if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.appendChild(robots)}robots.content='noindex,nofollow,noarchive';if(document.body)ensureAdminGate();else addEventListener('DOMContentLoaded',ensureAdminGate,{once:true});checkAdmin()}else{document.documentElement.classList.add('vf-auth-pending');checkUser()}
 
-document.addEventListener('submit',e=>{if(!ADMIN_ROUTE&&e.target?.matches?.('#loginForm,#registerForm')){setTimeout(checkUser,180);setTimeout(checkUser,700)}},true);
-document.addEventListener('click',e=>{if(!ADMIN_ROUTE&&e.target.closest?.('#logout')){cache.clear();setTimeout(checkUser,150)}},true);
+document.addEventListener('submit',e=>{if(!ADMIN_ROUTE&&e.target?.matches?.('#loginForm,#registerForm')){cache.delete('/api/me');setTimeout(checkUser,120);setTimeout(checkUser,500)}},true);
+document.addEventListener('click',e=>{if(!ADMIN_ROUTE&&e.target.closest?.('#logout')){cache.clear();setTimeout(checkUser,100)}},true);
 document.addEventListener('pointerover',e=>{if(!ADMIN_ROUTE&&window.VF_SESSION_USER&&e.target.closest?.('[data-view="practice"],.v14-action[data-go="practice"]'))fetch('/api/state',{credentials:'same-origin'}).catch(()=>{})},{passive:true});
-addEventListener('load',()=>{ADMIN_ROUTE?checkAdmin():checkUser();setTimeout(()=>normalizeStatus(window.VF_SESSION_USER),200)});
+addEventListener('load',()=>{ADMIN_ROUTE?checkAdmin():checkUser();setTimeout(()=>normalizeStatus(window.VF_SESSION_USER),120)});
 addEventListener('pageshow',()=>ADMIN_ROUTE?checkAdmin():checkUser());
 })();
