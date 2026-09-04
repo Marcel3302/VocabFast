@@ -1,13 +1,20 @@
 import {rm,mkdir,copyFile,readFile,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 const root=resolve(import.meta.dirname,'..'),dist=resolve(root,'dist');
-const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css','v9-observer-guard.js','v9-observer-restore.js','v11-admin-dashboard.js','v11-admin-dashboard.css','v12-pro.js','v12-pro.css','autofill-fix-v12.js','v13-admin.css','v13-ui.js','v13-ui.css','v14-polish.js','v14-polish.css','v15-experience.js','v15-experience.css','v16-admin.js','v16-experience.js','v16-experience.css','v16-upgrade-inline.js','v16-upgrade-inline.css','v16-moderator-role.js','v16-moderator-role.css','v17-admin-access.js','v17-admin-access.css'];
+const files=['index.html','styles.css','app.js','vocab-data.js','grammar-data.js','level-index.js','ui-overrides.js','v4-features.js','v4-features.css','practice-grammar-v6.js','grammar-topic-scores-v7.js','exam-admin-v8.js','exam-admin-v8.css','v9-polish.js','v9-polish.css','v9-observer-guard.js','v9-observer-restore.js','v11-admin-dashboard.js','v11-admin-dashboard.css','v12-pro.js','v12-pro.css','autofill-fix-v12.js','v13-admin.css','v13-ui.js','v13-ui.css','v14-polish.js','v14-polish.css','v15-experience.js','v15-experience.css','v16-admin.js','v16-experience.js','v16-experience.css','v16-upgrade-inline.js','v16-upgrade-inline.css','v16-moderator-role.js','v16-moderator-role.css','release.js','release.css','legal-config.js','legal-page.js','legal.css','impressum.html','datenschutz.html','nutzungsbedingungen.html','widerruf.html','robots.txt','sitemap.xml'];
 await rm(dist,{recursive:true,force:true});await mkdir(dist,{recursive:true});
 for(const f of files)await copyFile(resolve(root,f),resolve(dist,f));
 const indexPath=resolve(dist,'index.html');
 let html=await readFile(indexPath,'utf8');
-if(!html.includes('level-index.js'))html=html.replace('<script src="app.js"></script>','<script src="level-index.js"></script>\n<script src="app.js"></script>');
-if(!html.includes('ui-overrides.js'))html=html.replace('</body>','  <script src="ui-overrides.js"></script>\n</body>');
+
+// Production metadata is emitted in the built file so crawlers receive it without JavaScript.
+html=html.replace('<title>VocabFast</title>','<title>VocabFast – Englisch effizient lernen</title>\n  <link rel="canonical" href="https://vocabfast.net/">\n  <meta name="robots" content="index,follow,max-image-preview:large">\n  <meta property="og:title" content="VocabFast – Englisch effizient lernen">\n  <meta property="og:description" content="Englisch, Fachsprache und Grammatik mit persönlichem Lernstand, Übungen und optionalen Elite-Funktionen.">\n  <meta property="og:type" content="website">\n  <meta property="og:url" content="https://vocabfast.net/">');
+
+// Load the shared session/cache guard before the legacy application layers. This removes
+// duplicate /api/me and /api/state requests during first paint and prevents guest UI flashes.
+if(!html.includes('ui-overrides.js'))html=html.replace('<script src="app.js"></script>','<script src="ui-overrides.js"></script>\n<script src="level-index.js"></script>\n<script src="app.js"></script>');
+else if(!html.includes('level-index.js'))html=html.replace('<script src="app.js"></script>','<script src="level-index.js"></script>\n<script src="app.js"></script>');
+if(!html.includes('release.css'))html=html.replace('</head>','  <link rel="stylesheet" href="release.css">\n</head>');
 if(!html.includes('v4-features.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v4-features.css">\n</head>');
 if(!html.includes('v4-features.js'))html=html.replace('</body>','  <script src="v4-features.js"></script>\n</body>');
 if(!html.includes('practice-grammar-v6.js'))html=html.replace('</body>','  <script src="practice-grammar-v6.js"></script>\n</body>');
@@ -28,8 +35,9 @@ if(!html.includes('v14-polish.css'))html=html.replace('</head>','  <link rel="st
 if(!html.includes('v14-polish.js'))html=html.replace('</body>','  <script src="v14-polish.js"></script>\n</body>');
 if(!html.includes('v15-experience.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v15-experience.css">\n</head>');
 if(!html.includes('v15-experience.js'))html=html.replace('</body>','  <script src="v15-experience.js"></script>\n</body>');
-if(!html.includes('v16-experience.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v16-experience.css">\n  <link rel="stylesheet" href="v16-upgrade-inline.css">\n  <link rel="stylesheet" href="v16-moderator-role.css">\n  <link rel="stylesheet" href="v17-admin-access.css">\n</head>');
-if(!html.includes('v16-admin.js'))html=html.replace('</body>','  <script src="v16-admin.js"></script>\n  <script src="v16-experience.js"></script>\n  <script src="v16-upgrade-inline.js"></script>\n  <script src="v16-moderator-role.js"></script>\n  <script src="v17-admin-access.js"></script>\n</body>');
+if(!html.includes('v16-experience.css'))html=html.replace('</head>','  <link rel="stylesheet" href="v16-experience.css">\n  <link rel="stylesheet" href="v16-upgrade-inline.css">\n  <link rel="stylesheet" href="v16-moderator-role.css">\n</head>');
+if(!html.includes('v16-admin.js'))html=html.replace('</body>','  <script src="v16-admin.js"></script>\n  <script src="v16-experience.js"></script>\n  <script src="v16-upgrade-inline.js"></script>\n  <script src="v16-moderator-role.js"></script>\n</body>');
+if(!html.includes('release.js'))html=html.replace('</body>','  <script src="release.js"></script>\n</body>');
 await writeFile(indexPath,html);
 
 const v10js=await readFile(resolve(root,'v10-admin-tools.js'),'utf8');
