@@ -37,8 +37,8 @@ export const specialties: Specialty[] = [
 ];
 
 export const learningUnits = [
-  { id: 1, title: 'Grundlagen', subtitle: 'Begrüßung, Vorstellen & erste Sätze', progress: 100, state: 'done' as const, lessons: 8 },
-  { id: 2, title: 'Im Alltag', subtitle: 'Essen, Einkaufen, Uhrzeit & Wege', progress: 72, state: 'active' as const, lessons: 10 },
-  { id: 3, title: 'Menschen & Familie', subtitle: 'Beschreiben, Beziehungen & Gespräche', progress: 0, state: 'locked' as const, lessons: 9 },
-  { id: 4, title: 'Unterwegs', subtitle: 'Reisen, Hotel, Bahnhof & Flughafen', progress: 0, state: 'locked' as const, lessons: 12 }
+  { id: 1, title: 'Erste Gespräche', subtitle: 'Begrüßen, vorstellen, höflich reagieren & im Café bestellen', progress: 0, state: 'active' as const, lessons: 8 },
+  { id: 2, title: 'Menschen & Dinge', subtitle: 'Personen beschreiben, Artikel, Zahlen und Besitz ausdrücken', progress: 0, state: 'locked' as const, lessons: 10 },
+  { id: 3, title: 'Mein Alltag', subtitle: 'Tagesablauf, Uhrzeit, Gewohnheiten und einfache Fragen', progress: 0, state: 'locked' as const, lessons: 10 },
+  { id: 4, title: 'Unterwegs', subtitle: 'Orientierung, Verkehr, Reisen und einfache Reisesituationen', progress: 0, state: 'locked' as const, lessons: 12 }
 ];
