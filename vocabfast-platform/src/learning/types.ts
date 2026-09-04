@@ -1,4 +1,4 @@
-export type ExerciseType = 'multiple-choice' | 'translation' | 'sentence-build' | 'fill-gap' | 'listening' | 'dictation';
+export type ExerciseType = 'multiple-choice' | 'translation' | 'sentence-build' | 'fill-gap' | 'listening' | 'dictation' | 'speaking';
 
 export type ExerciseBase = {
   id: string;
@@ -49,7 +49,13 @@ export type DictationExercise = ExerciseBase & {
   acceptedAnswers: string[];
 };
 
-export type Exercise = MultipleChoiceExercise | TranslationExercise | SentenceBuildExercise | FillGapExercise | ListeningExercise | DictationExercise;
+export type SpeakingExercise = ExerciseBase & {
+  type: 'speaking';
+  speech: string;
+  acceptedAnswers: string[];
+};
+
+export type Exercise = MultipleChoiceExercise | TranslationExercise | SentenceBuildExercise | FillGapExercise | ListeningExercise | DictationExercise | SpeakingExercise;
 
 export type Lesson = {
   id: string;
