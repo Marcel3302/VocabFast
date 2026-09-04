@@ -2,12 +2,15 @@ import { useMemo, useState } from 'react';
 import { languages } from './data/catalog';
 import LessonPlayer from './components/LessonPlayer';
 import DashboardView from './components/DashboardView';
+import CourseView from './components/CourseView';
+import PlacementTest from './components/PlacementTest';
 import Onboarding from './components/Onboarding';
 import ProModal from './components/ProModal';
 import ProfileView from './components/ProfileView';
 import CoachView from './components/CoachView';
 import { PracticeView, ProgressView, SpecialtyView, WordsView } from './components/PlatformViews';
-import { englishA1Lessons, firstEnglishLesson } from './learning/curriculum';
+import { firstEnglishLesson, levelLessons, type CefrLevel } from './learning/curriculum';
+import { readCourseState, saveActiveLevel, savePlacement } from './learning/course-state';
 import { readPreferences, savePreferences } from './learning/preferences';
 import { buildAdaptiveReviewLesson, buildModeLesson } from './learning/review';
 import { readProgress, resetLocalProgress, saveLessonResult } from './learning/progress';
@@ -18,6 +21,7 @@ import './enhancements.css';
 
 const navItems = [
   ['home', 'Lernpfad'],
+  ['course', 'A1–C1 Kurs'],
   ['practice', 'Üben'],
   ['coach', 'Coach'],
   ['words', 'Wortschatz'],
@@ -39,11 +43,14 @@ function App() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson>(firstEnglishLesson);
   const [progress, setProgress] = useState(() => readProgress());
   const [preferences, setPreferences] = useState(() => readPreferences());
+  const [courseState, setCourseState] = useState(() => readCourseState());
   const [onboardingOpen, setOnboardingOpen] = useState(() => !readPreferences().onboarded);
+  const [placementOpen, setPlacementOpen] = useState(false);
   const [proOpen, setProOpen] = useState(false);
   const [lastResult, setLastResult] = useState<LessonResult | null>(null);
   const activeLanguage = useMemo(() => languages.find(language => language.code === languageCode) ?? languages[0], [languageCode]);
-  const curriculumCompleted = englishA1Lessons.filter(lesson => progress.completedLessonIds.includes(lesson.id)).length;
+  const activeLessons = levelLessons(courseState.activeLevel);
+  const curriculumCompleted = activeLessons.filter(lesson => progress.completedLessonIds.includes(lesson.id)).length;
 
   function openLesson(lesson: Lesson) {
     setSelectedLesson(lesson);
@@ -59,8 +66,19 @@ function App() {
     setPreferences(savePreferences(next));
   }
 
+  function selectLevel(level: CefrLevel) {
+    setCourseState(saveActiveLevel(level));
+  }
+
+  function finishPlacement(level: CefrLevel, score: number, total: number) {
+    setCourseState(savePlacement(score,total,level));
+    setPlacementOpen(false);
+    setActiveNav('home');
+  }
+
   function finishOnboarding(next: LearnerPreferences) {
     saveLearnerPreferences(next);
+    setCourseState(saveActiveLevel('A1'));
     setOnboardingOpen(false);
     setActiveNav('home');
     openLesson(firstEnglishLesson);
@@ -74,34 +92,38 @@ function App() {
   }
 
   function renderView() {
-    if (activeNav === 'practice') return <PracticeView openLesson={openLesson} buildReview={buildAdaptiveReviewLesson} buildMode={buildModeLesson} />;
+    const buildReview = () => buildAdaptiveReviewLesson(courseState.activeLevel);
+    const buildMode = (types: Parameters<typeof buildModeLesson>[0], title: string, subtitle: string) => buildModeLesson(types,title,subtitle,courseState.activeLevel);
+    if (activeNav === 'course') return <CourseView progress={progress} courseState={courseState} onSelectLevel={selectLevel} openLesson={openLesson} openPlacement={()=>setPlacementOpen(true)} />;
+    if (activeNav === 'practice') return <PracticeView openLesson={openLesson} buildReview={buildReview} buildMode={buildMode} />;
     if (activeNav === 'coach') return <CoachView audioRate={preferences.audioRate} />;
     if (activeNav === 'words') return <WordsView />;
     if (activeNav === 'specialty') return <SpecialtyView openPro={()=>setProOpen(true)} />;
     if (activeNav === 'progress') return <ProgressView progress={progress} />;
     if (activeNav === 'profile') return <ProfileView preferences={preferences} progress={progress} onSave={saveLearnerPreferences} onResetProgress={resetProgress} />;
-    return <DashboardView progress={progress} preferences={preferences} lastResult={lastResult} openLesson={openLesson} buildReview={buildAdaptiveReviewLesson} openPro={()=>setProOpen(true)} />;
+    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} lastResult={lastResult} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} onSelectLevel={selectLevel} />;
   }
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-row"><div className="brand-mark" aria-hidden="true">V</div><div><strong>VocabFast</strong><span>Language Platform</span></div></div>
-        <button className="language-switch" onClick={() => setLanguageOpen(true)}><span className="language-badge">{activeLanguage.symbol}</span><span className="language-switch-copy"><small>Ich lerne</small><strong>{activeLanguage.name}</strong></span><span className="chevron">⌄</span></button>
-        <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label],index)=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id)}><span className="nav-icon">{['⌂','◎','AI','Aa','◇','↗'][index]}</span><span>{label}</span></button>)}</nav>
+        <button className="language-switch" onClick={() => setLanguageOpen(true)}><span className="language-badge">{activeLanguage.symbol}</span><span className="language-switch-copy"><small>Ich lerne · {courseState.activeLevel}</small><strong>{activeLanguage.name}</strong></span><span className="chevron">⌄</span></button>
+        <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label],index)=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id)}><span className="nav-icon">{['⌂','A1','◎','AI','Aa','◇','↗'][index]}</span><span>{label}</span></button>)}</nav>
         <div className="sidebar-spacer"/>
         <div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und unbegrenztes Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>
         <button className={`profile-link ${activeNav==='profile'?'active':''}`} onClick={()=>setActiveNav('profile')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button>
       </aside>
 
       <main className="content">
-        <header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><strong>VocabFast</strong></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP gesamt</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/16</strong><small>A1 Lektionen</small></div></div></header>
+        <header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><strong>VocabFast</strong></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP gesamt</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/{activeLessons.length}</strong><small>{courseState.activeLevel} Lektionen</small></div></div></header>
         {renderView()}
       </main>
 
-      {languageOpen&&<div className="modal-backdrop" onMouseDown={()=>setLanguageOpen(false)}><section className="language-modal" onMouseDown={event=>event.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">SPRACHEN</span><h2>Was möchtest du lernen?</h2><p>Die Plattform ist für zehn Zielsprachen vorbereitet. Deutsch → Englisch wird zuerst vollständig auf Produktionsqualität gebracht.</p></div><button onClick={()=>setLanguageOpen(false)}>×</button></div><div className="language-grid">{languages.map(language=><button key={language.code} disabled={!language.available} className={languageCode===language.code?'selected':''} onClick={()=>{setLanguageCode(language.code);setLanguageOpen(false)}}><span className="language-tile-symbol">{language.symbol}</span><div><strong>{language.name}</strong><small>{language.nativeName}</small></div><em>{language.available?'Verfügbar':'In Vorbereitung'}</em></button>)}</div></section></div>}
+      {languageOpen&&<div className="modal-backdrop" onMouseDown={()=>setLanguageOpen(false)}><section className="language-modal" onMouseDown={event=>event.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">SPRACHEN</span><h2>Was möchtest du lernen?</h2><p>Die Engine ist für zehn Zielsprachen vorbereitet. Deutsch → Englisch besitzt jetzt einen spielbaren A1–C1-Kursrücken und wird als erstes vollständig auf Produktionsqualität gebracht.</p></div><button onClick={()=>setLanguageOpen(false)}>×</button></div><div className="language-grid">{languages.map(language=><button key={language.code} disabled={!language.available} className={languageCode===language.code?'selected':''} onClick={()=>{setLanguageCode(language.code);setLanguageOpen(false)}}><span className="language-tile-symbol">{language.symbol}</span><div><strong>{language.name}</strong><small>{language.nativeName}</small></div><em>{language.available?'Verfügbar':'In Vorbereitung'}</em></button>)}</div></section></div>}
       {lessonOpen&&<LessonPlayer lesson={selectedLesson} audioRate={preferences.audioRate} onClose={()=>setLessonOpen(false)} onComplete={handleComplete}/>} 
       {onboardingOpen&&<Onboarding initial={preferences} onDone={finishOnboarding}/>} 
+      {placementOpen&&<PlacementTest onClose={()=>setPlacementOpen(false)} onFinish={finishPlacement}/>} 
       {proOpen&&<ProModal onClose={()=>setProOpen(false)}/>} 
     </div>
   );
