@@ -5,6 +5,7 @@ import DashboardView from './components/DashboardView';
 import Onboarding from './components/Onboarding';
 import ProModal from './components/ProModal';
 import ProfileView from './components/ProfileView';
+import CoachView from './components/CoachView';
 import { PracticeView, ProgressView, SpecialtyView, WordsView } from './components/PlatformViews';
 import { englishA1Lessons, firstEnglishLesson } from './learning/curriculum';
 import { readPreferences, savePreferences } from './learning/preferences';
@@ -18,6 +19,7 @@ import './enhancements.css';
 const navItems = [
   ['home', 'Lernpfad'],
   ['practice', 'Üben'],
+  ['coach', 'Coach'],
   ['words', 'Wortschatz'],
   ['specialty', 'Fachsprache'],
   ['progress', 'Fortschritt']
@@ -73,6 +75,7 @@ function App() {
 
   function renderView() {
     if (activeNav === 'practice') return <PracticeView openLesson={openLesson} buildReview={buildAdaptiveReviewLesson} buildMode={buildModeLesson} />;
+    if (activeNav === 'coach') return <CoachView audioRate={preferences.audioRate} />;
     if (activeNav === 'words') return <WordsView />;
     if (activeNav === 'specialty') return <SpecialtyView openPro={()=>setProOpen(true)} />;
     if (activeNav === 'progress') return <ProgressView progress={progress} />;
@@ -85,7 +88,7 @@ function App() {
       <aside className="sidebar">
         <div className="brand-row"><div className="brand-mark" aria-hidden="true">V</div><div><strong>VocabFast</strong><span>Language Platform</span></div></div>
         <button className="language-switch" onClick={() => setLanguageOpen(true)}><span className="language-badge">{activeLanguage.symbol}</span><span className="language-switch-copy"><small>Ich lerne</small><strong>{activeLanguage.name}</strong></span><span className="chevron">⌄</span></button>
-        <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label],index)=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id)}><span className="nav-icon">{['⌂','◎','Aa','◇','↗'][index]}</span><span>{label}</span></button>)}</nav>
+        <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label],index)=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id)}><span className="nav-icon">{['⌂','◎','AI','Aa','◇','↗'][index]}</span><span>{label}</span></button>)}</nav>
         <div className="sidebar-spacer"/>
         <div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und unbegrenztes Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>
         <button className={`profile-link ${activeNav==='profile'?'active':''}`} onClick={()=>setActiveNav('profile')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button>

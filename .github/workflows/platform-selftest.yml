@@ -25,3 +25,20 @@ jobs:
           name: VocabFast_PLATFORM_PREVIEW
           path: vocabfast-platform/dist
           retention-days: 14
+
+  worker-api-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vocabfast-web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install Worker dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check Worker sources
+        run: npm run check
+      - name: Verify Worker bundle
+        run: npx wrangler deploy --dry-run --outdir .wrangler-platform-dry
