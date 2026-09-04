@@ -1,5 +1,5 @@
 import type { Exercise, ExerciseType, Lesson } from './types';
-import { englishA1Lessons } from './curriculum';
+import { levelLessons, type CefrLevel } from './curriculum';
 import { getDueConcepts, getMasterySnapshot } from './mastery';
 
 function uniqueExercises(exercises: Exercise[]) {
@@ -18,46 +18,52 @@ function randomized<T>(items: T[]) {
     .map(entry => entry.item);
 }
 
-export function buildAdaptiveReviewLesson(): Lesson {
+export function buildAdaptiveReviewLesson(level: CefrLevel = 'A1'): Lesson {
   const due = getDueConcepts();
   const mastery = getMasterySnapshot();
-  const focus = (due.length ? due : mastery).slice(0, 10).map(item => item.conceptId);
-  const allExercises = englishA1Lessons.flatMap(lesson => lesson.exercises);
+  const lessons = levelLessons(level);
+  const allowedConcepts = new Set(lessons.flatMap(lesson=>lesson.exercises.flatMap(exercise=>exercise.conceptIds)));
+  const relevantDue = due.filter(item=>allowedConcepts.has(item.conceptId));
+  const relevantMastery = mastery.filter(item=>allowedConcepts.has(item.conceptId));
+  const focus = (relevantDue.length ? relevantDue : relevantMastery).slice(0, 10).map(item => item.conceptId);
+  const allExercises = lessons.flatMap(lesson => lesson.exercises);
   const targeted = focus.length
     ? allExercises.filter(exercise => exercise.conceptIds.some(conceptId => focus.includes(conceptId)))
-    : allExercises.slice(0, 10);
+    : allExercises.slice(0, 12);
   const exercises = randomized(uniqueExercises(targeted)).slice(0, 10);
 
   return {
-    id: `review-${Date.now()}`,
+    id: `review-${level.toLowerCase()}-${Date.now()}`,
     courseId: 'de-en',
-    level: 'A1',
+    level,
     unitId: 'adaptive-review',
-    title: due.length ? 'Fällige Wiederholung' : 'Intelligente Wiederholung',
-    subtitle: due.length ? 'Heute fällige Konzepte werden gezielt wiederholt.' : 'VocabFast priorisiert deine schwächsten bekannten Konzepte.',
+    title: relevantDue.length ? `${level} · Fällige Wiederholung` : `${level} · Intelligente Wiederholung`,
+    subtitle: relevantDue.length ? 'Heute fällige Konzepte werden gezielt wiederholt.' : 'VocabFast priorisiert deine schwächsten bekannten Konzepte in diesem CEFR-Level.',
     estimatedMinutes: Math.max(5, Math.ceil(exercises.length * .8)),
     newConcepts: [],
-    exercises: exercises.length ? exercises : englishA1Lessons[0].exercises.slice(0, 8)
+    exercises: exercises.length ? exercises : lessons[0].exercises.slice(0, 8)
   };
 }
 
-export function buildModeLesson(types: ExerciseType[], title: string, subtitle: string): Lesson {
-  const all = englishA1Lessons.flatMap(lesson => lesson.exercises).filter(exercise => types.includes(exercise.type));
-  const mastery = getMasterySnapshot();
+export function buildModeLesson(types: ExerciseType[], title: string, subtitle: string, level: CefrLevel = 'A1'): Lesson {
+  const lessons = levelLessons(level);
+  const all = lessons.flatMap(lesson => lesson.exercises).filter(exercise => types.includes(exercise.type));
+  const allowedConcepts = new Set(all.flatMap(exercise=>exercise.conceptIds));
+  const mastery = getMasterySnapshot().filter(item=>allowedConcepts.has(item.conceptId));
   const weak = mastery.slice(0, 12).map(item => item.conceptId);
   const prioritized = weak.length
     ? [...all.filter(exercise => exercise.conceptIds.some(id => weak.includes(id))), ...all]
     : all;
   const exercises = randomized(uniqueExercises(prioritized)).slice(0, 10);
   return {
-    id: `practice-${Date.now()}`,
+    id: `practice-${level.toLowerCase()}-${Date.now()}`,
     courseId: 'de-en',
-    level: 'A1',
+    level,
     unitId: 'focused-practice',
-    title,
+    title:`${level} · ${title}`,
     subtitle,
     estimatedMinutes: Math.max(5, Math.ceil(exercises.length * .9)),
     newConcepts: [],
-    exercises: exercises.length ? exercises : englishA1Lessons[0].exercises.slice(0, 8)
+    exercises: exercises.length ? exercises : lessons[0].exercises.slice(0, 8)
   };
 }
