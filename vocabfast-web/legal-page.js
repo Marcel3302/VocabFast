@@ -1,9 +1,10 @@
 (() => {
 'use strict';
 const cfg=window.VOCABFAST_LEGAL||{};
+const raw=k=>String(cfg[k]||'').trim();
+const value=k=>k==='mediaOwner'?(raw('mediaOwner')||raw('providerName')):k==='privacyContact'?(raw('privacyContact')||raw('email')):k==='supportEmail'?(raw('supportEmail')||raw('email')):raw(k);
 const required=['providerName','addressLine1','postalCode','city','email'];
-const missing=required.filter(k=>!String(cfg[k]||'').trim());
-const value=k=>String(cfg[k]||'').trim();
+const missing=required.filter(k=>!value(k));
 document.querySelectorAll('[data-legal]').forEach(el=>{const k=el.dataset.legal,v=value(k);if(v){el.textContent=v;el.classList.remove('legal-missing')}else{el.textContent='—';el.classList.add('legal-missing')}});
 document.querySelectorAll('[data-legal-row]').forEach(el=>{const k=el.dataset.legalRow;if(!value(k))el.hidden=true});
 document.querySelectorAll('[data-legal-email]').forEach(el=>{const k=el.dataset.legalEmail||'email',v=value(k);if(v){el.textContent=v;el.href=`mailto:${v}`}else{el.textContent='—';el.removeAttribute('href');el.classList.add('legal-missing')}});
