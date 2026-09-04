@@ -15,6 +15,15 @@ export type Specialty = {
   pro: boolean;
 };
 
+export type LearningUnit = {
+  id: number;
+  title: string;
+  subtitle: string;
+  progress: number;
+  state: 'done' | 'active' | 'locked';
+  lessons: number;
+};
+
 export const languages: Language[] = [
   { code: 'en', name: 'Englisch', nativeName: 'English', symbol: 'EN', available: true, levels: ['A1','A2','B1','B2','C1','C2'] },
   { code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: false, levels: ['A1','A2','B1','B2','C1','C2'] },
@@ -36,9 +45,9 @@ export const specialties: Specialty[] = [
   { id: 'tourism', name: 'Tourismus', description: 'Hotel, Gastronomie, Reisen und Gästekommunikation.', icon: '⌂', pro: true }
 ];
 
-export const learningUnits = [
-  { id: 1, title: 'Erste Gespräche', subtitle: 'Begrüßen, vorstellen, höflich reagieren & im Café bestellen', progress: 0, state: 'active' as const, lessons: 8 },
-  { id: 2, title: 'Menschen & Dinge', subtitle: 'Personen beschreiben, Artikel, Zahlen und Besitz ausdrücken', progress: 0, state: 'locked' as const, lessons: 10 },
-  { id: 3, title: 'Mein Alltag', subtitle: 'Tagesablauf, Uhrzeit, Gewohnheiten und einfache Fragen', progress: 0, state: 'locked' as const, lessons: 10 },
-  { id: 4, title: 'Unterwegs', subtitle: 'Orientierung, Verkehr, Reisen und einfache Reisesituationen', progress: 0, state: 'locked' as const, lessons: 12 }
+export const learningUnits: LearningUnit[] = [
+  { id: 1, title: 'Erste Gespräche', subtitle: 'Begrüßen, vorstellen, höflich reagieren & im Café bestellen', progress: 0, state: 'active', lessons: 8 },
+  { id: 2, title: 'Menschen & Dinge', subtitle: 'Personen beschreiben, Artikel, Zahlen und Besitz ausdrücken', progress: 0, state: 'locked', lessons: 10 },
+  { id: 3, title: 'Mein Alltag', subtitle: 'Tagesablauf, Uhrzeit, Gewohnheiten und einfache Fragen', progress: 0, state: 'locked', lessons: 10 },
+  { id: 4, title: 'Unterwegs', subtitle: 'Orientierung, Verkehr, Reisen und einfache Reisesituationen', progress: 0, state: 'locked', lessons: 12 }
 ];
