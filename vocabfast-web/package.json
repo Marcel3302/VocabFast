@@ -1,11 +1,11 @@
 {
   "name": "vocabfast-web",
-  "version": "13.0.0",
+  "version": "15.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "npm run check && node scripts/build.mjs",
-    "check": "node --check app.js && node --check grammar-data.js && node --check vocab-data.js && node --check level-index.js && node --check ui-overrides.js && node --check v4-features.js && node --check practice-grammar-v6.js && node --check grammar-topic-scores-v7.js && node --check exam-admin-v8.js && node --check v9-observer-guard.js && node --check v9-polish.js && node --check v9-observer-restore.js && node --check v10-admin-tools.js && node --check v11-admin-dashboard.js && node --check v12-pro.js && node --check autofill-fix-v12.js && node --check v13-admin.js && node --check v13-ui.js && node --check src/worker.js && node --check src/worker-v3.js && node --check src/worker-v4.js && node --check src/worker-v5.js && node --check src/worker-v6.js && node --check src/worker-v7.js && node --check src/worker-v8.js && node --check src/worker-v9.js",
+    "check": "node --check app.js && node --check grammar-data.js && node --check vocab-data.js && node --check level-index.js && node --check ui-overrides.js && node --check v4-features.js && node --check practice-grammar-v6.js && node --check grammar-topic-scores-v7.js && node --check exam-admin-v8.js && node --check v9-observer-guard.js && node --check v9-polish.js && node --check v9-observer-restore.js && node --check v10-admin-tools.js && node --check v11-admin-dashboard.js && node --check v12-pro.js && node --check autofill-fix-v12.js && node --check v13-admin.js && node --check v13-ui.js && node --check src/worker.js && node --check src/worker-v3.js && node --check src/worker-v4.js && node --check src/worker-v5.js && node --check src/worker-v6.js && node --check src/worker-v7.js && node --check src/worker-v8.js && node --check src/worker-v9.js && node --check v14-polish.js && node --check v15-experience.js && node --check src/worker-v10.js",
     "deploy": "wrangler deploy",
     "preview": "wrangler dev",
     "selftest": "npm run check && node scripts/build.mjs && node scripts/selftest.mjs && node scripts/worker-selftest.mjs"
