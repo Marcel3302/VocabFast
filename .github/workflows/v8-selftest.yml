@@ -1,4 +1,4 @@
-name: VocabFast selftest
+name: VocabFast release checks
 on:
   push:
     branches: [main]
@@ -10,18 +10,21 @@ jobs:
       run:
         working-directory: vocabfast-web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
-      - run: npm install
-      - run: npm run selftest
-      - run: npx wrangler deploy --dry-run --outdir .wrangler-dry
-      - name: Build GitHub ZIP
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run VocabFast selftest
+        run: npm run selftest
+      - name: Verify Cloudflare Worker bundle
+        run: npx wrangler deploy --dry-run --outdir .wrangler-dry
+      - name: Build release ZIP
         working-directory: .
-        run: zip -r VocabFast_V8_TEST_ADMIN_GitHub.zip vocabfast-web -x 'vocabfast-web/node_modules/*' 'vocabfast-web/.wrangler-dry/*'
+        run: zip -r VocabFast_RELEASE_GitHub.zip vocabfast-web -x 'vocabfast-web/node_modules/*' 'vocabfast-web/.wrangler-dry/*'
       - uses: actions/upload-artifact@v4
         with:
-          name: VocabFast_V8_TEST_ADMIN_GitHub
-          path: VocabFast_V8_TEST_ADMIN_GitHub.zip
+          name: VocabFast_RELEASE_GitHub
+          path: VocabFast_RELEASE_GitHub.zip
           retention-days: 14
