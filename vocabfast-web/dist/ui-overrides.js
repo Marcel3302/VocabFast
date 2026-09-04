@@ -5,15 +5,24 @@ const ADMIN_ROUTE=location.pathname.replace(/\/+$/,'')==='/admin';
 const nativeFetch=window.fetch.bind(window),cache=new Map();
 
 function cacheKey(input){try{return new URL(typeof input==='string'?input:input.url,location.origin).pathname}catch{return ''}}
+function cacheStateFromBody(body){
+  if(typeof body!=='string')return;
+  try{const state=JSON.parse(body),response=new Response(JSON.stringify({state}),{status:200,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});cache.set('/api/state',{until:Date.now()+30000,promise:Promise.resolve(response)});window.VF_STATE_SNAPSHOT=state}catch{}
+}
 window.fetch=(input,init={})=>{
   const method=String(init.method||(input instanceof Request?input.method:'GET')).toUpperCase();
   const path=cacheKey(input);
   if(method!=='GET'){
     if(path.includes('/api/auth/')||path==='/api/account/password'||path==='/api/admin/login'||path==='/api/admin/logout')cache.delete('/api/me');
-    if(path==='/api/state')cache.delete('/api/state');
+    if(path==='/api/state'){
+      cache.delete('/api/state');
+      const request=nativeFetch(input,init);
+      if(method==='PUT')return request.then(r=>{if(r.ok)cacheStateFromBody(init.body);return r});
+      return request;
+    }
     return nativeFetch(input,init);
   }
-  const ttl=path==='/api/me'?900:path==='/api/state'?500:path==='/api/billing/status'?1200:0;
+  const ttl=path==='/api/me'?60000:path==='/api/state'?30000:path==='/api/billing/status'?15000:0;
   if(!ttl)return nativeFetch(input,init);
   const hit=cache.get(path),now=Date.now();
   if(hit&&hit.until>now)return hit.promise.then(r=>r.clone());
@@ -50,12 +59,7 @@ function installStyles(){
 
 function activate(name){$$('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));$$('#mainNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name))}
 function planLabel(u){return u&&(u.tier==='elite'||u.effectivePlan==='pro')?'Elite':'Core'}
-function normalizeStatus(u){
-  window.VF_SESSION_USER=u||null;
-  const legacy=$('#v8PlanBadge');if(legacy)legacy.style.display='none';
-  const pill=$('#v14PlanPill');if(pill&&u)pill.textContent=`VocabFast ${planLabel(u)}`;
-  window.dispatchEvent(new CustomEvent('vocabfast:session',{detail:{user:u||null}}));
-}
+function normalizeStatus(u){window.VF_SESSION_USER=u||null;const legacy=$('#v8PlanBadge');if(legacy)legacy.style.display='none';const pill=$('#v14PlanPill');if(pill&&u)pill.textContent=`VocabFast ${planLabel(u)}`;window.dispatchEvent(new CustomEvent('vocabfast:session',{detail:{user:u||null}}))}
 function showGuest(){document.documentElement.classList.remove('vf-auth-pending');document.documentElement.classList.add('vf-guest');activate('account');$('#accountLoggedOut')?.classList.remove('hidden');$('#accountLoggedIn')?.classList.add('hidden');normalizeStatus(null)}
 function showUser(u){document.documentElement.classList.remove('vf-auth-pending','vf-guest');normalizeStatus(u)}
 async function checkUser(){if(ADMIN_ROUTE)return;try{const r=await fetch('/api/me',{credentials:'same-origin',cache:'no-store'}),d=await r.json();r.ok&&d?.user?showUser(d.user):showGuest()}catch{showGuest()}}
@@ -63,7 +67,7 @@ async function checkUser(){if(ADMIN_ROUTE)return;try{const r=await fetch('/api/m
 function ensureAdminGate(){
   if($('#vfAdminGate'))return;
   document.body.insertAdjacentHTML('beforeend',`<div id="vfAdminGate"><form class="vf-admin-card" id="vfAdminForm"><h1>VocabFast Admin</h1><p>Separater Verwaltungszugang</p><label>Benutzername</label><input id="vfAdminUser" autocomplete="username" value="admin"><label>Passwort</label><input id="vfAdminPassword" type="password" autocomplete="current-password" autofocus><button id="vfAdminSubmit" type="submit">Admin anmelden</button><div class="vf-admin-status" id="vfAdminStatus"></div></form></div>`);
-  $('#vfAdminForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#vfAdminSubmit'),st=$('#vfAdminStatus');b.disabled=true;st.textContent='Anmeldung …';try{const r=await nativeFetch('/api/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#vfAdminUser').value,password:$('#vfAdminPassword').value})}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Admin-Anmeldung fehlgeschlagen.');location.reload()}catch(err){st.textContent=err.message;b.disabled=false}});
+  $('#vfAdminForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('#vfAdminSubmit'),st=$('#vfAdminStatus');b.disabled=true;st.textContent='Anmeldung …';try{const r=await nativeFetch('/api/admin/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('#vfAdminUser').value,password:$('#vfAdminPassword').value})}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Admin-Anmeldung fehlgeschlagen.');location.reload()}catch(err){st.textContent=err.message;b.disabled=false}})
 }
 async function checkAdmin(){if(!ADMIN_ROUTE)return;ensureAdminGate();try{const r=await nativeFetch('/api/admin/me',{credentials:'same-origin',cache:'no-store'}),d=await r.json().catch(()=>({}));if(r.ok&&d?.admin){document.documentElement.classList.add('vf-admin-authorized');$('#vfAdminGate')?.setAttribute('hidden','');setTimeout(()=>{const v=$('#view-admin');if(v){v.removeAttribute('hidden');activate('admin')}},120)}else{document.documentElement.classList.remove('vf-admin-authorized');$('#vfAdminGate')?.removeAttribute('hidden')}}catch{$('#vfAdminGate')?.removeAttribute('hidden')}}
 
@@ -72,6 +76,7 @@ if(ADMIN_ROUTE){document.documentElement.classList.add('vf-admin-route');documen
 
 document.addEventListener('submit',e=>{if(!ADMIN_ROUTE&&e.target?.matches?.('#loginForm,#registerForm')){setTimeout(checkUser,180);setTimeout(checkUser,700)}},true);
 document.addEventListener('click',e=>{if(!ADMIN_ROUTE&&e.target.closest?.('#logout')){cache.clear();setTimeout(checkUser,150)}},true);
+document.addEventListener('pointerover',e=>{if(!ADMIN_ROUTE&&window.VF_SESSION_USER&&e.target.closest?.('[data-view="practice"],.v14-action[data-go="practice"]'))fetch('/api/state',{credentials:'same-origin'}).catch(()=>{})},{passive:true});
 addEventListener('load',()=>{ADMIN_ROUTE?checkAdmin():checkUser();setTimeout(()=>normalizeStatus(window.VF_SESSION_USER),200)});
 addEventListener('pageshow',()=>ADMIN_ROUTE?checkAdmin():checkUser());
 })();
