@@ -7,18 +7,31 @@
     "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "r2_buckets": [
-    { "binding": "PDFS" }
+    {
+      "binding": "PDFS"
+    }
   ],
-  "observability": { "enabled": true },
-  "ai": { "binding": "AI" },
+  "observability": {
+    "enabled": true
+  },
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
     "ADMIN_USERNAME": "admin",
     "ELITE_CHECKOUT_URL": "https://buy.stripe.com/test_cNi28qfQ24OA4sybh3ao800",
     "ELITE_PRICE_ID": "price_1UBiyNCpS0yAsRaY22NMVFdS",
     "ELITE_PRODUCT_ID": "prod_VC7CT3eyDMrTWK",
-    "ELITE_PRICE_LABEL": "7,99 € / Monat"
+    "ELITE_PRICE_LABEL": "7,99 € / Monat",
+    "STRIPE_MODE": "test",
+    "ELITE_CHECKOUT_URL_TEST": "https://buy.stripe.com/test_cNi28qfQ24OA4sybh3ao800",
+    "ELITE_CHECKOUT_URL_LIVE": "",
+    "ELITE_PRICE_ID_TEST": "price_1UBiyNCpS0yAsRaY22NMVFdS",
+    "ELITE_PRODUCT_ID_TEST": "prod_VC7CT3eyDMrTWK"
   }
 }
