@@ -16,6 +16,14 @@
     setTimeout(goToWords,350);
   }
 
+  function protectAdminLoginEntry(){
+    const isAdminEntry=location.pathname.replace(/\/+$/,'')==='/admin';
+    if(isAdminEntry) return;
+    const removePublicAdminLogin=()=>$('#v8AdminLogin')?.remove();
+    removePublicAdminLogin();
+    new MutationObserver(removePublicAdminLogin).observe(document.documentElement,{childList:true,subtree:true});
+  }
+
   function numberFromCard(label){
     const card=$$('.stat-card').find(c=>c.querySelector('span')?.textContent.trim()===label);
     if(!card) return 0;
@@ -77,6 +85,7 @@
   }
 
   window.addEventListener('load',()=>{
+    protectAdminLoginEntry();
     addStyles();
     prepareStartPage();
     const grid=$('#statsGrid');
