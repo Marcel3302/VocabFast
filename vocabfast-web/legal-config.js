@@ -1,0 +1,22 @@
+window.VOCABFAST_LEGAL=Object.freeze({
+  businessName:'VocabFast',
+  providerName:'',
+  legalForm:'',
+  addressLine1:'',
+  postalCode:'',
+  city:'',
+  country:'Österreich',
+  email:'',
+  phone:'',
+  vatId:'',
+  companyRegister:'',
+  registerCourt:'',
+  chamber:'',
+  supervisoryAuthority:'',
+  tradeRegulation:'Gewerbeordnung (GewO), abrufbar über ris.bka.gv.at',
+  mediaOwner:'',
+  contentPurpose:'Bereitstellung und Weiterentwicklung einer webbasierten Lernplattform für Englisch, Fachsprache, Grammatik und Lernfortschritt.',
+  priceTaxNote:'',
+  supportEmail:'',
+  privacyContact:''
+});
