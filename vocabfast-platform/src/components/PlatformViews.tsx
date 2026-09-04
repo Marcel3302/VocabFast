@@ -1,5 +1,5 @@
 import { conceptCatalog, conceptMeta } from '../learning/concepts';
-import { englishA1Units } from '../learning/curriculum';
+import { englishCourseLevels } from '../learning/curriculum';
 import { getMasterySnapshot } from '../learning/mastery';
 import type { PlatformProgress } from '../learning/progress';
 import type { ExerciseType, Lesson } from '../learning/types';
@@ -23,7 +23,7 @@ export function PracticeView({ openLesson, buildReview, buildMode }: { openLesso
   const weak = mastery.filter(item => item.strength < .55).length;
   const due = mastery.filter(item => new Date(item.dueAt).getTime() <= Date.now()).length;
   return <section className="platform-view">
-    <div className="view-hero"><div><span className="eyebrow">ADAPTIVES TRAINING</span><h1>Übe genau das, was heute den größten Unterschied macht.</h1><p>VocabFast kombiniert fällige Wiederholungen mit deinen schwächsten Konzepten. Du kannst aber auch bewusst Hören, Sprechen oder Satzbildung trainieren.</p></div><button className="view-primary" onClick={()=>openLesson(buildReview())}>Intelligente Übung starten →</button></div>
+    <div className="view-hero"><div><span className="eyebrow">ADAPTIVES TRAINING</span><h1>Übe genau das, was heute den größten Unterschied macht.</h1><p>VocabFast kombiniert fällige Wiederholungen mit deinen schwächsten Konzepten. Das ausgewählte CEFR-Level bestimmt den Übungspool.</p></div><button className="view-primary" onClick={()=>openLesson(buildReview())}>Intelligente Übung starten →</button></div>
     <div className="metric-grid"><article><span>Fällig</span><strong>{due}</strong><small>Konzepte zur Wiederholung</small></article><article><span>Im Aufbau</span><strong>{weak}</strong><small>noch nicht sichere Konzepte</small></article><article><span>Gelernt</span><strong>{mastery.length}</strong><small>bereits berührte Konzepte</small></article></div>
     <div className="view-section-head"><div><span className="eyebrow">TRAININGSMODI</span><h2>Kurze Sessions, klarer Fokus</h2></div></div>
     <div className="mode-grid">
@@ -45,7 +45,7 @@ export function WordsView() {
     <div className="category-summary">{categories.map(category=><article key={category}><span>{category}</span><strong>{known.filter(item=>item.category===category).length}</strong><small>aktiv gelernt</small></article>)}</div>
     <div className="view-section-head"><div><span className="eyebrow">AKTIV</span><h2>{known.length} gelernte Konzepte</h2></div></div>
     <div className="concept-list">{known.length ? known.map(meta=>{const m=masteryMap.get(meta.id)!;return <article key={meta.id}><div className="concept-main"><span className="concept-type">{meta.category}</span><strong>{meta.label}</strong><small>{meta.translation}</small></div><div className="concept-strength"><div><span style={{width:`${Math.round(m.strength*100)}%`}}/></div><strong>{Math.round(m.strength*100)}%</strong><small>{strengthLabel(m.strength)}</small></div></article>}) : <div className="empty-state"><strong>Noch keine Lerndaten.</strong><span>Starte deine erste Lektion – danach füllt sich dieser Bereich automatisch.</span></div>}</div>
-    {undiscovered.length>0 && <><div className="view-section-head"><div><span className="eyebrow">ALS NÄCHSTES</span><h2>In deinem A1-Kurs</h2></div></div><div className="locked-concepts">{undiscovered.slice(0,18).map(meta=><span key={meta.id}><b>{meta.label}</b><small>{meta.translation}</small></span>)}</div></>}
+    {undiscovered.length>0 && <><div className="view-section-head"><div><span className="eyebrow">ALS NÄCHSTES</span><h2>Im A1–C1 Gesamtkurs</h2></div></div><div className="locked-concepts">{undiscovered.slice(0,18).map(meta=><span key={meta.id}><b>{meta.label}</b><small>{meta.translation}</small></span>)}</div></>}
   </section>;
 }
 
@@ -64,10 +64,10 @@ export function ProgressView({ progress }: { progress: PlatformProgress }) {
   const learning = mastery.filter(item=>item.strength>0&&item.strength<.65).length;
   const weakest = mastery.slice(0,6);
   return <section className="platform-view">
-    <div className="view-hero compact"><div><span className="eyebrow">FORTSCHRITT</span><h1>Du siehst nicht nur, was erledigt ist – sondern was sitzt.</h1><p>Fortschritt wird aus Lektionen, Genauigkeit, Streak und Konzeptstärke zusammengesetzt.</p></div></div>
+    <div className="view-hero compact"><div><span className="eyebrow">FORTSCHRITT</span><h1>Du siehst nicht nur, was erledigt ist – sondern was sitzt.</h1><p>Fortschritt wird über A1 bis C1 aus Lektionen, Genauigkeit, Streak und Konzeptstärke zusammengesetzt.</p></div></div>
     <div className="metric-grid four"><article><span>Gesamt-XP</span><strong>{progress.totalXp}</strong><small>aus allen Sessions</small></article><article><span>Sessions</span><strong>{progress.sessions}</strong><small>Trainingseinheiten</small></article><article><span>Genauigkeit</span><strong>{average}%</strong><small>Ø Kurslektionen</small></article><article><span>Streak</span><strong>{progress.currentStreak}</strong><small>Bestwert {progress.longestStreak}</small></article></div>
-    <div className="view-section-head"><div><span className="eyebrow">KURSSTATUS</span><h2>A1 · Einheiten</h2></div></div>
-    <div className="unit-progress-grid">{englishA1Units.map(unit=>{const complete=unit.lessons.filter(lesson=>progress.completedLessonIds.includes(lesson.id)).length;const percent=Math.round(complete/unit.lessons.length*100);return <article key={unit.id}><div><span>Einheit {unit.number}</span><strong>{unit.title}</strong><small>{complete}/{unit.lessons.length} Lektionen</small></div><div className="unit-progress-ring"><strong>{percent}%</strong></div></article>})}</div>
+    <div className="view-section-head"><div><span className="eyebrow">KURSSTATUS</span><h2>A1 bis C1</h2></div></div>
+    <div className="unit-progress-grid">{englishCourseLevels.map(level=>{const lessons=level.units.flatMap(unit=>unit.lessons);const complete=lessons.filter(lesson=>progress.completedLessonIds.includes(lesson.id)).length;const percent=Math.round(complete/lessons.length*100);return <article key={level.id}><div><span>{level.id}</span><strong>{level.title}</strong><small>{complete}/{lessons.length} Lektionen</small></div><div className="unit-progress-ring"><strong>{percent}%</strong></div></article>})}</div>
     <div className="progress-panels"><article><div className="view-section-head inner"><div><span className="eyebrow">MASTERY</span><h2>Konzeptstatus</h2></div></div><div className="mastery-summary"><div><span className="mastery-dot strong"/><strong>{strong}</strong><small>sicher</small></div><div><span className="mastery-dot learning"/><strong>{learning}</strong><small>im Aufbau</small></div><div><span className="mastery-dot new"/><strong>{Math.max(conceptCatalog.length-mastery.length,0)}</strong><small>noch neu</small></div></div></article><article><div className="view-section-head inner"><div><span className="eyebrow">NÄCHSTER FOKUS</span><h2>Schwächste Konzepte</h2></div></div><div className="weak-list">{weakest.length?weakest.map(item=>{const meta=conceptMeta(item.conceptId);return <div key={item.conceptId}><span><strong>{meta.label}</strong><small>{meta.translation}</small></span><b>{Math.round(item.strength*100)}%</b></div>}):<div className="empty-inline">Noch keine Daten – starte eine Lektion.</div>}</div></article></div>
   </section>;
 }
