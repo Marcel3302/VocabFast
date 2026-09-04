@@ -1,0 +1,26 @@
+{
+  "name": "vocabfast-platform",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "check:preview-worker": "node --check src/preview-worker.js",
+    "deploy:preview": "npm run build && wrangler deploy --config wrangler.preview.jsonc",
+    "dry-run:preview": "npm run build && wrangler deploy --config wrangler.preview.jsonc --dry-run --outdir .wrangler-preview-dry"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "vite": "latest",
+    "typescript": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "wrangler": "4.128.0"
+  }
+}
