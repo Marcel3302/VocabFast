@@ -1,7 +1,7 @@
 const securityHeaders = {
   'X-Content-Type-Options':'nosniff',
   'Referrer-Policy':'strict-origin-when-cross-origin',
-  'Permissions-Policy':'camera=(), geolocation=(), payment=()',
+  'Permissions-Policy':'camera=(), geolocation=(), microphone=(self), payment=()',
   'X-Robots-Tag':'noindex, nofollow, noarchive'
 };
 
