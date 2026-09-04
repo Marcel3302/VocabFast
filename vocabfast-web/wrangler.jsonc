@@ -16,6 +16,7 @@
   "ai": { "binding": "AI" },
   "vars": {
     "ADMIN_USERNAME": "admin",
+    "APP_ORIGIN": "https://vocabfast.net",
     "ELITE_PRICE_LABEL": "7,99 € / Monat",
     "STRIPE_MODE": "live",
 
@@ -26,7 +27,7 @@
     "ELITE_CHECKOUT_URL_LIVE": "https://buy.stripe.com/cNi28qfQ24OA4sybh3ao800",
     "ELITE_PRICE_ID_LIVE": "price_1UBpKtCpS0yAsRaYApiQlUlW",
     "ELITE_PRODUCT_ID_LIVE": "prod_VCDlxc8yoo0XGT",
-    "STRIPE_PORTAL_URL_LIVE": "",
+    "STRIPE_PORTAL_URL_LIVE": "https://billing.stripe.com/p/login/cNi28qfQ24OA4sybh3ao800",
 
     "ELITE_CHECKOUT_URL_TEST": "https://buy.stripe.com/test_cNi28qfQ24OA4sybh3ao800",
     "ELITE_PRICE_ID_TEST": "price_1UBiyNCpS0yAsRaY22NMVFdS",
