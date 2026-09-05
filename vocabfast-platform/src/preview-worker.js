@@ -8,7 +8,8 @@ const securityHeaders = {
 
 const SESSION_COOKIE='vf_preview_session';
 const SESSION_DAYS=30;
-const PASSWORD_ITERATIONS=120000;
+// Cloudflare WebCrypto currently rejects PBKDF2 iteration counts above 100,000.
+const PASSWORD_ITERATIONS=100000;
 const encoder=new TextEncoder();
 
 function json(data,status=200,headers={}) {
