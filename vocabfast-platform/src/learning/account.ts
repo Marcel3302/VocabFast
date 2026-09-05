@@ -21,6 +21,11 @@ const PLATFORM_PREFIX='vocabfast.platform.';
 let syncTimer:number|undefined;
 let syncInFlight:Promise<void>|null=null;
 
+function freshApiUrl(path:string) {
+  const separator=path.includes('?')?'&':'?';
+  return `${path}${separator}_=${Date.now()}`;
+}
+
 async function responseJson<T>(response:Response):Promise<T> {
   const data=await response.json().catch(()=>({})) as T&{error?:string};
   if(!response.ok)throw new Error(data.error||'Die Anfrage ist fehlgeschlagen.');
@@ -28,27 +33,27 @@ async function responseJson<T>(response:Response):Promise<T> {
 }
 
 export async function currentAccount():Promise<AccountUser|null> {
-  const response=await fetch('/api/preview/me',{credentials:'same-origin',headers:{Accept:'application/json'}});
+  const response=await fetch(freshApiUrl('/api/preview/me'),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
   const data=await responseJson<{user:AccountUser|null}>(response);
   return data.user;
 }
 
 export async function registerAccount(input:{name:string;email:string;password:string}):Promise<AuthResult> {
   const response=await fetch('/api/preview/auth/register',{
-    method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)
+    method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)
   });
   return responseJson<AuthResult>(response);
 }
 
 export async function loginAccount(input:{email:string;password:string}):Promise<AuthResult> {
   const response=await fetch('/api/preview/auth/login',{
-    method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)
+    method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)
   });
   return responseJson<AuthResult>(response);
 }
 
 export async function logoutAccount() {
-  const response=await fetch('/api/preview/auth/logout',{method:'POST',credentials:'same-origin'});
+  const response=await fetch('/api/preview/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
   await responseJson<{ok:boolean}>(response);
 }
 
@@ -81,7 +86,7 @@ export function applyPlatformSnapshot(snapshot:PlatformSnapshot|null) {
 }
 
 export async function loadAccountState():Promise<boolean> {
-  const response=await fetch('/api/preview/state',{credentials:'same-origin',headers:{Accept:'application/json'}});
+  const response=await fetch(freshApiUrl('/api/preview/state'),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
   const data=await responseJson<{state:PlatformSnapshot|null}>(response);
   applyPlatformSnapshot(data.state);
   return Boolean(data.state);
@@ -90,7 +95,7 @@ export async function loadAccountState():Promise<boolean> {
 export async function saveAccountState() {
   const state=capturePlatformSnapshot();
   const response=await fetch('/api/preview/state',{
-    method:'PUT',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({state})
+    method:'PUT',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({state})
   });
   await responseJson<{ok:boolean}>(response);
 }
