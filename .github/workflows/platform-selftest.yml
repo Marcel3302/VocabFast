@@ -56,6 +56,20 @@ jobs:
           curl --fail-with-body --silent --show-error "$BASE/api/preview/me"
           echo
 
+          echo '--- invalid login storage probe ---'
+          LOGIN_STATUS=$(curl --silent --show-error -o /tmp/vf-login-probe.json -w '%{http_code}' \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/preview/auth/login" \
+            --data '{"email":"nobody@example.invalid","password":"definitely-wrong"}')
+          cat /tmp/vf-login-probe.json
+          echo
+          echo "login probe status: $LOGIN_STATUS"
+          if [ "$LOGIN_STATUS" != '401' ]; then
+            echo 'Expected 401 from a healthy account store.'
+            exit 1
+          fi
+
           echo '--- register ---'
           curl --fail-with-body --silent --show-error \
             -c "$COOKIE_JAR" \
