@@ -4,6 +4,7 @@
   "main": "./src/preview-worker.js",
   "compatibility_date": "2026-09-04",
   "workers_dev": true,
+  // Route only the preview account API on the production hostname to this isolated worker.
   "routes": [
     {
       "pattern": "vocabfast.net/api/preview/*",
