@@ -177,7 +177,7 @@ function App() {
     if (activeNav === 'specialty') return <SpecialtyView openPro={()=>setProOpen(true)} />;
     if (activeNav === 'progress') return <ProgressView progress={progress} />;
     if (activeNav === 'profile') return <ProfileView preferences={preferences} progress={progress} onSave={saveLearnerPreferences} onResetProgress={resetProgress} />;
-    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} lastResult={lastResult} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} onSelectLevel={selectLevel} />;
+    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} onSelectLevel={selectLevel} />;
   }
 
   if(accountPhase==='loading')return <div className="platform-loading"><div><i/><strong>Dein VocabFast-Konto wird geladen …</strong></div></div>;
