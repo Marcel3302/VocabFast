@@ -43,17 +43,47 @@ jobs:
         run: |
           set -euo pipefail
           sleep 3
-          echo '--- vocabfast.net health ---'
-          curl --fail-with-body --silent --show-error https://vocabfast.net/api/preview/health
+          BASE='https://vocabfast.net'
+          COOKIE_JAR="$(mktemp)"
+          TEST_EMAIL="ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.invalid"
+          TEST_PASSWORD='VocabFast-CI-Only-2026!'
+
+          echo '--- health ---'
+          curl --fail-with-body --silent --show-error "$BASE/api/preview/health"
           echo
-          echo '--- vocabfast.net me ---'
-          curl --fail-with-body --silent --show-error https://vocabfast.net/api/preview/me
+
+          echo '--- anonymous me ---'
+          curl --fail-with-body --silent --show-error "$BASE/api/preview/me"
           echo
+
+          echo '--- register ---'
+          curl --fail-with-body --silent --show-error \
+            -c "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/preview/auth/register" \
+            --data "{\"name\":\"CI Smoke Test\",\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
+          echo
+
+          echo '--- authenticated me ---'
+          curl --fail-with-body --silent --show-error -b "$COOKIE_JAR" "$BASE/api/preview/me"
+          echo
+
+          echo '--- save state ---'
+          curl --fail-with-body --silent --show-error \
+            -b "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X PUT "$BASE/api/preview/state" \
+            --data '{"state":{"schema":1,"storage":{"vocabfast.platform.ci":"ok"}}}'
+          echo
+
+          echo '--- load state ---'
+          curl --fail-with-body --silent --show-error -b "$COOKIE_JAR" "$BASE/api/preview/state"
+          echo
+
           echo '--- workers.dev health ---'
           curl --fail-with-body --silent --show-error https://vocabfast-language-preview.marcelst2003.workers.dev/api/preview/health
-          echo
-          echo '--- workers.dev me ---'
-          curl --fail-with-body --silent --show-error https://vocabfast-language-preview.marcelst2003.workers.dev/api/preview/me
           echo
       - name: Cloudflare preview deployment not configured
         if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
