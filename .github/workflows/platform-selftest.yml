@@ -79,7 +79,7 @@ jobs:
             --data "{\"name\":\"CI Smoke Test\",\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
           echo
 
-          echo '--- authenticated me ---'
+          echo '--- authenticated me after register ---'
           curl --fail-with-body --silent --show-error -b "$COOKIE_JAR" "$BASE/api/preview/me"
           echo
 
@@ -92,7 +92,27 @@ jobs:
             --data '{"state":{"schema":1,"storage":{"vocabfast.platform.ci":"ok"}}}'
           echo
 
-          echo '--- load state ---'
+          echo '--- logout ---'
+          curl --fail-with-body --silent --show-error \
+            -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -X POST "$BASE/api/preview/auth/logout"
+          echo
+
+          echo '--- login after logout ---'
+          curl --fail-with-body --silent --show-error \
+            -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/preview/auth/login" \
+            --data "{\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}"
+          echo
+
+          echo '--- authenticated me after login ---'
+          curl --fail-with-body --silent --show-error -b "$COOKIE_JAR" "$BASE/api/preview/me"
+          echo
+
+          echo '--- load state after login ---'
           curl --fail-with-body --silent --show-error -b "$COOKIE_JAR" "$BASE/api/preview/state"
           echo
 
