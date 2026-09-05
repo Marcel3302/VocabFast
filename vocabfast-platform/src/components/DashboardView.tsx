@@ -1,5 +1,6 @@
 import { specialties } from '../data/catalog';
 import { englishCourseLevels, lessonIsUnlocked, levelById, type CefrLevel } from '../learning/curriculum';
+import type { PlacementResult } from '../learning/course-state';
 import type { LearnerPreferences } from '../learning/preferences';
 import type { PlatformProgress } from '../learning/progress';
 import type { Lesson, LessonResult } from '../learning/types';
@@ -8,6 +9,7 @@ type Props = {
   progress: PlatformProgress;
   preferences: LearnerPreferences;
   activeLevel: CefrLevel;
+  placement: PlacementResult | null;
   lastResult: LessonResult | null;
   openLesson: (lesson: Lesson) => void;
   buildReview: () => Lesson;
@@ -17,13 +19,25 @@ type Props = {
   onSelectLevel: (level: CefrLevel) => void;
 };
 
-export default function DashboardView({ progress, preferences, activeLevel, lastResult, openLesson, buildReview, openPro, openCourse, openPlacement, onSelectLevel }: Props) {
+const placementLabels = {
+  grammar:'Grammatik',
+  vocabulary:'Wortschatz',
+  communication:'Kommunikation'
+} as const;
+
+export default function DashboardView({ progress, preferences, activeLevel, placement, lastResult, openLesson, buildReview, openPro, openCourse, openPlacement, onSelectLevel }: Props) {
   const level = levelById(activeLevel);
   const lessons = level.units.flatMap(unit=>unit.lessons);
   const curriculumCompleted = lessons.filter(lesson => progress.completedLessonIds.includes(lesson.id)).length;
   const courseProgress = lessons.length ? Math.round((curriculumCompleted / lessons.length) * 100) : 0;
   const nextLesson = lessons.find(lesson => !progress.completedLessonIds.includes(lesson.id)) ?? lessons[lessons.length - 1];
   const studiedToday = progress.lastStudyDate === new Date().toLocaleDateString('sv-SE');
+  const placementAreas = placement?.breakdown
+    ? (Object.keys(placementLabels) as Array<keyof typeof placementLabels>).map(key=>{
+        const item=placement.breakdown![key];
+        return {key,label:placementLabels[key],percent:item.total?Math.round(item.score/item.total*100):0};
+      })
+    : [];
 
   return <div className="page-grid">
     <section className="primary-column">
@@ -39,6 +53,12 @@ export default function DashboardView({ progress, preferences, activeLevel, last
 
       <div className="cefr-strip" aria-label="CEFR-Level auswählen">{englishCourseLevels.map(item=><button key={item.id} className={item.id===activeLevel?'active':''} onClick={()=>onSelectLevel(item.id)}><strong>{item.id}</strong><small>{item.title}</small></button>)}</div>
       <div className="dashboard-course-callout"><div><strong>A1 bis C2 ist jetzt als spielbarer Kursrücken vorhanden.</strong><p>Wähle ein Level frei oder nutze die 36-Fragen-Einstufung für eine persönliche Start- und Fokus-Empfehlung.</p></div><div className="hero-actions"><button onClick={openPlacement}>Niveau bestimmen</button><button onClick={openCourse}>Gesamtkurs →</button></div></div>
+
+      {placement&&<section className="personal-plan-card">
+        <div className="personal-plan-head"><div><span className="eyebrow">DEIN PERSÖNLICHER STARTPLAN</span><h2>{placement.recommendedLevel} empfohlen · {placement.score}/{placement.total} richtig</h2><p>Die Einstufung wird nicht nur gespeichert: Sie wird zu einem sichtbaren Lernplan, damit du weißt, was als Nächstes den größten Nutzen bringt.</p></div><div className="personal-plan-level"><span>START</span><strong>{placement.recommendedLevel}</strong><small>{Math.round((placement.score/Math.max(1,placement.total))*100)}% gesamt</small></div></div>
+        {placementAreas.length>0&&<div className="personal-plan-bars">{placementAreas.map(item=><div key={item.key}><span><strong>{item.label}</strong><small>{item.percent}%</small></span><div><i style={{width:`${item.percent}%`}}/></div></div>)}</div>}
+        <div className="personal-plan-focus"><div><span className="eyebrow">NÄCHSTE SCHWERPUNKTE</span>{(placement.focus?.length?placement.focus:['Deinen empfohlenen Lernpfad mit kurzen täglichen Sessions stabilisieren.']).map(item=><p key={item}>✓ {item}</p>)}</div><button onClick={openPlacement}>Einstufung aktualisieren</button></div>
+      </section>}
 
       {lastResult && <div className="section-heading"><div><span className="eyebrow">LETZTE SESSION</span><h2>{lastResult.accuracy}% richtig · +{lastResult.xp} XP</h2></div><button className="text-button" onClick={()=>openLesson(buildReview())}>Gezielt wiederholen</button></div>}
 
