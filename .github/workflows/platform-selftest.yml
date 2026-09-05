@@ -38,6 +38,23 @@ jobs:
       - name: Deploy isolated Cloudflare preview
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         run: npx wrangler deploy --config wrangler.preview.jsonc
+      - name: Smoke test live preview account API
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          set -euo pipefail
+          sleep 3
+          echo '--- vocabfast.net health ---'
+          curl --fail-with-body --silent --show-error https://vocabfast.net/api/preview/health
+          echo
+          echo '--- vocabfast.net me ---'
+          curl --fail-with-body --silent --show-error https://vocabfast.net/api/preview/me
+          echo
+          echo '--- workers.dev health ---'
+          curl --fail-with-body --silent --show-error https://vocabfast-language-preview.marcelst2003.workers.dev/api/preview/health
+          echo
+          echo '--- workers.dev me ---'
+          curl --fail-with-body --silent --show-error https://vocabfast-language-preview.marcelst2003.workers.dev/api/preview/me
+          echo
       - name: Cloudflare preview deployment not configured
         if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
         run: |
