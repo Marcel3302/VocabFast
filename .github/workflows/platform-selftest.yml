@@ -27,6 +27,8 @@ jobs:
         run: npm run check:preview-worker
       - name: Build platform
         run: npm run build
+      - name: Release-surface audit
+        run: npm run audit:release
       - name: Verify isolated Cloudflare preview bundle
         run: npx wrangler deploy --config wrangler.preview.jsonc --dry-run --outdir .wrangler-preview-dry
       - name: Upload browser preview
@@ -52,6 +54,30 @@ jobs:
           echo '--- health ---'
           curl --fail-with-body --silent --show-error "$BASE/api/preview/health"
           echo
+
+          echo '--- protected admin context route ---'
+          ADMIN_CONTEXT_STATUS=$(curl --silent --show-error -o /tmp/vf-admin-context.json -w '%{http_code}' "$BASE/api/admin/context")
+          cat /tmp/vf-admin-context.json
+          echo
+          echo "admin context status: $ADMIN_CONTEXT_STATUS"
+          if [ "$ADMIN_CONTEXT_STATUS" != '401' ]; then
+            echo 'Expected 401 from the protected admin context route. A 404 means the admin bridge is broken.'
+            exit 1
+          fi
+
+          echo '--- invalid admin login route ---'
+          ADMIN_LOGIN_STATUS=$(curl --silent --show-error -o /tmp/vf-admin-login.json -w '%{http_code}' \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/admin/login" \
+            --data '{"username":"admin","password":"definitely-not-the-admin-password"}')
+          cat /tmp/vf-admin-login.json
+          echo
+          echo "admin login probe status: $ADMIN_LOGIN_STATUS"
+          if [ "$ADMIN_LOGIN_STATUS" != '401' ]; then
+            echo 'Expected 401 from the protected admin login route.'
+            exit 1
+          fi
 
           echo '--- anonymous me ---'
           curl --fail-with-body --silent --show-error "$BASE/api/preview/me"
@@ -139,7 +165,7 @@ jobs:
         run: |
           echo "Cloudflare preview build is valid, but deployment was skipped."
           echo "Add repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to enable automatic deployment."
-          echo "The preview Worker is named vocabfast-language-preview and has no production route."
+          echo "The preview Worker is named vocabfast-language-preview and keeps account data in its isolated Durable Object."
 
   worker-api-check:
     runs-on: ubuntu-latest
