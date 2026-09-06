@@ -4,6 +4,7 @@ import App from './App';
 import AdminPortal from './admin/AdminPortal';
 import { registerPwa } from './pwa';
 import './styles.css';
+import './accessibility.css';
 
 const adminRoute=window.location.pathname==='/admin'||window.location.pathname.startsWith('/admin/');
 if(!adminRoute)registerPwa();
