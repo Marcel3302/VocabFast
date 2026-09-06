@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { changeAccountPassword, deleteAccount } from '../learning/account';
 import type { LearnerPreferences, LearningReason } from '../learning/preferences';
 import type { PlatformProgress } from '../learning/progress';
 import './profile-view.css';
@@ -8,15 +9,24 @@ type Props = {
   progress: PlatformProgress;
   onSave: (preferences: LearnerPreferences) => void;
   onResetProgress: () => void;
+  onAccountDeleted: () => void;
 };
 
 const reasonLabels: Record<LearningReason,string> = {
   alltag: 'Alltag', reise: 'Reisen', beruf: 'Beruf', fachsprache: 'Fachsprache'
 };
 
-export default function ProfileView({ preferences, progress, onSave, onResetProgress }: Props) {
+export default function ProfileView({ preferences, progress, onSave, onResetProgress, onAccountDeleted }: Props) {
   const [draft, setDraft] = useState(preferences);
   const [saved, setSaved] = useState(false);
+  const [currentPassword,setCurrentPassword]=useState('');
+  const [newPassword,setNewPassword]=useState('');
+  const [repeatPassword,setRepeatPassword]=useState('');
+  const [passwordBusy,setPasswordBusy]=useState(false);
+  const [securityMessage,setSecurityMessage]=useState('');
+  const [securityError,setSecurityError]=useState('');
+  const [deletePassword,setDeletePassword]=useState('');
+  const [deleteBusy,setDeleteBusy]=useState(false);
 
   function save() {
     onSave({ ...draft, name: draft.name.trim() || 'Lernender' });
@@ -27,6 +37,35 @@ export default function ProfileView({ preferences, progress, onSave, onResetProg
   function reset() {
     if (!window.confirm('Deinen Lernfortschritt wirklich zurücksetzen? Die Änderung wird auch in deinem Konto gespeichert.')) return;
     onResetProgress();
+  }
+
+  async function updatePassword(event:React.FormEvent) {
+    event.preventDefault();
+    setSecurityError('');setSecurityMessage('');
+    if(newPassword.length<12){setSecurityError('Das neue Passwort muss mindestens 12 Zeichen lang sein.');return;}
+    if(newPassword!==repeatPassword){setSecurityError('Die neuen Passwörter stimmen nicht überein.');return;}
+    setPasswordBusy(true);
+    try {
+      await changeAccountPassword({currentPassword,newPassword});
+      setCurrentPassword('');setNewPassword('');setRepeatPassword('');
+      setSecurityMessage('Dein Passwort wurde geändert. Andere Anmeldungen wurden beendet.');
+    } catch(reason) {
+      setSecurityError(reason instanceof Error?reason.message:'Das Passwort konnte nicht geändert werden.');
+    } finally {setPasswordBusy(false);}
+  }
+
+  async function removeAccount() {
+    setSecurityError('');setSecurityMessage('');
+    if(!deletePassword){setSecurityError('Bitte bestätige die Löschung mit deinem Passwort.');return;}
+    if(!window.confirm('Konto wirklich dauerhaft löschen? Dein gespeicherter Lernfortschritt wird dabei ebenfalls gelöscht.'))return;
+    setDeleteBusy(true);
+    try {
+      await deleteAccount(deletePassword);
+      onAccountDeleted();
+    } catch(reason) {
+      setSecurityError(reason instanceof Error?reason.message:'Das Konto konnte nicht gelöscht werden.');
+      setDeleteBusy(false);
+    }
   }
 
   return <section className="profile-view platform-view">
@@ -46,6 +85,25 @@ export default function ProfileView({ preferences, progress, onSave, onResetProg
         <div className="profile-stats"><div><strong>{progress.totalXp}</strong><span>XP</span></div><div><strong>{progress.sessions}</strong><span>Sessions</span></div><div><strong>{progress.currentStreak}</strong><span>Streak</span></div><div><strong>{progress.completedLessonIds.length}</strong><span>Lektionen</span></div></div>
         <div className="local-note"><strong>Automatisch gespeichert</strong><p>Lektionen, Ergebnisse, XP, Streak, Einstellungen, Einstufung und Mastery werden deinem Konto zugeordnet und regelmäßig synchronisiert.</p></div>
         <button className="danger-button" onClick={reset}>Lernfortschritt zurücksetzen</button>
+      </article>
+
+      <article className="profile-panel security-panel">
+        <div className="view-section-head inner"><div><span className="eyebrow">SICHERHEIT</span><h2>Passwort ändern</h2></div></div>
+        <form onSubmit={updatePassword}>
+          <label><span>Aktuelles Passwort</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={event=>setCurrentPassword(event.target.value)}/></label>
+          <label><span>Neues Passwort</span><input type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={event=>setNewPassword(event.target.value)} placeholder="Mindestens 12 Zeichen"/></label>
+          <label><span>Neues Passwort wiederholen</span><input type="password" autoComplete="new-password" minLength={12} value={repeatPassword} onChange={event=>setRepeatPassword(event.target.value)}/></label>
+          <button className="profile-save" disabled={passwordBusy}>{passwordBusy?'Wird geändert …':'Passwort ändern'}</button>
+        </form>
+        {securityMessage&&<div className="profile-message success">{securityMessage}</div>}
+        {securityError&&<div className="profile-message error">{securityError}</div>}
+      </article>
+
+      <article className="profile-panel account-danger-panel">
+        <div className="view-section-head inner"><div><span className="eyebrow">KONTO</span><h2>Konto löschen</h2></div></div>
+        <p>Wenn du dein Konto löschst, werden dein Konto und der zugehörige gespeicherte Lernstand dauerhaft entfernt.</p>
+        <label><span>Passwort zur Bestätigung</span><input type="password" autoComplete="current-password" value={deletePassword} onChange={event=>setDeletePassword(event.target.value)}/></label>
+        <button className="danger-button solid" disabled={deleteBusy} onClick={()=>void removeAccount()}>{deleteBusy?'Konto wird gelöscht …':'Konto dauerhaft löschen'}</button>
       </article>
     </div>
   </section>;
