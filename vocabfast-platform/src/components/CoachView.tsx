@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { CefrLevel } from '../learning/curriculum';
 import { speakEnglish } from '../learning/speech';
 import './coach-view.css';
 
@@ -38,7 +39,7 @@ function demoReply(scenario: string, text: string) {
   return 'Good answer. Try adding one more detail in a full sentence.';
 }
 
-export default function CoachView({ audioRate=.9 }: { audioRate?: number }) {
+export default function CoachView({ audioRate=.9, level }: { audioRate?: number; level:CefrLevel }) {
   const [scenarioId, setScenarioId] = useState(scenarios[0].id);
   const scenario = useMemo(()=>scenarios.find(item=>item.id===scenarioId) ?? scenarios[0],[scenarioId]);
   const [messages, setMessages] = useState<Message[]>([{id:'opening',role:'coach',text:scenarios[0].opening,source:'demo'}]);
@@ -65,13 +66,13 @@ export default function CoachView({ audioRate=.9 }: { audioRate?: number }) {
 
     try {
       const controller = new AbortController();
-      const timeout = window.setTimeout(()=>controller.abort(),4500);
+      const timeout = window.setTimeout(()=>controller.abort(),6500);
       const response = await fetch('/api/platform/coach', {
         method:'POST',
         credentials:'same-origin',
         cache:'no-store',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({ scenario:scenario.id, message:text, history:history.slice(-8).map(item=>({role:item.role,text:item.text})) }),
+        body:JSON.stringify({ scenario:scenario.id, level, message:text, history:history.slice(-8).map(item=>({role:item.role,text:item.text})) }),
         signal:controller.signal
       });
       window.clearTimeout(timeout);
@@ -90,7 +91,7 @@ export default function CoachView({ audioRate=.9 }: { audioRate?: number }) {
   }
 
   return <section className="coach-view platform-view">
-    <div className="view-hero coach-view-hero"><div><span className="eyebrow">VOCABFAST COACH</span><h1>Übe Gespräche, die du außerhalb einer Lern-App wirklich brauchst.</h1><p>Trainiere realistische Situationen, formuliere eigene Antworten und höre dir natürliche englische Formulierungen direkt an.</p></div><div className={`coach-mode ${mode}`}><span>{mode==='live'?'● KI-COACH':'● GESPRÄCHSTRAINING'}</span><small>{mode==='live'?'persönliche Rückmeldung':'Szenario aktiv'}</small></div></div>
+    <div className="view-hero coach-view-hero"><div><span className="eyebrow">VOCABFAST COACH · {level}</span><h1>Übe Gespräche, die du außerhalb einer Lern-App wirklich brauchst.</h1><p>Trainiere realistische Situationen, formuliere eigene Antworten und höre dir natürliche englische Formulierungen direkt an. Schwierigkeit und Rückmeldung orientieren sich an deinem Niveau.</p></div><div className={`coach-mode ${mode}`}><span>{mode==='live'?'● KI-COACH':'● GESPRÄCHSTRAINING'}</span><small>{mode==='live'?'persönliche Rückmeldung':'Szenario aktiv'}</small></div></div>
 
     <div className="coach-layout">
       <aside className="scenario-list"><div className="view-section-head inner"><div><span className="eyebrow">SITUATION</span><h2>Wähle ein Gespräch</h2></div></div>{scenarios.map(item=><button key={item.id} className={scenario.id===item.id?'active':''} onClick={()=>selectScenario(item.id)}><span>{item.icon}</span><div><strong>{item.title}</strong><small>{item.subtitle}</small></div></button>)}</aside>
