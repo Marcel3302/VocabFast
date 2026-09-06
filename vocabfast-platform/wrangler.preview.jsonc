@@ -4,10 +4,13 @@
   "main": "./src/preview-worker.js",
   "compatibility_date": "2026-09-04",
   "workers_dev": true,
-  // Route only the preview account API on the production hostname to this isolated worker.
   "routes": [
     {
       "pattern": "vocabfast.net/api/preview/*",
+      "zone_name": "vocabfast.net"
+    },
+    {
+      "pattern": "vocabfast.net/api/platform/coach",
       "zone_name": "vocabfast.net"
     }
   ],
@@ -16,6 +19,9 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
+  },
+  "ai": {
+    "binding": "AI"
   },
   "durable_objects": {
     "bindings": [
