@@ -1,5 +1,6 @@
 import { englishA1Lessons as englishA1Unit1Lessons } from './en-a1';
 import { englishA1Unit2Lessons } from './en-a1-unit2';
+import { englishA1ReleaseUnits } from './release-a1-units';
 import { englishA2Units as englishA2UnitsRaw, englishB1Units as englishB1UnitsRaw, englishB2Units as englishB2UnitsRaw, englishC1Units as englishC1UnitsRaw } from './advanced';
 import { englishC2Units as englishC2UnitsRaw } from './c2';
 import { englishA2ReleaseUnits, englishB1ReleaseUnits } from './release-units';
@@ -44,7 +45,8 @@ export const englishA1Units: CourseUnit[] = expandUnits([
     title: 'Im Alltag',
     subtitle: 'Familie, Tagesablauf, Uhrzeit, Einkaufen, Zuhause und unterwegs.',
     lessons: englishA1Unit2Lessons
-  }
+  },
+  ...englishA1ReleaseUnits
 ]);
 
 export const englishA2Units=expandUnits([...englishA2UnitsRaw,...englishA2ReleaseUnits]);
