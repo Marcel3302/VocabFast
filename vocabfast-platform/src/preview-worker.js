@@ -10,6 +10,9 @@ const SESSION_COOKIE='vf_preview_session';
 const SESSION_DAYS=30;
 const PASSWORD_ITERATIONS=100000;
 const COACH_LIMIT_PER_HOUR=30;
+const ACTIVE_WINDOW_MS=15*60*1000;
+const SESSION_TOUCH_INTERVAL_MS=60*1000;
+const ADMIN_CONTEXT_URL='https://vocabfast.net/api/admin/context';
 const encoder=new TextEncoder();
 const COACH_SCENARIOS={
   cafe:'You are a friendly café employee. Practise ordering drinks, paying and short natural follow-up questions.',
@@ -118,6 +121,52 @@ function normalizeHistory(value) {
   })).filter(item=>item.content);
 }
 
+function parseStoredJson(value) {
+  if(typeof value!=='string')return null;
+  try{return JSON.parse(value);}catch{return null;}
+}
+
+function snapshotSummary(snapshot) {
+  const storage=snapshot?.storage&&typeof snapshot.storage==='object'?snapshot.storage:{};
+  const progress=parseStoredJson(storage['vocabfast.platform.progress.v2']||storage['vocabfast.platform.progress.v1'])||{};
+  const course=parseStoredJson(storage['vocabfast.platform.course.v1'])||{};
+  const placement=course?.placement&&typeof course.placement==='object'?course.placement:null;
+  return {
+    xp:Number(progress.totalXp)||0,
+    lessons:Array.isArray(progress.completedLessonIds)?progress.completedLessonIds.length:0,
+    learningSessions:Number(progress.sessions)||0,
+    streak:Number(progress.currentStreak)||0,
+    lastStudyDate:typeof progress.lastStudyDate==='string'?progress.lastStudyDate:null,
+    activeLevel:/^(A1|A2|B1|B2|C1|C2)$/.test(String(course.activeLevel||''))?String(course.activeLevel):'A1',
+    placementLevel:/^(A1|A2|B1|B2|C1|C2)$/.test(String(placement?.recommendedLevel||''))?String(placement.recommendedLevel):null,
+    placementScore:Number(placement?.score)||0,
+    placementTotal:Number(placement?.total)||0,
+    savedAt:snapshot?.savedAt||null
+  };
+}
+
+function adminCan(context,permission) {
+  return Boolean(context?.superadmin||Array.isArray(context?.permissions)&&context.permissions.includes(permission));
+}
+
+async function productionAdminContext(request) {
+  const cookie=request.headers.get('Cookie')||'';
+  if(!cookie.includes('vf_admin='))return null;
+  try {
+    const response=await fetch(ADMIN_CONTEXT_URL,{
+      method:'GET',
+      headers:{Accept:'application/json',Cookie:cookie,'User-Agent':'VocabFast-Platform-Admin-Gateway'},
+      redirect:'manual'
+    });
+    if(!response.ok)return null;
+    const data=await response.json().catch(()=>null);
+    return data&&typeof data==='object'?data:null;
+  } catch(error) {
+    console.error('admin context verification error',error);
+    return null;
+  }
+}
+
 export class PreviewAccountStore {
   constructor(state) {
     this.storage=state.storage;
@@ -129,12 +178,23 @@ export class PreviewAccountStore {
     const hash=await sha256(token);
     const session=await this.storage.get(`session:${hash}`);
     if(!session)return null;
-    if(Number(session.expiresAt)<=Date.now()) {
+    const now=Date.now();
+    if(Number(session.expiresAt)<=now) {
       await this.storage.delete(`session:${hash}`);
       return null;
     }
     const account=await this.storage.get(`account:${session.userId}`);
-    return account?{account,tokenHash:hash}:null;
+    if(!account)return null;
+    if(account.disabled) {
+      await this.storage.delete(`session:${hash}`);
+      return null;
+    }
+    const lastSeen=Number(session.lastSeenAt||session.createdAt||0);
+    if(now-lastSeen>=SESSION_TOUCH_INTERVAL_MS) {
+      await this.storage.put(`session:${hash}`,{...session,lastSeenAt:now});
+      if(now-Number(account.lastSeenAt||0)>=SESSION_TOUCH_INTERVAL_MS)await this.storage.put(`account:${account.id}`,{...account,lastSeenAt:now,updatedAt:now});
+    }
+    return {account:{...account,lastSeenAt:Math.max(Number(account.lastSeenAt||0),now)},tokenHash:hash};
   }
 
   async passwordMatches(account,password) {
@@ -149,16 +209,15 @@ export class PreviewAccountStore {
 
   async revokeUserSessions(userId) {
     const sessions=await this.storage.list({prefix:'session:'});
-    for(const [key,value] of sessions) {
-      if(value?.userId===userId)await this.storage.delete(key);
-    }
+    for(const [key,value] of sessions)if(value?.userId===userId)await this.storage.delete(key);
   }
 
   async createSession(account) {
     const token=randomToken();
     const hash=await sha256(token);
     const now=Date.now();
-    await this.storage.put(`session:${hash}`,{userId:account.id,createdAt:now,expiresAt:now+SESSION_DAYS*86400000});
+    await this.storage.put(`session:${hash}`,{userId:account.id,createdAt:now,lastSeenAt:now,expiresAt:now+SESSION_DAYS*86400000});
+    await this.storage.put(`account:${account.id}`,{...account,lastSeenAt:now,lastLoginAt:now,updatedAt:now});
     return token;
   }
 
@@ -172,10 +231,10 @@ export class PreviewAccountStore {
     if(password.length>256)return json({error:'Das Passwort ist zu lang.'},400);
     const emailHash=await sha256(email);
     if(await this.storage.get(`email:${emailHash}`))return json({error:'Für diese E-Mail existiert bereits ein Konto.'},409);
-    const id=crypto.randomUUID();
+    const id=crypto.randomUUID(),now=Date.now();
     const salt=crypto.getRandomValues(new Uint8Array(16));
     const passwordHash=await derivePassword(password,salt);
-    const account={id,email,name,plan:'free',createdAt:Date.now(),passwordSalt:bytesToB64(salt),passwordHash,passwordIterations:PASSWORD_ITERATIONS};
+    const account={id,email,name,plan:'free',disabled:false,adminNote:'',createdAt:now,updatedAt:now,lastSeenAt:now,passwordSalt:bytesToB64(salt),passwordHash,passwordIterations:PASSWORD_ITERATIONS};
     await this.storage.put(`account:${id}`,account);
     await this.storage.put(`email:${emailHash}`,id);
     const token=await this.createSession(account);
@@ -194,6 +253,7 @@ export class PreviewAccountStore {
     if(Number(activeRate.count)>=10)return json({error:'Zu viele Anmeldeversuche. Bitte in einigen Minuten erneut versuchen.'},429);
     const id=await this.storage.get(`email:${emailHash}`);
     const account=id?await this.storage.get(`account:${id}`):null;
+    if(account?.disabled)return json({error:'Dieses Konto ist derzeit gesperrt. Bitte kontaktiere den Support.'},403);
     const valid=await this.passwordMatches(account,password);
     if(!valid) {
       await this.storage.put(rateKey,{count:Number(activeRate.count)+1,resetAt:activeRate.resetAt});
@@ -243,14 +303,13 @@ export class PreviewAccountStore {
     const session=await this.accountBySession(request);
     if(!session)return json({error:'Bitte zuerst anmelden.'},401);
     const data=await body(request);
-    const currentPassword=String(data.currentPassword||'');
-    const newPassword=String(data.newPassword||'');
+    const currentPassword=String(data.currentPassword||''),newPassword=String(data.newPassword||'');
     if(newPassword.length<12)return json({error:'Das neue Passwort muss mindestens 12 Zeichen lang sein.'},400);
     if(newPassword.length>256)return json({error:'Das neue Passwort ist zu lang.'},400);
     if(!await this.passwordMatches(session.account,currentPassword))return json({error:'Das aktuelle Passwort ist falsch.'},401);
     const salt=crypto.getRandomValues(new Uint8Array(16));
     const passwordHash=await derivePassword(newPassword,salt);
-    const account={...session.account,passwordSalt:bytesToB64(salt),passwordHash,passwordIterations:PASSWORD_ITERATIONS,passwordChangedAt:Date.now()};
+    const account={...session.account,passwordSalt:bytesToB64(salt),passwordHash,passwordIterations:PASSWORD_ITERATIONS,passwordChangedAt:Date.now(),updatedAt:Date.now()};
     await this.storage.put(`account:${account.id}`,account);
     await this.revokeUserSessions(account.id);
     const token=await this.createSession(account);
@@ -263,15 +322,21 @@ export class PreviewAccountStore {
     if(!session)return json({error:'Bitte zuerst anmelden.'},401);
     const data=await body(request);
     if(!await this.passwordMatches(session.account,String(data.password||'')))return json({error:'Das Passwort ist falsch.'},401);
-    const account=session.account;
+    await this.deleteAccountById(session.account.id);
+    return json({ok:true},200,{'Set-Cookie':sessionCookie('',0)});
+  }
+
+  async deleteAccountById(userId) {
+    const account=await this.storage.get(`account:${userId}`);
+    if(!account)return false;
     const emailHash=await sha256(account.email);
-    await this.revokeUserSessions(account.id);
-    await this.storage.delete(`state:${account.id}`);
-    await this.storage.delete(`coach-rate:${account.id}`);
+    await this.revokeUserSessions(userId);
+    await this.storage.delete(`state:${userId}`);
+    await this.storage.delete(`coach-rate:${userId}`);
     await this.storage.delete(`login-rate:${emailHash}`);
     await this.storage.delete(`email:${emailHash}`);
-    await this.storage.delete(`account:${account.id}`);
-    return json({ok:true},200,{'Set-Cookie':sessionCookie('',0)});
+    await this.storage.delete(`account:${userId}`);
+    return true;
   }
 
   async coachQuota(request) {
@@ -286,6 +351,119 @@ export class PreviewAccountStore {
     return json({ok:true,remaining:Math.max(0,COACH_LIMIT_PER_HOUR-count-1)});
   }
 
+  async adminListAccounts() {
+    const now=Date.now();
+    const [accounts,sessions,states]=await Promise.all([
+      this.storage.list({prefix:'account:'}),
+      this.storage.list({prefix:'session:'}),
+      this.storage.list({prefix:'state:'})
+    ]);
+    const activity=new Map();
+    for(const [,session] of sessions) {
+      if(!session?.userId||Number(session.expiresAt)<=now)continue;
+      const current=activity.get(session.userId)||{sessionCount:0,lastSeenAt:0,activeNow:false};
+      const seen=Number(session.lastSeenAt||session.createdAt||0);
+      current.sessionCount+=1;
+      current.lastSeenAt=Math.max(current.lastSeenAt,seen);
+      current.activeNow=current.activeNow||now-seen<=ACTIVE_WINDOW_MS;
+      activity.set(session.userId,current);
+    }
+    const rows=[];
+    for(const [,account] of accounts) {
+      if(!account?.id)continue;
+      const a=activity.get(account.id)||{sessionCount:0,lastSeenAt:Number(account.lastSeenAt||0),activeNow:false};
+      const summary=snapshotSummary(states.get(`state:${account.id}`));
+      rows.push({
+        id:account.id,email:account.email||'',name:account.name||'',plan:account.plan==='pro'?'pro':'free',disabled:!!account.disabled,
+        adminNote:account.adminNote||'',createdAt:Number(account.createdAt)||0,updatedAt:Number(account.updatedAt)||0,
+        lastSeenAt:Math.max(Number(account.lastSeenAt||0),Number(a.lastSeenAt||0)),activeNow:!!a.activeNow,sessionCount:Number(a.sessionCount)||0,
+        ...summary
+      });
+    }
+    rows.sort((left,right)=>(right.lastSeenAt||right.createdAt)-(left.lastSeenAt||left.createdAt));
+    return json({accounts:rows,activeWindowMinutes:Math.round(ACTIVE_WINDOW_MS/60000)});
+  }
+
+  async adminAccountDetail(userId) {
+    const account=await this.storage.get(`account:${userId}`);
+    if(!account)return json({error:'Konto nicht gefunden.'},404);
+    const [sessions,state]=await Promise.all([this.storage.list({prefix:'session:'}),this.storage.get(`state:${userId}`)]);
+    const now=Date.now();
+    let sessionCount=0,lastSeenAt=Number(account.lastSeenAt||0),activeNow=false;
+    for(const [,session] of sessions) {
+      if(session?.userId!==userId||Number(session.expiresAt)<=now)continue;
+      const seen=Number(session.lastSeenAt||session.createdAt||0);
+      sessionCount+=1;lastSeenAt=Math.max(lastSeenAt,seen);activeNow=activeNow||now-seen<=ACTIVE_WINDOW_MS;
+    }
+    return json({account:{
+      id:account.id,email:account.email||'',name:account.name||'',plan:account.plan==='pro'?'pro':'free',disabled:!!account.disabled,
+      adminNote:account.adminNote||'',createdAt:Number(account.createdAt)||0,updatedAt:Number(account.updatedAt)||0,lastSeenAt,activeNow,sessionCount,
+      ...snapshotSummary(state)
+    }});
+  }
+
+  async adminUpdateAccount(request,userId) {
+    const account=await this.storage.get(`account:${userId}`);
+    if(!account)return json({error:'Konto nicht gefunden.'},404);
+    const data=await body(request),next={...account};
+    if('name' in data) {
+      const name=clean(data.name,60);
+      if(name.length<2)return json({error:'Der Name muss mindestens 2 Zeichen haben.'},400);
+      next.name=name;
+    }
+    if('email' in data) {
+      const email=normalizeEmail(data.email);
+      if(!/^\S+@\S+\.\S+$/.test(email))return json({error:'Ungültige E-Mail-Adresse.'},400);
+      if(email!==normalizeEmail(account.email)) {
+        const nextHash=await sha256(email),existing=await this.storage.get(`email:${nextHash}`);
+        if(existing&&existing!==userId)return json({error:'Diese E-Mail-Adresse wird bereits verwendet.'},409);
+        await this.storage.delete(`email:${await sha256(account.email)}`);
+        await this.storage.put(`email:${nextHash}`,userId);
+        next.email=email;
+      }
+    }
+    if('plan' in data)next.plan=data.plan==='pro'?'pro':'free';
+    if('adminNote' in data)next.adminNote=clean(data.adminNote,500);
+    if('disabled' in data)next.disabled=!!data.disabled;
+    next.updatedAt=Date.now();
+    await this.storage.put(`account:${userId}`,next);
+    if(next.disabled&&!account.disabled)await this.revokeUserSessions(userId);
+    return this.adminAccountDetail(userId);
+  }
+
+  async adminResetPassword(request,userId) {
+    const account=await this.storage.get(`account:${userId}`);
+    if(!account)return json({error:'Konto nicht gefunden.'},404);
+    const data=await body(request),password=String(data.temporaryPassword||data.password||'');
+    if(password.length<12)return json({error:'Das temporäre Passwort muss mindestens 12 Zeichen lang sein.'},400);
+    if(password.length>256)return json({error:'Das Passwort ist zu lang.'},400);
+    const salt=crypto.getRandomValues(new Uint8Array(16)),passwordHash=await derivePassword(password,salt);
+    await this.storage.put(`account:${userId}`,{...account,passwordSalt:bytesToB64(salt),passwordHash,passwordIterations:PASSWORD_ITERATIONS,passwordChangedAt:Date.now(),updatedAt:Date.now()});
+    await this.revokeUserSessions(userId);
+    return json({ok:true});
+  }
+
+  async adminResetState(userId) {
+    if(!await this.storage.get(`account:${userId}`))return json({error:'Konto nicht gefunden.'},404);
+    await this.storage.delete(`state:${userId}`);
+    return json({ok:true});
+  }
+
+  async adminRoute(request) {
+    const path=new URL(request.url).pathname;
+    if(path==='/api/preview/admin/accounts'&&request.method==='GET')return this.adminListAccounts();
+    const match=path.match(/^\/api\/preview\/admin\/accounts\/([^/]+)(?:\/(sessions|password|state))?$/);
+    if(!match)return json({error:'Admin-Route nicht gefunden.'},404);
+    const userId=decodeURIComponent(match[1]),action=match[2]||'';
+    if(!action&&request.method==='GET')return this.adminAccountDetail(userId);
+    if(!action&&request.method==='PATCH')return this.adminUpdateAccount(request,userId);
+    if(!action&&request.method==='DELETE')return json({ok:await this.deleteAccountById(userId)},200);
+    if(action==='sessions'&&request.method==='DELETE'){await this.revokeUserSessions(userId);return json({ok:true});}
+    if(action==='password'&&request.method==='POST')return this.adminResetPassword(request,userId);
+    if(action==='state'&&request.method==='DELETE')return this.adminResetState(userId);
+    return json({error:'Methode nicht erlaubt.'},405);
+  }
+
   async fetch(request) {
     const path=new URL(request.url).pathname;
     if(path==='/api/preview/auth/register'&&request.method==='POST')return this.register(request);
@@ -296,6 +474,7 @@ export class PreviewAccountStore {
     if(path==='/api/preview/account/password'&&request.method==='POST')return this.changePassword(request);
     if(path==='/api/preview/account'&&request.method==='DELETE')return this.deleteAccount(request);
     if(path==='/api/preview/coach-quota'&&request.method==='POST')return this.coachQuota(request);
+    if(path.startsWith('/api/preview/admin/'))return this.adminRoute(request);
     return json({error:'Route nicht gefunden.'},404);
   }
 }
@@ -323,7 +502,6 @@ async function coachApi(request,env) {
   if(!env?.AI?.run)return json({error:'Der Coach ist gerade nicht verfügbar. Bitte versuche es später erneut.'},503);
   const quota=await takeCoachQuota(request,env);
   if(!quota.ok)return quota;
-
   const data=await body(request);
   const scenario=COACH_SCENARIOS[data.scenario]?data.scenario:'work';
   const message=clean(data.message,500);
@@ -344,27 +522,56 @@ async function coachApi(request,env) {
   }
 }
 
+async function adminGateway(request,env) {
+  const context=await productionAdminContext(request);
+  if(!context)return json({error:'Admin-Anmeldung erforderlich.'},401);
+  const path=new URL(request.url).pathname;
+  if(path==='/api/preview/admin/context'&&request.method==='GET')return json({context});
+  if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
+  const write=request.method!=='GET'&&request.method!=='HEAD';
+  if(write&&request.headers.get('X-VocabFast-Admin')!=='1')return json({error:'Admin-Sicherheitsprüfung fehlgeschlagen.'},403);
+  if(path==='/api/preview/admin/accounts'&&request.method==='GET') {
+    if(!adminCan(context,'users.read'))return json({error:'Keine Berechtigung zum Anzeigen der Konten.'},403);
+    return accountStore(env).fetch(request);
+  }
+  const match=path.match(/^\/api\/preview\/admin\/accounts\/([^/]+)(?:\/(sessions|password|state))?$/);
+  if(!match)return json({error:'Admin-Route nicht gefunden.'},404);
+  const action=match[2]||'';
+  if(request.method==='GET') {
+    if(!adminCan(context,'users.read'))return json({error:'Keine Berechtigung zum Anzeigen des Kontos.'},403);
+  } else if(!action&&request.method==='PATCH') {
+    const payload=await request.clone().json().catch(()=>({}));
+    if(('plan' in payload)&&!adminCan(context,'plans.manage'))return json({error:'Keine Berechtigung für Planänderungen.'},403);
+    if(Object.keys(payload).some(key=>['name','email','disabled','adminNote'].includes(key))&&!adminCan(context,'users.edit'))return json({error:'Keine Berechtigung zum Bearbeiten von Konten.'},403);
+  } else if(!action&&request.method==='DELETE') {
+    if(!adminCan(context,'accounts.manage'))return json({error:'Keine Berechtigung zum Löschen von Konten.'},403);
+  } else if((action==='sessions'||action==='password')&&!adminCan(context,'security.manage')) {
+    return json({error:'Keine Berechtigung für Sicherheitsaktionen.'},403);
+  } else if(action==='state'&&!adminCan(context,'progress.edit')) {
+    return json({error:'Keine Berechtigung zum Zurücksetzen des Lernstands.'},403);
+  }
+  return accountStore(env).fetch(request);
+}
+
 export default {
   async fetch(request,env) {
     const url=new URL(request.url);
     if(url.pathname==='/api/preview/health') {
-      return withSecurity(json({ok:true,service:'vocabfast-language-preview',environment:'preview',accounts:'durable-object-v1'}),url);
+      return withSecurity(json({ok:true,service:'vocabfast-language-preview',environment:'preview',accounts:'durable-object-v2'}),url);
     }
-
     if(url.pathname==='/api/platform/coach') {
       try{return withSecurity(await coachApi(request,env),url);}
       catch(error){console.error('coach api error',error);return withSecurity(json({error:'Der Coach ist gerade nicht verfügbar.'},503),url);}
     }
-
+    if(url.pathname.startsWith('/api/preview/admin/')) {
+      try{return withSecurity(await adminGateway(request,env),url);}
+      catch(error){console.error('preview admin api error',error);return withSecurity(json({error:'Der Adminbereich ist gerade nicht erreichbar.'},503),url);}
+    }
     if(url.pathname.startsWith('/api/preview/auth/')||url.pathname.startsWith('/api/preview/account')||url.pathname==='/api/preview/me'||url.pathname==='/api/preview/state') {
       try{return withSecurity(await accountStore(env).fetch(request),url);}
       catch(error){console.error('account api error',error);return withSecurity(json({error:'Dein Konto ist gerade nicht erreichbar. Bitte versuche es erneut.'},503),url);}
     }
-
-    if(url.pathname.startsWith('/api/')) {
-      return withSecurity(json({error:'Route nicht gefunden.'},404),url);
-    }
-
+    if(url.pathname.startsWith('/api/'))return withSecurity(json({error:'Route nicht gefunden.'},404),url);
     const response=await env.ASSETS.fetch(request);
     return withSecurity(response,url);
   }
