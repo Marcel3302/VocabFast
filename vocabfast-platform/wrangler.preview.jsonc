@@ -18,6 +18,12 @@
       "zone_name": "vocabfast.net"
     }
   ],
+  "services": [
+    {
+      "binding": "PRODUCTION_API",
+      "service": "vocabfast"
+    }
+  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
