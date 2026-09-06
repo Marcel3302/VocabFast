@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vocabfast-language-preview",
-  "main": "./src/preview-worker.js",
+  "main": "./src/preview-entry.js",
   "compatibility_date": "2026-09-04",
   "workers_dev": true,
   "routes": [
