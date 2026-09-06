@@ -1,7 +1,8 @@
 import { previewBilling } from '../learning/billing';
+import type { AccountUser } from '../learning/account';
 import './pro-modal.css';
 
-type Props = { onClose: () => void };
+type Props = { onClose: () => void; user?:AccountUser|null };
 
 const proFeatures = [
   ['KI-Sprachcoach', 'Rollenspiele, freie Dialoge und persönliches Feedback'],
@@ -24,13 +25,24 @@ function developerHost() {
   return host.endsWith('.workers.dev')||host==='localhost'||host==='127.0.0.1';
 }
 
-export default function ProModal({ onClose }: Props) {
-  const canCheckout=Boolean(previewBilling.checkoutUrl)&&stripeCheckoutAllowed();
+function accountCheckoutUrl(user?:AccountUser|null) {
+  if(!previewBilling.checkoutUrl)return '';
+  try {
+    const url=new URL(previewBilling.checkoutUrl);
+    if(user?.id)url.searchParams.set('client_reference_id',user.id);
+    if(user?.email)url.searchParams.set('prefilled_email',user.email);
+    return url.toString();
+  } catch {return previewBilling.checkoutUrl;}
+}
+
+export default function ProModal({ onClose,user }: Props) {
+  const checkoutUrl=accountCheckoutUrl(user);
+  const canCheckout=Boolean(checkoutUrl)&&stripeCheckoutAllowed();
   const showTestNote=previewBilling.mode==='test'&&developerHost();
 
   function checkout() {
     if(!canCheckout)return;
-    window.location.assign(previewBilling.checkoutUrl);
+    window.location.assign(checkoutUrl);
   }
 
   return <div className="pro-modal-backdrop" role="dialog" aria-modal="true" onMouseDown={onClose}>
