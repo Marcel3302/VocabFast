@@ -57,6 +57,20 @@ export async function logoutAccount() {
   await responseJson<{ok:boolean}>(response);
 }
 
+export async function changeAccountPassword(input:{currentPassword:string;newPassword:string}) {
+  const response=await fetch('/api/preview/account/password',{
+    method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)
+  });
+  await responseJson<{ok:boolean}>(response);
+}
+
+export async function deleteAccount(password:string) {
+  const response=await fetch('/api/preview/account',{
+    method:'DELETE',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})
+  });
+  await responseJson<{ok:boolean}>(response);
+}
+
 export function clearPlatformStorage() {
   const keys:string[]=[];
   for(let index=0;index<localStorage.length;index+=1) {
