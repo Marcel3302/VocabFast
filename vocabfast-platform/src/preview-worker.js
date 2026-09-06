@@ -137,6 +137,23 @@ export class PreviewAccountStore {
     return account?{account,tokenHash:hash}:null;
   }
 
+  async passwordMatches(account,password) {
+    if(!account?.passwordSalt||!account?.passwordHash)return false;
+    try {
+      const derived=await derivePassword(String(password||''),b64ToBytes(account.passwordSalt),Number(account.passwordIterations)||PASSWORD_ITERATIONS);
+      return safeEqual(derived,account.passwordHash);
+    } catch {
+      return false;
+    }
+  }
+
+  async revokeUserSessions(userId) {
+    const sessions=await this.storage.list({prefix:'session:'});
+    for(const [key,value] of sessions) {
+      if(value?.userId===userId)await this.storage.delete(key);
+    }
+  }
+
   async createSession(account) {
     const token=randomToken();
     const hash=await sha256(token);
@@ -177,13 +194,7 @@ export class PreviewAccountStore {
     if(Number(activeRate.count)>=10)return json({error:'Zu viele Anmeldeversuche. Bitte in einigen Minuten erneut versuchen.'},429);
     const id=await this.storage.get(`email:${emailHash}`);
     const account=id?await this.storage.get(`account:${id}`):null;
-    let valid=false;
-    if(account?.passwordSalt&&account?.passwordHash) {
-      try{
-        const derived=await derivePassword(password,b64ToBytes(account.passwordSalt),Number(account.passwordIterations)||PASSWORD_ITERATIONS);
-        valid=safeEqual(derived,account.passwordHash);
-      }catch{valid=false;}
-    }
+    const valid=await this.passwordMatches(account,password);
     if(!valid) {
       await this.storage.put(rateKey,{count:Number(activeRate.count)+1,resetAt:activeRate.resetAt});
       return json({error:'E-Mail oder Passwort ist falsch.'},401);
@@ -227,6 +238,42 @@ export class PreviewAccountStore {
     return json({error:'Methode nicht erlaubt.'},405,{Allow:'GET, PUT'});
   }
 
+  async changePassword(request) {
+    if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
+    const session=await this.accountBySession(request);
+    if(!session)return json({error:'Bitte zuerst anmelden.'},401);
+    const data=await body(request);
+    const currentPassword=String(data.currentPassword||'');
+    const newPassword=String(data.newPassword||'');
+    if(newPassword.length<12)return json({error:'Das neue Passwort muss mindestens 12 Zeichen lang sein.'},400);
+    if(newPassword.length>256)return json({error:'Das neue Passwort ist zu lang.'},400);
+    if(!await this.passwordMatches(session.account,currentPassword))return json({error:'Das aktuelle Passwort ist falsch.'},401);
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const passwordHash=await derivePassword(newPassword,salt);
+    const account={...session.account,passwordSalt:bytesToB64(salt),passwordHash,passwordIterations:PASSWORD_ITERATIONS,passwordChangedAt:Date.now()};
+    await this.storage.put(`account:${account.id}`,account);
+    await this.revokeUserSessions(account.id);
+    const token=await this.createSession(account);
+    return json({ok:true},200,{'Set-Cookie':sessionCookie(token)});
+  }
+
+  async deleteAccount(request) {
+    if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
+    const session=await this.accountBySession(request);
+    if(!session)return json({error:'Bitte zuerst anmelden.'},401);
+    const data=await body(request);
+    if(!await this.passwordMatches(session.account,String(data.password||'')))return json({error:'Das Passwort ist falsch.'},401);
+    const account=session.account;
+    const emailHash=await sha256(account.email);
+    await this.revokeUserSessions(account.id);
+    await this.storage.delete(`state:${account.id}`);
+    await this.storage.delete(`coach-rate:${account.id}`);
+    await this.storage.delete(`login-rate:${emailHash}`);
+    await this.storage.delete(`email:${emailHash}`);
+    await this.storage.delete(`account:${account.id}`);
+    return json({ok:true},200,{'Set-Cookie':sessionCookie('',0)});
+  }
+
   async coachQuota(request) {
     const session=await this.accountBySession(request);
     if(!session)return json({error:'Bitte zuerst anmelden.'},401);
@@ -246,6 +293,8 @@ export class PreviewAccountStore {
     if(path==='/api/preview/auth/logout'&&request.method==='POST')return this.logout(request);
     if(path==='/api/preview/me'&&request.method==='GET')return this.me(request);
     if(path==='/api/preview/state')return this.stateApi(request);
+    if(path==='/api/preview/account/password'&&request.method==='POST')return this.changePassword(request);
+    if(path==='/api/preview/account'&&request.method==='DELETE')return this.deleteAccount(request);
     if(path==='/api/preview/coach-quota'&&request.method==='POST')return this.coachQuota(request);
     return json({error:'Route nicht gefunden.'},404);
   }
@@ -307,7 +356,7 @@ export default {
       catch(error){console.error('coach api error',error);return withSecurity(json({error:'Der Coach ist gerade nicht verfügbar.'},503),url);}
     }
 
-    if(url.pathname.startsWith('/api/preview/auth/')||url.pathname==='/api/preview/me'||url.pathname==='/api/preview/state') {
+    if(url.pathname.startsWith('/api/preview/auth/')||url.pathname.startsWith('/api/preview/account')||url.pathname==='/api/preview/me'||url.pathname==='/api/preview/state') {
       try{return withSecurity(await accountStore(env).fetch(request),url);}
       catch(error){console.error('account api error',error);return withSecurity(json({error:'Dein Konto ist gerade nicht erreichbar. Bitte versuche es erneut.'},503),url);}
     }
