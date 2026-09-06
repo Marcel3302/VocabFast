@@ -25,12 +25,12 @@ export default function CourseView({ progress, courseState, onSelectLevel, openL
       <div>
         <span className="eyebrow">ENGLISCH · CEFR A1 BIS C2</span>
         <h1>Ein Lernsystem vom ersten Satz bis zum sprachlichen Feinschliff.</h1>
-        <p>Die neue Plattform besitzt jetzt einen durchgängigen spielbaren Kursrücken über sechs CEFR-Stufen. Jede vorhandene Lektion enthält durch Active Recall inzwischen bis zu zwölf Aufgaben. Die Inhalte werden weiter ausgebaut und vor Veröffentlichung didaktisch geprüft.</p>
-        <div className="course-hub-actions"><button className="view-primary" onClick={openPlacement}>36-Fragen-Einstufung →</button><button className="course-ghost" onClick={()=>openLesson(levelLessons(courseState.activeLevel)[0])}>Aktuelles Level testen</button></div>
+        <p>Wähle dein aktuelles Niveau oder starte mit der Einstufung. Der Kurs verbindet Wortschatz, Grammatik, Hören, Sprechen und aktive Produktion zu einem klaren Lernpfad.</p>
+        <div className="course-hub-actions"><button className="view-primary" onClick={openPlacement}>36-Fragen-Einstufung →</button><button className="course-ghost" onClick={()=>openLesson(levelLessons(courseState.activeLevel)[0])}>Aktuelles Level starten</button></div>
       </div>
       <div className="course-stat-cluster">
         <article><strong>{stats.levels}</strong><span>CEFR-Stufen</span></article>
-        <article><strong>{stats.units}</strong><span>spielbare Units</span></article>
+        <article><strong>{stats.units}</strong><span>Lernblöcke</span></article>
         <article><strong>{stats.lessons}</strong><span>Lektionen</span></article>
         <article><strong>{stats.exercises}</strong><span>Aufgaben</span></article>
       </div>
@@ -52,13 +52,10 @@ export default function CourseView({ progress, courseState, onSelectLevel, openL
               const done = unit.lessons.filter(lesson=>progress.completedLessonIds.includes(lesson.id)).length;
               return <div key={unit.id} className="course-unit-mini"><div><span>UNIT {unit.number}</span><strong>{unit.title}</strong></div><small>{done}/{unit.lessons.length} · {unit.subtitle}</small></div>;
             })}</div>
-            <div className="course-production-note"><span>Produktionsziel</span><div className="course-production-track"><i style={{width:`${Math.min(100,Math.round(level.units.length/level.productionTargetUnits*100))}%`}}/></div><small>{level.units.length} von geplanten {level.productionTargetUnits} großen Lernblöcken im aktuellen Entwicklungsstand</small></div>
-            <div className="course-level-actions"><button className="course-select" onClick={()=>onSelectLevel(level.id)}>{active?'Ausgewählt':`${level.id} auswählen`}</button><button className="course-start" onClick={()=>{onSelectLevel(level.id);openLesson(firstOpen);}}>Lektion testen →</button></div>
+            <div className="course-level-actions"><button className="course-select" onClick={()=>onSelectLevel(level.id)}>{active?'Ausgewählt':`${level.id} auswählen`}</button><button className="course-start" onClick={()=>{onSelectLevel(level.id);openLesson(firstOpen);}}>Lektion starten →</button></div>
           </div>
         </article>;
       })}
     </div>
-
-    <div className="course-roadmap-note"><strong>Wichtig zur Kursqualität</strong><p>Die sichtbaren A1–C2-Stufen sind jetzt technisch und inhaltlich spielbar, aber noch kein vollständig abgeschlossener CEFR-Gesamtkurs. Vor öffentlichen Versprechen wie „vollständiges C2“ werden deutlich mehr Units, Wortschatzabdeckung, Grammatikprogression, Hörmaterial, freie Produktion und externe Content-QA ergänzt.</p></div>
   </section>;
 }
