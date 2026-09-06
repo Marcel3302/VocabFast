@@ -20,82 +20,92 @@ type Props = {
 };
 
 const questions:Question[] = [
-  {level:'A1',area:'grammar',prompt:'Choose the correct sentence.',context:'Du stellst dich vor.',choices:['I am Anna.','I Anna am.','I is Anna.','Me am Anna.'],answer:'I am Anna.'},
-  {level:'A1',area:'grammar',prompt:'Complete the question.',context:'Where ___ you from?',choices:['are','is','am','be'],answer:'are'},
-  {level:'A1',area:'vocabulary',prompt:'What does “receipt” mean?',choices:['Kassenbon','Rezept','Reise','Zimmer'],answer:'Kassenbon'},
-  {level:'A1',area:'communication',prompt:'What is the most natural reply?',context:'“Nice to meet you.”',choices:['Nice to meet you too.','I meet nice.','Yes, meeting.','No meet.'],answer:'Nice to meet you too.'},
-  {level:'A1',area:'vocabulary',prompt:'Choose the correct word.',context:'I drink ___ in the morning.',choices:['coffee','airport','ticket','bedroom'],answer:'coffee'},
-  {level:'A1',area:'communication',prompt:'How do you ask politely for water?',choices:['Could I have some water, please?','Water give me.','I water now.','You have water me?'],answer:'Could I have some water, please?'},
+  {level:'A1',area:'grammar',prompt:'Complete the sentence.',context:'My name ___ Anna.',choices:['is','am','are','be'],answer:'is'},
+  {level:'A1',area:'grammar',prompt:'Complete the question.',context:'Where ___ you from?',choices:['are','do','is','did'],answer:'are'},
+  {level:'A1',area:'vocabulary',prompt:'What does “receipt” mean in a shop?',choices:['Kassenbon','Rechnung','Rezept','Reservierung'],answer:'Kassenbon'},
+  {level:'A1',area:'communication',prompt:'Choose the reply that fits best.',context:'“How are you?”',choices:["I'm fine, thanks. And you?","I'm twenty-five years old.",'It is at home.','Yes, I do.'],answer:"I'm fine, thanks. And you?"},
+  {level:'A1',area:'vocabulary',prompt:'Choose the word that completes the sentence.',context:'I usually ___ breakfast at seven.',choices:['have','go','take','do'],answer:'have'},
+  {level:'A1',area:'communication',prompt:'Complete the question you would ask for directions.',context:'Excuse me, ___ is the station?',choices:['where','when','who','why'],answer:'where'},
 
-  {level:'A2',area:'grammar',prompt:'Choose the correct past form.',context:'I ___ my grandparents last weekend.',choices:['visited','have visit','visiting','am visited'],answer:'visited'},
-  {level:'A2',area:'grammar',prompt:'Choose the correct conditional.',context:'If the train is late, I ___ take the bus.',choices:['will','would','have','am'],answer:'will'},
-  {level:'A2',area:'vocabulary',prompt:'Which word fits a hotel problem?',context:'The air conditioning is not ___.',choices:['working','travelling','ordering','arriving'],answer:'working'},
-  {level:'A2',area:'communication',prompt:'Which sentence is most natural?',context:'Du bittest im Hotel höflich um Hilfe.',choices:['Could you send someone to check it?','You send someone now.','Someone checking this.','Send maybe person.'],answer:'Could you send someone to check it?'},
-  {level:'A2',area:'vocabulary',prompt:'What is a “refund”?',choices:['Rückerstattung','Reservierung','Rechnung','Umleitung'],answer:'Rückerstattung'},
-  {level:'A2',area:'communication',prompt:'Choose the best way to make an arrangement.',choices:['Would six o’clock work for you?','Six works you?','At six you come yes?','You six available maybe.'],answer:'Would six o’clock work for you?'},
+  {level:'A2',area:'grammar',prompt:'Choose the form that fits the time expression.',context:'I have lived here ___ 2024.',choices:['since','for','from','during'],answer:'since'},
+  {level:'A2',area:'grammar',prompt:'Choose the best form.',context:'When I arrived, they ___ dinner.',choices:['were having','had','are having','have'],answer:'were having'},
+  {level:'A2',area:'vocabulary',prompt:'Choose the correct verb.',context:'Can I ___ your charger for a minute?',choices:['borrow','lend','bring','owe'],answer:'borrow'},
+  {level:'A2',area:'communication',prompt:'Which request is most suitable at a hotel?',context:'Your room is very noisy and you want another one.',choices:['Could I change to a quieter room, please?','Could you change the noise from my room?','I would change my room because it is quiet.','May the room become another one?'],answer:'Could I change to a quieter room, please?'},
+  {level:'A2',area:'vocabulary',prompt:'What does “refund” mean?',choices:['Rückerstattung','Anzahlung','Reservierung','Lieferung'],answer:'Rückerstattung'},
+  {level:'A2',area:'communication',prompt:'Choose the sentence that makes a clear arrangement.',context:'You want to meet a colleague at 18:00.',choices:["Would six o'clock work for you?","Do you work until six o'clock?","Would you work at six o'clock?","Could six o'clock be your work?"],answer:"Would six o'clock work for you?"},
 
-  {level:'B1',area:'grammar',prompt:'Choose the best connector.',context:'___ the idea is expensive, it could save time later.',choices:['Although','During','Unless to','Because of that it'],answer:'Although'},
-  {level:'B1',area:'grammar',prompt:'Choose the correct hypothetical advice.',choices:['If I were you, I would ask first.','If I am you, I ask first.','If I was you, I will asking.','Were I you, I ask yesterday.'],answer:'If I were you, I would ask first.'},
-  {level:'B1',area:'vocabulary',prompt:'Choose the best verb.',context:'We need to ___ the problem before Friday.',choices:['solve','borrow','attend','avoid from'],answer:'solve'},
-  {level:'B1',area:'communication',prompt:'Which sentence reports what someone said?',choices:['She said that the meeting had been moved.','She says meeting move yesterday now.','Meeting said she moved.','She told that move meeting.'],answer:'She said that the meeting had been moved.'},
-  {level:'B1',area:'vocabulary',prompt:'What does “deadline” mean?',choices:['Frist','Vorschlag','Fortschritt','Lieferant'],answer:'Frist'},
-  {level:'B1',area:'communication',prompt:'Choose the best presentation signpost.',choices:['Now I would like to move on to the next point.','Now next point I moving.','I go point next.','Next is now because.'],answer:'Now I would like to move on to the next point.'},
+  {level:'B1',area:'grammar',prompt:'Choose the connector that fits the sentence.',context:'___ the idea is expensive, it could save time later.',choices:['Although','Despite','Because','Unless'],answer:'Although'},
+  {level:'B1',area:'grammar',prompt:'Choose the sentence that expresses hypothetical advice.',choices:['If I were you, I would ask first.','If I was you, I will ask first.','If I am you, I would ask first.','If I had been you, I ask first.'],answer:'If I were you, I would ask first.'},
+  {level:'B1',area:'vocabulary',prompt:'Choose the verb that collocates naturally.',context:'We need to ___ the problem before Friday.',choices:['solve','settle out','answer','repair'],answer:'solve'},
+  {level:'B1',area:'communication',prompt:'Choose the most accurate reported statement.',context:'Yesterday she said: “The meeting has been moved.”',choices:['She said that the meeting had been moved.','She said that the meeting has moved.','She told that the meeting had moved.','She said the meeting would have moved.'],answer:'She said that the meeting had been moved.'},
+  {level:'B1',area:'vocabulary',prompt:'Which word best fits the sentence?',context:'We have to finish the report before the ___.',choices:['deadline','schedule','appointment','occasion'],answer:'deadline'},
+  {level:'B1',area:'communication',prompt:'Which sentence is the clearest presentation signpost?',choices:['Now I would like to move on to the next point.','Now I would like the next point to move on.','Now I am moving the next point forward.','Now the next point would like to continue.'],answer:'Now I would like to move on to the next point.'},
 
-  {level:'B2',area:'grammar',prompt:'Complete the unreal past condition.',context:'If we had known earlier, we would have ___ differently.',choices:['acted','act','acting','acts'],answer:'acted'},
-  {level:'B2',area:'grammar',prompt:'Choose the best form.',context:'I would appreciate it if you ___ confirm the details.',choices:['could','can to','will to','must to'],answer:'could'},
-  {level:'B2',area:'vocabulary',prompt:'Choose the best trend phrase.',context:'After a sharp increase, demand ___.',choices:['levelled off','put away','came over','made out'],answer:'levelled off'},
-  {level:'B2',area:'communication',prompt:'Choose the most professional wording.',context:'Du willst eine Frist höflich bestätigen lassen.',choices:['I would appreciate it if you could confirm the deadline.','You must confirm deadline now.','I want deadline confirmation from you.','Confirm the deadline, thanks maybe.'],answer:'I would appreciate it if you could confirm the deadline.'},
-  {level:'B2',area:'vocabulary',prompt:'What does “drawback” mean in this context?',context:'The main drawback is the initial cost.',choices:['Nachteil','Nachfrage','Schlussfolgerung','Voraussetzung'],answer:'Nachteil'},
-  {level:'B2',area:'communication',prompt:'Which sentence best acknowledges a counterargument?',choices:['The evidence is useful, but it does not fully support the conclusion.','Evidence good, conclusion done.','I ignore the other argument.','The conclusion is because evidence.'],answer:'The evidence is useful, but it does not fully support the conclusion.'},
+  {level:'B2',area:'grammar',prompt:'Complete the unreal past condition.',context:'If we had known earlier, we ___ differently.',choices:['would have acted','would act','had acted','would be acting'],answer:'would have acted'},
+  {level:'B2',area:'grammar',prompt:'Choose the form that is both polite and grammatically natural.',context:'I would appreciate it if you ___ the details by Friday.',choices:['could confirm','can confirm','would have confirmed','must confirm'],answer:'could confirm'},
+  {level:'B2',area:'vocabulary',prompt:'Choose the phrase that describes a trend becoming stable.',context:'After a sharp increase, demand ___.',choices:['levelled off','dropped out','broke even','held back'],answer:'levelled off'},
+  {level:'B2',area:'communication',prompt:'Choose the best professional wording.',context:'You agree with part of a proposal but want to express a reservation.',choices:['I agree with the overall direction, although I have some concerns about the timeline.','I agree with the proposal, so I have concerns about the timeline.','I accept the proposal despite I have concerns about the timeline.','I agree the proposal while the timeline concerns me completely.'],answer:'I agree with the overall direction, although I have some concerns about the timeline.'},
+  {level:'B2',area:'vocabulary',prompt:'Choose the closest meaning of “drawback”.',context:'The main drawback is the initial cost.',choices:['disadvantage','requirement','consequence','uncertainty'],answer:'disadvantage'},
+  {level:'B2',area:'communication',prompt:'Which sentence acknowledges a counterargument without accepting it completely?',choices:['That is a fair point, but the evidence still seems too limited to support the conclusion.','That is a fair point, therefore the conclusion must be correct.','That point is fair, unless the evidence is limited.','That is a fair conclusion, although the evidence proves it.'],answer:'That is a fair point, but the evidence still seems too limited to support the conclusion.'},
 
-  {level:'C1',area:'grammar',prompt:'Choose the best formal conditional.',context:'___ demand continue to fall, we would need to reconsider our assumptions.',choices:['Should','Would','Did','Having'],answer:'Should'},
-  {level:'C1',area:'grammar',prompt:'Choose the correct emphasis.',context:'What ___ is the long-term value, not just the immediate saving.',choices:['matters','matter','mattering','is matter'],answer:'matters'},
-  {level:'C1',area:'vocabulary',prompt:'Choose the closest meaning of “underlying issue”.',choices:['zugrunde liegendes Problem','sichtbarer Vorteil','kurzfristige Frist','zufällige Lösung'],answer:'zugrunde liegendes Problem'},
-  {level:'C1',area:'communication',prompt:'Choose the most nuanced disagreement.',choices:['I can see the merit of the proposal, but I am not convinced it addresses the underlying issue.','This proposal is wrong.','I do not like it because no.','The proposal cannot and that is all.'],answer:'I can see the merit of the proposal, but I am not convinced it addresses the underlying issue.'},
-  {level:'C1',area:'vocabulary',prompt:'What does “reluctantly” mean?',choices:['widerwillig','eindeutig','vorschnell','beiläufig'],answer:'widerwillig'},
-  {level:'C1',area:'communication',prompt:'Which sentence best synthesises two sources?',choices:['Taken together, the findings suggest a common trend, but not the same explanation.','Source one and source two are there.','Both texts say things separately.','The sources are equal because yes.'],answer:'Taken together, the findings suggest a common trend, but not the same explanation.'},
+  {level:'C1',area:'grammar',prompt:'Choose the formal conditional structure.',context:'___ demand continue to fall, we would need to reconsider our assumptions.',choices:['Should','Would','Were','Had'],answer:'Should'},
+  {level:'C1',area:'grammar',prompt:'Choose the inversion that is grammatically correct.',context:'Rarely ___ such a rapid change in consumer behaviour.',choices:['have we seen','we have seen','did we have seen','we saw'],answer:'have we seen'},
+  {level:'C1',area:'vocabulary',prompt:'Choose the word that best completes the collocation.',context:'The report raises ___ concerns about the reliability of the data.',choices:['serious','heavy','strongly','deeply'],answer:'serious'},
+  {level:'C1',area:'communication',prompt:'Which sentence expresses a nuanced disagreement most effectively?',choices:['I can see the merit of the proposal, but I am not convinced it addresses the underlying issue.','I appreciate the proposal, yet I disagree with every part of its underlying issue.','The proposal has merit, whereas it therefore fails to solve the issue.','I can understand the proposal, although this makes the issue incorrect.'],answer:'I can see the merit of the proposal, but I am not convinced it addresses the underlying issue.'},
+  {level:'C1',area:'vocabulary',prompt:'Choose the closest meaning of “reluctantly”.',choices:['unwillingly','uncertainly','indirectly','carelessly'],answer:'unwillingly'},
+  {level:'C1',area:'communication',prompt:'Which sentence best synthesises two sources without overstating them?',choices:['Taken together, the findings suggest a common trend, though the studies offer different explanations for it.','Taken together, both studies prove the same cause from different results.','Both studies are similar, so their explanations must also be the same.','The findings are common because the two sources discuss the same subject.'],answer:'Taken together, the findings suggest a common trend, though the studies offer different explanations for it.'},
 
-  {level:'C2',area:'grammar',prompt:'Complete the inversion.',context:'Only then ___ the scale of the problem become apparent.',choices:['did','was','had','does'],answer:'did'},
-  {level:'C2',area:'grammar',prompt:'Choose the most controlled concession.',context:'Valid ___ the concerns may be, they do not change the conclusion.',choices:['though','because','unless','therefore'],answer:'though'},
-  {level:'C2',area:'vocabulary',prompt:'Choose the strongest natural collocation.',context:'The proposal ___ substantial risks.',choices:['carries','takes','holds on','brings up with'],answer:'carries'},
-  {level:'C2',area:'communication',prompt:'Choose the most precise academic qualification.',choices:['The findings point to an association, but do not in themselves establish causality.','The results prove everything.','There is correlation so there is causation.','The results are kind of linked somehow.'],answer:'The findings point to an association, but do not in themselves establish causality.'},
-  {level:'C2',area:'vocabulary',prompt:'What does “warrants careful scrutiny” mean?',choices:['erfordert sorgfältige Prüfung','garantiert Zustimmung','verhindert jede Analyse','beschleunigt automatisch'],answer:'erfordert sorgfältige Prüfung'},
-  {level:'C2',area:'communication',prompt:'Choose the best executive-level recommendation.',choices:['Proceeding with the rollout would be premature until the underlying assumptions have been reassessed.','Do not launch because I said so.','We maybe wait because things.','Launch is bad and no more.'],answer:'Proceeding with the rollout would be premature until the underlying assumptions have been reassessed.'}
+  {level:'C2',area:'grammar',prompt:'Choose the form that completes the inversion.',context:'Not until the final figures were released ___ how misleading the estimate had been.',choices:['did we realise','we realised','had we realised','we had realised'],answer:'did we realise'},
+  {level:'C2',area:'grammar',prompt:'Choose the most idiomatic concessive structure.',context:'___ the concerns may be, they do not invalidate the central argument.',choices:['Valid though','However valid','As valid as','Valid although'],answer:'Valid though'},
+  {level:'C2',area:'vocabulary',prompt:'Choose the verb that best completes the academic collocation.',context:'The report stops short of ___ a direct causal link.',choices:['asserting','assuring','assigning','assuming'],answer:'asserting'},
+  {level:'C2',area:'communication',prompt:'Which formulation is appropriately cautious about the evidence?',choices:['The findings are consistent with an association, but they do not in themselves establish causality.','The findings demonstrate an association and therefore make causality highly likely.','The findings appear associated, which is effectively the same as demonstrating causality.','The findings cannot establish causality, so no association can reasonably be inferred.'],answer:'The findings are consistent with an association, but they do not in themselves establish causality.'},
+  {level:'C2',area:'vocabulary',prompt:'What does “equivocal” most nearly mean in this context?',context:'The evidence remains equivocal.',choices:['ambiguous','equivalent','unequal','unbiased'],answer:'ambiguous'},
+  {level:'C2',area:'communication',prompt:'Choose the recommendation that is precise, restrained and executive in tone.',context:'The evidence is incomplete and the rollout would be difficult to reverse.',choices:['On balance, I would defer the rollout until the underlying assumptions have been tested more rigorously.','I would cancel the rollout because incomplete evidence makes the proposal fundamentally unsound.','The rollout should probably wait, although it may also be reasonable to proceed immediately.','Given the evidence, the only responsible option is to reject the rollout outright.'],answer:'On balance, I would defer the rollout until the underlying assumptions have been tested more rigorously.'}
 ];
 
 const levels:CefrLevel[]=['A1','A2','B1','B2','C1','C2'];
+const promotionThreshold:Record<CefrLevel,number>={A1:4,A2:4,B1:5,B2:5,C1:5,C2:5};
 
 const levelCopy:Record<CefrLevel,{title:string;text:string}>={
   A1:{title:'A1 · Grundlagen',text:'Baue zuerst ein sicheres Fundament aus Wortstellung, Alltagswortschatz und einfachen Gesprächen auf.'},
   A2:{title:'A2 · Alltag',text:'Die Grundlagen sitzen. Jetzt lohnt sich mehr Selbstständigkeit in Reise-, Service- und Alltagssituationen.'},
   B1:{title:'B1 · Selbstständig',text:'Du kannst schon viel. Der nächste Schritt ist zusammenhängendes Erzählen, Begründen und Problemlösen.'},
-  B2:{title:'B2 · Sicher & präzise',text:'Du bist im soliden fortgeschrittenen Bereich. Fokus: Präzision, Register, Argumentation und komplexere Zeitformen.'},
+  B2:{title:'B2 · Sicher & präzise',text:'Du bist im soliden fortgeschrittenen Bereich. Fokus: Präzision, Register, Argumentation und komplexere Strukturen.'},
   C1:{title:'C1 · Fortgeschritten',text:'Dein Englisch ist stark. Arbeite jetzt an Nuance, impliziter Bedeutung, Synthese und professioneller Wirkung.'},
   C2:{title:'C2 · Feinschliff',text:'Du bewegst dich auf sehr hohem Niveau. Der Fokus liegt auf stilistischer Kontrolle, feinen Bedeutungsunterschieden und Registerwechsel.'}
 };
 
 const areaLabels:Record<Area,string>={grammar:'Grammatik & Strukturen',vocabulary:'Wortschatz & Kollokationen',communication:'Kommunikation & Präzision'};
 
-function levelScores(answers:Record<number,string>) {
+function shuffle<T>(items:T[]):T[] {
+  const copy=[...items];
+  for(let i=copy.length-1;i>0;i-=1) {
+    const j=Math.floor(Math.random()*(i+1));
+    [copy[i],copy[j]]=[copy[j],copy[i]];
+  }
+  return copy;
+}
+
+function levelScores(testQuestions:Question[],answers:Record<number,string>) {
   const scores:Record<CefrLevel,number>={A1:0,A2:0,B1:0,B2:0,C1:0,C2:0};
-  questions.forEach((question,index)=>{if(answers[index]===question.answer)scores[question.level]+=1;});
+  testQuestions.forEach((question,index)=>{if(answers[index]===question.answer)scores[question.level]+=1;});
   return scores;
 }
 
-function recommendation(answers:Record<number,string>):CefrLevel {
-  const scores=levelScores(answers);
+function recommendation(testQuestions:Question[],answers:Record<number,string>):CefrLevel {
+  const scores=levelScores(testQuestions,answers);
   let recommended:CefrLevel='A1';
-  for(let index=0;index<levels.length-1;index+=1) {
+  for(let index=0;index<levels.length;index+=1) {
     const level=levels[index];
-    if(scores[level]>=4)recommended=levels[index+1];
-    else break;
+    if(scores[level]<promotionThreshold[level])return level;
+    recommended=index===levels.length-1?'C2':levels[index+1];
   }
   return recommended;
 }
 
-function breakdown(answers:Record<number,string>):PlacementBreakdown {
+function breakdown(testQuestions:Question[],answers:Record<number,string>):PlacementBreakdown {
   const result:PlacementBreakdown={grammar:{score:0,total:0},vocabulary:{score:0,total:0},communication:{score:0,total:0}};
-  questions.forEach((question,index)=>{
+  testQuestions.forEach((question,index)=>{
     result[question.area].total+=1;
     if(answers[index]===question.answer)result[question.area].score+=1;
   });
@@ -121,26 +131,33 @@ export default function PlacementTest({onClose,onFinish}:Props) {
   const [index,setIndex]=useState(0);
   const [answers,setAnswers]=useState<Record<number,string>>({});
   const [finished,setFinished]=useState(false);
-  const question=questions[index];
+  const [attempt,setAttempt]=useState(0);
+  const testQuestions=useMemo(()=>questions.map(question=>({...question,choices:shuffle(question.choices)})),[attempt]);
+  const question=testQuestions[index];
   const selected=answers[index]??'';
-  const score=useMemo(()=>questions.reduce((sum,item,i)=>sum+(answers[i]===item.answer?1:0),0),[answers]);
-  const recommended=useMemo(()=>recommendation(answers),[answers]);
-  const resultBreakdown=useMemo(()=>breakdown(answers),[answers]);
+  const score=useMemo(()=>testQuestions.reduce((sum,item,i)=>sum+(answers[i]===item.answer?1:0),0),[answers,testQuestions]);
+  const levelProfile=useMemo(()=>levelScores(testQuestions,answers),[answers,testQuestions]);
+  const recommended=useMemo(()=>recommendation(testQuestions,answers),[answers,testQuestions]);
+  const resultBreakdown=useMemo(()=>breakdown(testQuestions,answers),[answers,testQuestions]);
   const focus=useMemo(()=>focusFor(resultBreakdown,recommended),[resultBreakdown,recommended]);
-  const progress=finished?100:Math.round(((index+(selected?1:0))/questions.length)*100);
+  const progress=finished?100:Math.round(((index+(selected?1:0))/testQuestions.length)*100);
 
   function next() {
     if(!selected)return;
-    if(index>=questions.length-1){setFinished(true);return;}
+    if(index>=testQuestions.length-1){setFinished(true);return;}
     setIndex(value=>value+1);
   }
 
-  if(!started)return <div className="placement-backdrop" role="dialog" aria-modal="true" aria-labelledby="placementIntroTitle"><section className="placement-card result placement-intro"><button className="placement-close" onClick={onClose} aria-label="Einstufung schließen">×</button><span className="placement-kicker">PERSÖNLICHE EINSTUFUNG</span><div className="placement-result-badge intro">36</div><h1 id="placementIntroTitle">Finde den sinnvollsten Startpunkt.</h1><p>36 kurze Fragen prüfen Grammatik, Wortschatz und kommunikative Präzision von A1 bis C2. Danach bekommst du eine ungefähre CEFR-Empfehlung und konkrete Schwerpunkte für dein Training.</p><div className="placement-note">Dauer: ungefähr 8–12 Minuten. Antworte nach Gefühl und ohne nachzuschlagen. Die Auswertung ist eine VocabFast-Lernempfehlung und kein offizieller CEFR-Sprachnachweis.</div><button className="placement-primary placement-big-start" onClick={()=>setStarted(true)}>36 Fragen starten →</button></section></div>;
+  function restart() {
+    setAnswers({});setIndex(0);setFinished(false);setStarted(false);setAttempt(value=>value+1);
+  }
+
+  if(!started)return <div className="placement-backdrop" role="dialog" aria-modal="true" aria-labelledby="placementIntroTitle"><section className="placement-card result placement-intro"><button className="placement-close" onClick={onClose} aria-label="Einstufung schließen">×</button><span className="placement-kicker">PERSÖNLICHE EINSTUFUNG</span><div className="placement-result-badge intro">36</div><h1 id="placementIntroTitle">Finde den sinnvollsten Startpunkt.</h1><p>36 Fragen prüfen Grammatik, Wortschatz und kommunikative Präzision. Die Antwortpositionen werden gemischt und die höheren Stufen verwenden bewusst ähnlich plausible Optionen, damit Raten und offensichtliche Muster die Einstufung möglichst wenig verzerren.</p><div className="placement-note">Dauer: ungefähr 8–12 Minuten. Antworte nach Gefühl und ohne nachzuschlagen. Während des Tests wird die geprüfte CEFR-Stufe nicht angezeigt. Die Auswertung ist eine VocabFast-Lernempfehlung und kein offizieller CEFR-Sprachnachweis.</div><button className="placement-primary placement-big-start" onClick={()=>setStarted(true)}>36 Fragen starten →</button></section></div>;
 
   if(finished) {
     const copy=levelCopy[recommended];
-    return <div className="placement-backdrop" role="dialog" aria-modal="true" aria-labelledby="placementResultTitle"><section className="placement-card result"><button className="placement-close" onClick={onClose} aria-label="Einstufung schließen">×</button><span className="placement-kicker">DEINE LERNEMPFEHLUNG</span><div className="placement-result-badge">{recommended}</div><h1 id="placementResultTitle">{copy.title}</h1><p>{copy.text}</p><div className="placement-score"><strong>{score}/{questions.length}</strong><span>Aufgaben richtig</span></div><div className="placement-breakdown">{(Object.keys(resultBreakdown) as Area[]).map(area=>{const item=resultBreakdown[area];const percent=item.total?Math.round(item.score/item.total*100):0;return <div key={area}><span><strong>{areaLabels[area]}</strong><small>{item.score}/{item.total} · {percent}%</small></span><div><i style={{width:`${percent}%`}}/></div></div>;})}</div><div className="placement-focus"><span>DEINE NÄCHSTEN SCHWERPUNKTE</span>{focus.map(item=><p key={item}>✓ {item}</p>)}</div><div className="placement-note">Die Empfehlung dient dazu, deinen Lernpfad sinnvoll zu starten. Du kannst jedes CEFR-Level später jederzeit frei auswählen.</div><div className="placement-actions"><button className="placement-secondary" onClick={()=>{setAnswers({});setIndex(0);setFinished(false);setStarted(false);}}>Neu testen</button><button className="placement-primary" onClick={()=>onFinish(recommended,score,questions.length,{breakdown:resultBreakdown,focus})}>Mit {recommended} starten →</button></div></section></div>;
+    return <div className="placement-backdrop" role="dialog" aria-modal="true" aria-labelledby="placementResultTitle"><section className="placement-card result"><button className="placement-close" onClick={onClose} aria-label="Einstufung schließen">×</button><span className="placement-kicker">DEINE LERNEMPFEHLUNG</span><div className="placement-result-badge">{recommended}</div><h1 id="placementResultTitle">{copy.title}</h1><p>{copy.text}</p><div className="placement-score"><strong>{score}/{testQuestions.length}</strong><span>Aufgaben richtig · Rohwert</span></div><div className="placement-level-profile" aria-label="Niveauprofil">{levels.map(level=><div key={level}><span>{level}</span><strong>{levelProfile[level]}/6</strong><i><b style={{width:`${Math.round(levelProfile[level]/6*100)}%`}}/></i></div>)}</div><div className="placement-breakdown">{(Object.keys(resultBreakdown) as Area[]).map(area=>{const item=resultBreakdown[area];const percent=item.total?Math.round(item.score/item.total*100):0;return <div key={area}><span><strong>{areaLabels[area]}</strong><small>{item.score}/{item.total} · {percent}%</small></span><div><i style={{width:`${percent}%`}}/></div></div>;})}</div><div className="placement-focus"><span>DEINE NÄCHSTEN SCHWERPUNKTE</span>{focus.map(item=><p key={item}>✓ {item}</p>)}</div><div className="placement-note">Für B1 bis C2 reicht eine knappe Mehrheit nicht mehr zum Hochstufen. Die Empfehlung berücksichtigt deshalb die Leistung je Schwierigkeitsstufe und ist bewusst eher konservativ.</div><div className="placement-actions"><button className="placement-secondary" onClick={restart}>Neu testen</button><button className="placement-primary" onClick={()=>onFinish(recommended,score,testQuestions.length,{breakdown:resultBreakdown,focus})}>Mit {recommended} starten →</button></div></section></div>;
   }
 
-  return <div className="placement-backdrop" role="dialog" aria-modal="true" aria-labelledby="placementQuestionTitle"><section className="placement-card"><header className="placement-head"><button className="placement-close" onClick={onClose} aria-label="Einstufung schließen">×</button><div className="placement-progress"><span style={{width:`${progress}%`}}/></div><strong>{index+1}/{questions.length}</strong></header><div className="placement-body"><div className="placement-level"><span>{question.level}</span><small>{areaLabels[question.area]}</small></div><span className="placement-kicker">EINSTUFUNGSTEST</span><h1 id="placementQuestionTitle">{question.prompt}</h1>{question.context&&<p className="placement-context">{question.context}</p>}<div className="placement-choices">{question.choices.map((choice,choiceIndex)=><button key={choice} className={selected===choice?'selected':''} onClick={()=>setAnswers(current=>({...current,[index]:choice}))}><span>{String.fromCharCode(65+choiceIndex)}</span><strong>{choice}</strong></button>)}</div></div><footer className="placement-footer"><span>{question.level} · {areaLabels[question.area]}</span><button className="placement-primary" disabled={!selected} onClick={next}>{index===questions.length-1?'Auswerten':'Weiter →'}</button></footer></section></div>;
+  return <div className="placement-backdrop" role="dialog" aria-modal="true" aria-labelledby="placementQuestionTitle"><section className="placement-card"><header className="placement-head"><button className="placement-close" onClick={onClose} aria-label="Einstufung schließen">×</button><div className="placement-progress"><span style={{width:`${progress}%`}}/></div><strong>{index+1}/{testQuestions.length}</strong></header><div className="placement-body"><div className="placement-level"><span>{areaLabels[question.area]}</span></div><span className="placement-kicker">EINSTUFUNGSTEST</span><h1 id="placementQuestionTitle">{question.prompt}</h1>{question.context&&<p className="placement-context">{question.context}</p>}<div className="placement-choices">{question.choices.map((choice,choiceIndex)=><button key={choice} className={selected===choice?'selected':''} onClick={()=>setAnswers(current=>({...current,[index]:choice}))}><span>{String.fromCharCode(65+choiceIndex)}</span><strong>{choice}</strong></button>)}</div></div><footer className="placement-footer"><span>{areaLabels[question.area]}</span><button className="placement-primary" disabled={!selected} onClick={next}>{index===testQuestions.length-1?'Auswerten':'Weiter →'}</button></footer></section></div>;
 }
