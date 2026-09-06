@@ -14,6 +14,14 @@
       "zone_name": "vocabfast.net"
     },
     {
+      "pattern": "vocabfast.net/api/admin/login",
+      "zone_name": "vocabfast.net"
+    },
+    {
+      "pattern": "vocabfast.net/api/admin/logout",
+      "zone_name": "vocabfast.net"
+    },
+    {
       "pattern": "vocabfast.net/api/admin/context",
       "zone_name": "vocabfast.net"
     }
