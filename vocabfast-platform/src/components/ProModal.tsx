@@ -12,16 +12,17 @@ const proFeatures = [
   ['Kompetenztests', 'Strukturierte Tests, Einstufung und Fortschrittsnachweise']
 ];
 
-function developerCheckoutAllowed() {
+function stripeCheckoutAllowed() {
   if(typeof window==='undefined')return false;
-  return window.location.hostname.endsWith('.workers.dev')||window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1';
+  const host=window.location.hostname;
+  return host==='vocabfast.net'||host==='www.vocabfast.net'||host.endsWith('.workers.dev')||host==='localhost'||host==='127.0.0.1';
 }
 
 export default function ProModal({ onClose }: Props) {
-  const canTestCheckout=previewBilling.mode==='test'&&developerCheckoutAllowed();
+  const canCheckout=Boolean(previewBilling.checkoutUrl)&&stripeCheckoutAllowed();
 
   function checkout() {
-    if(!canTestCheckout)return;
+    if(!canCheckout)return;
     window.location.assign(previewBilling.checkoutUrl);
   }
 
@@ -40,7 +41,10 @@ export default function ProModal({ onClose }: Props) {
         <article><span>FREE</span><h2>VocabFast Free</h2><strong>0 €</strong><ul><li>A1–C2-Lernpfad</li><li>Wortschatz & Grammatik</li><li>Hörtraining</li><li>Basis-Fortschritt</li></ul></article>
         <article className="recommended"><span>PRO · EMPFOHLEN</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>alle Fachbereiche</li><li>KI-Coach & Dokumentlernen</li></ul></article>
       </div>
-      {canTestCheckout&&<><button className="pro-preview-action" onClick={checkout}>Testkauf öffnen →</button><small className="pro-test-note">Interner Testcheckout – es wird kein echtes Geld belastet.</small></>}
+      {canCheckout&&<>
+        <button className="pro-preview-action" onClick={checkout}>Weiter zu Stripe →</button>
+        {previewBilling.mode==='test'&&<small className="pro-test-note">Stripe-Testmodus: Der Zahlungsablauf kann ausprobiert werden, ohne dass echtes Geld belastet wird.</small>}
+      </>}
       <div className="pro-test-note"><a href="https://vocabfast.net/nutzungsbedingungen.html">Nutzungsbedingungen</a> · <a href="https://vocabfast.net/widerruf.html">Widerruf</a> · <a href="https://vocabfast.net/datenschutz.html">Datenschutz</a></div>
     </section>
   </div>;
