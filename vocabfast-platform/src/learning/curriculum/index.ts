@@ -3,6 +3,7 @@ import { englishA1Unit2Lessons } from './en-a1-unit2';
 import { englishA2Units as englishA2UnitsRaw, englishB1Units as englishB1UnitsRaw, englishB2Units as englishB2UnitsRaw, englishC1Units as englishC1UnitsRaw } from './advanced';
 import { englishC2Units as englishC2UnitsRaw } from './c2';
 import { englishA2ReleaseUnits, englishB1ReleaseUnits } from './release-units';
+import { englishB2ReleaseUnits, englishC1ReleaseUnits, englishC2ReleaseUnits } from './release-advanced-units';
 import { expandLesson } from '../lesson-expansion';
 import type { Lesson } from '../types';
 
@@ -48,9 +49,9 @@ export const englishA1Units: CourseUnit[] = expandUnits([
 
 export const englishA2Units=expandUnits([...englishA2UnitsRaw,...englishA2ReleaseUnits]);
 export const englishB1Units=expandUnits([...englishB1UnitsRaw,...englishB1ReleaseUnits]);
-export const englishB2Units=expandUnits(englishB2UnitsRaw);
-export const englishC1Units=expandUnits(englishC1UnitsRaw);
-export const englishC2Units=expandUnits(englishC2UnitsRaw);
+export const englishB2Units=expandUnits([...englishB2UnitsRaw,...englishB2ReleaseUnits]);
+export const englishC1Units=expandUnits([...englishC1UnitsRaw,...englishC1ReleaseUnits]);
+export const englishC2Units=expandUnits([...englishC2UnitsRaw,...englishC2ReleaseUnits]);
 
 export const englishCourseLevels: CourseLevel[] = [
   {
