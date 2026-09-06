@@ -143,9 +143,7 @@ function App() {
     queueAccountSync(100);
   }
 
-  async function signOut() {
-    await flushAccountSync();
-    await logoutAccount().catch(()=>{});
+  function returnToGuest(notice:string) {
     clearPlatformStorage();
     setAccountUser(null);
     setPreferences(readPreferences());
@@ -154,9 +152,20 @@ function App() {
     setOnboardingOpen(false);
     setPlacementOpen(false);
     setLessonOpen(false);
+    setProOpen(false);
     setActiveNav('home');
-    setAuthNotice('Du wurdest abgemeldet.');
+    setAuthNotice(notice);
     setAccountPhase('guest');
+  }
+
+  async function signOut() {
+    await flushAccountSync();
+    await logoutAccount().catch(()=>{});
+    returnToGuest('Du wurdest abgemeldet.');
+  }
+
+  function handleAccountDeleted() {
+    returnToGuest('Dein Konto und dein gespeicherter Lernfortschritt wurden gelöscht.');
   }
 
   function renderView() {
@@ -169,7 +178,7 @@ function App() {
     if (activeNav === 'words') return <WordsView />;
     if (activeNav === 'specialty') return <SpecialtyView openPro={()=>setProOpen(true)} />;
     if (activeNav === 'progress') return <ProgressView progress={progress} />;
-    if (activeNav === 'profile') return <ProfileView preferences={preferences} progress={progress} onSave={saveLearnerPreferences} onResetProgress={resetProgress} />;
+    if (activeNav === 'profile') return <ProfileView preferences={preferences} progress={progress} onSave={saveLearnerPreferences} onResetProgress={resetProgress} onAccountDeleted={handleAccountDeleted} />;
     return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} onSelectLevel={selectLevel} />;
   }
 
