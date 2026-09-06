@@ -17,7 +17,6 @@ import { defaultPreferences, readPreferences, savePreferences } from './learning
 import { buildAdaptiveReviewLesson, buildModeLesson } from './learning/review';
 import { readProgress, resetLocalProgress, saveLessonResult } from './learning/progress';
 import { bootstrapAccount, clearPlatformStorage, flushAccountSync, logoutAccount, queueAccountSync, type AccountUser } from './learning/account';
-import { checkoutSucceededInPreview, clearCheckoutQuery } from './learning/billing';
 import type { LearnerPreferences } from './learning/preferences';
 import type { Lesson, LessonResult } from './learning/types';
 import './course.css';
@@ -60,7 +59,6 @@ function App() {
   const [placementOpen, setPlacementOpen] = useState(false);
   const [proOpen, setProOpen] = useState(false);
   const [lastResult, setLastResult] = useState<LessonResult | null>(null);
-  const [checkoutSuccess,setCheckoutSuccess]=useState(()=>checkoutSucceededInPreview());
   const activeLanguage = useMemo(() => languages.find(language => language.code === languageCode) ?? languages[0], [languageCode]);
   const activeLessons = levelLessons(courseState.activeLevel);
   const curriculumCompleted = activeLessons.filter(lesson => progress.completedLessonIds.includes(lesson.id)).length;
@@ -70,11 +68,6 @@ function App() {
     booted.current=true;
     void hydrateAccount();
   },[]);
-
-  useEffect(()=>{
-    if(!checkoutSuccess)return;
-    clearCheckoutQuery();
-  },[checkoutSuccess]);
 
   async function hydrateAccount() {
     setAccountPhase('loading');
@@ -172,7 +165,7 @@ function App() {
     if (activeNav === 'course') return <CourseView progress={progress} courseState={courseState} onSelectLevel={selectLevel} openLesson={openLesson} openPlacement={()=>setPlacementOpen(true)} />;
     if (activeNav === 'grammar') return <GrammarView activeLevel={courseState.activeLevel} openLesson={openLesson} onSelectLevel={selectLevel}/>;
     if (activeNav === 'practice') return <PracticeView openLesson={openLesson} buildReview={buildReview} buildMode={buildMode} />;
-    if (activeNav === 'coach') return <CoachView audioRate={preferences.audioRate} />;
+    if (activeNav === 'coach') return <CoachView audioRate={preferences.audioRate} level={courseState.activeLevel} />;
     if (activeNav === 'words') return <WordsView />;
     if (activeNav === 'specialty') return <SpecialtyView openPro={()=>setProOpen(true)} />;
     if (activeNav === 'progress') return <ProgressView progress={progress} />;
@@ -197,7 +190,6 @@ function App() {
 
       <main className="content">
         <header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><strong>VocabFast</strong></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP gesamt</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/{activeLessons.length}</strong><small>{courseState.activeLevel} Lektionen</small></div></div></header>
-        {checkoutSuccess&&<div className="checkout-success"><div><span><strong>Testkauf abgeschlossen.</strong> Der Zahlungsablauf wurde erfolgreich geprüft.</span><button onClick={()=>setCheckoutSuccess(false)} aria-label="Hinweis schließen">×</button></div></div>}
         {renderView()}
       </main>
 
