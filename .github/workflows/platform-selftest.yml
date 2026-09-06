@@ -46,6 +46,7 @@ jobs:
           BASE='https://vocabfast.net'
           COOKIE_JAR="$(mktemp)"
           TEST_EMAIL="ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.invalid"
+          PROBE_EMAIL="nobody-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.invalid"
           TEST_PASSWORD='VocabFast-CI-Only-2026!'
 
           echo '--- health ---'
@@ -61,12 +62,26 @@ jobs:
             -H 'Origin: https://vocabfast.net' \
             -H 'Content-Type: application/json' \
             -X POST "$BASE/api/preview/auth/login" \
-            --data '{"email":"nobody@example.invalid","password":"definitely-wrong"}')
+            --data "{\"email\":\"$PROBE_EMAIL\",\"password\":\"definitely-wrong\"}")
           cat /tmp/vf-login-probe.json
           echo
           echo "login probe status: $LOGIN_STATUS"
           if [ "$LOGIN_STATUS" != '401' ]; then
             echo 'Expected 401 from a healthy account store.'
+            exit 1
+          fi
+
+          echo '--- anonymous coach protection ---'
+          COACH_STATUS=$(curl --silent --show-error -o /tmp/vf-coach-probe.json -w '%{http_code}' \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/platform/coach" \
+            --data '{"scenario":"cafe","message":"Hello"}')
+          cat /tmp/vf-coach-probe.json
+          echo
+          echo "coach probe status: $COACH_STATUS"
+          if [ "$COACH_STATUS" != '401' ]; then
+            echo 'Expected 401 from the protected coach route.'
             exit 1
           fi
 
