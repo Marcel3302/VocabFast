@@ -89,6 +89,16 @@ export default {
     const url=new URL(request.url);
     const onWorkersPreview=url.hostname.endsWith('.workers.dev');
 
+    if(url.pathname==='/api/admin/context'&&request.method==='GET') {
+      try {
+        const context=await verifyAdminSession(request);
+        return context?json(context):json({error:'Admin-Anmeldung erforderlich.'},401);
+      } catch(error) {
+        console.error('admin context bridge error',error);
+        return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503);
+      }
+    }
+
     if(onWorkersPreview&&ADMIN_AUTH_PATHS.has(url.pathname)) {
       try{return await proxyAdminAuth(request);}
       catch(error){
