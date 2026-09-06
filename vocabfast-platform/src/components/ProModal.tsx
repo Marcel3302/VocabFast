@@ -18,8 +18,15 @@ function stripeCheckoutAllowed() {
   return host==='vocabfast.net'||host==='www.vocabfast.net'||host.endsWith('.workers.dev')||host==='localhost'||host==='127.0.0.1';
 }
 
+function developerHost() {
+  if(typeof window==='undefined')return false;
+  const host=window.location.hostname;
+  return host.endsWith('.workers.dev')||host==='localhost'||host==='127.0.0.1';
+}
+
 export default function ProModal({ onClose }: Props) {
   const canCheckout=Boolean(previewBilling.checkoutUrl)&&stripeCheckoutAllowed();
+  const showTestNote=previewBilling.mode==='test'&&developerHost();
 
   function checkout() {
     if(!canCheckout)return;
@@ -43,7 +50,7 @@ export default function ProModal({ onClose }: Props) {
       </div>
       {canCheckout&&<>
         <button className="pro-preview-action" onClick={checkout}>Weiter zu Stripe →</button>
-        {previewBilling.mode==='test'&&<small className="pro-test-note">Stripe-Testmodus: Der Zahlungsablauf kann ausprobiert werden, ohne dass echtes Geld belastet wird.</small>}
+        {showTestNote&&<small className="pro-test-note">Stripe-Testmodus: Der Zahlungsablauf kann ausprobiert werden, ohne dass echtes Geld belastet wird.</small>}
       </>}
       <div className="pro-test-note"><a href="https://vocabfast.net/nutzungsbedingungen.html">Nutzungsbedingungen</a> · <a href="https://vocabfast.net/widerruf.html">Widerruf</a> · <a href="https://vocabfast.net/datenschutz.html">Datenschutz</a></div>
     </section>
