@@ -22,6 +22,7 @@ import type { Lesson, LessonResult } from './learning/types';
 import './course.css';
 import './enhancements.css';
 import './layout-polish.css';
+import './mobile-release.css';
 
 const navItems = [
   ['home', 'Lernpfad'],
@@ -48,6 +49,7 @@ function App() {
   const [accountUser,setAccountUser]=useState<AccountUser|null>(null);
   const [authNotice,setAuthNotice]=useState('');
   const [activeNav, setActiveNav] = useState<NavId>('home');
+  const [mobileMoreOpen,setMobileMoreOpen]=useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [languageCode, setLanguageCode] = useState('en');
   const [lessonOpen, setLessonOpen] = useState(false);
@@ -96,6 +98,12 @@ function App() {
 
   async function handleAuthenticated(_user:AccountUser,_isNew:boolean) {
     await hydrateAccount();
+  }
+
+  function navigateTo(id:NavId) {
+    setActiveNav(id);
+    setMobileMoreOpen(false);
+    window.scrollTo({top:0,behavior:'smooth'});
   }
 
   function openLesson(lesson: Lesson) {
@@ -153,6 +161,7 @@ function App() {
     setPlacementOpen(false);
     setLessonOpen(false);
     setProOpen(false);
+    setMobileMoreOpen(false);
     setActiveNav('home');
     setAuthNotice(notice);
     setAccountPhase('guest');
@@ -185,6 +194,8 @@ function App() {
   if(accountPhase==='loading')return <div className="platform-loading"><div><i/><strong>Dein VocabFast-Konto wird geladen …</strong></div></div>;
   if(accountPhase==='guest')return <WelcomeGate onAuthenticated={handleAuthenticated} notice={authNotice}/>;
 
+  const moreActive=['grammar','words','specialty','progress','profile'].includes(activeNav);
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -192,15 +203,38 @@ function App() {
         <button className="language-switch" onClick={() => setLanguageOpen(true)}><span className="language-badge">{activeLanguage.symbol}</span><span className="language-switch-copy"><small>Ich lerne · {courseState.activeLevel}</small><strong>{activeLanguage.name}</strong></span><span className="chevron">⌄</span></button>
         <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label],index)=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id)}><span className="nav-icon">{navIcons[index]}</span><span>{label}</span></button>)}</nav>
         <div className="sidebar-spacer"/>
-        <div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und intensives Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>
+        {accountUser?.plan==='pro'?<div className="pro-mini-card pro-active"><span className="pro-pill">PRO AKTIV</span><strong>Dein Pro-Zugang ist aktiv.</strong><p>Coach, Fachsprache und intensives Training stehen dir zur Verfügung.</p></div>:<div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und intensives Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>}
         <button className={`profile-link ${activeNav==='profile'?'active':''}`} onClick={()=>setActiveNav('profile')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button>
         <div className="account-session-row"><span><strong>{accountUser?.email}</strong><small>Konto · synchronisiert</small></span><button onClick={()=>void signOut()}>Abmelden</button></div>
       </aside>
 
       <main className="content">
-        <header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><strong>VocabFast</strong></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP gesamt</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/{activeLessons.length}</strong><small>{courseState.activeLevel} Lektionen</small></div></div></header>
+        <header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><div><strong>VocabFast</strong><small>Englisch · {courseState.activeLevel}</small></div></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP gesamt</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/{activeLessons.length}</strong><small>{courseState.activeLevel} Lektionen</small></div></div></header>
         {renderView()}
       </main>
+
+      <nav className="mobile-bottom-nav" aria-label="Mobile Hauptnavigation">
+        <button className={activeNav==='home'?'active':''} onClick={()=>navigateTo('home')}><span>⌂</span><small>Start</small></button>
+        <button className={activeNav==='course'?'active':''} onClick={()=>navigateTo('course')}><span>A1</span><small>Kurs</small></button>
+        <button className={activeNav==='practice'?'active':''} onClick={()=>navigateTo('practice')}><span>◎</span><small>Üben</small></button>
+        <button className={activeNav==='coach'?'active':''} onClick={()=>navigateTo('coach')}><span>AI</span><small>Coach</small></button>
+        <button className={mobileMoreOpen||moreActive?'active':''} onClick={()=>setMobileMoreOpen(value=>!value)}><span>•••</span><small>Mehr</small></button>
+      </nav>
+
+      {mobileMoreOpen&&<div className="mobile-more-backdrop" onMouseDown={()=>setMobileMoreOpen(false)}><section className="mobile-more-sheet" onMouseDown={event=>event.stopPropagation()}>
+        <div className="mobile-more-head"><div className="mobile-profile-mark">{initials(preferences.name)}</div><div><strong>{preferences.name}</strong><small>{accountUser?.email}</small></div><button onClick={()=>setMobileMoreOpen(false)} aria-label="Menü schließen">×</button></div>
+        <div className="mobile-account-summary"><span><strong>{courseState.activeLevel}</strong><small>Level</small></span><span><strong>{progress.totalXp}</strong><small>XP</small></span><span><strong>{progress.currentStreak}</strong><small>Streak</small></span><span><strong>{accountUser?.plan==='pro'?'PRO':'FREE'}</strong><small>Plan</small></span></div>
+        <div className="mobile-more-grid">
+          <button onClick={()=>navigateTo('grammar')}><span>Aa</span><strong>Grammatik</strong></button>
+          <button onClick={()=>navigateTo('words')}><span>W</span><strong>Wortschatz</strong></button>
+          <button onClick={()=>navigateTo('specialty')}><span>◇</span><strong>Fachsprache</strong></button>
+          <button onClick={()=>navigateTo('progress')}><span>↗</span><strong>Fortschritt</strong></button>
+          <button onClick={()=>navigateTo('profile')}><span>●</span><strong>Profil</strong></button>
+          <button onClick={()=>{setMobileMoreOpen(false);setLanguageOpen(true);}}><span>{activeLanguage.symbol}</span><strong>Sprache</strong></button>
+        </div>
+        {accountUser?.plan!=='pro'&&<button className="mobile-pro-cta" onClick={()=>{setMobileMoreOpen(false);setProOpen(true);}}><span>PRO</span><div><strong>VocabFast Pro entdecken</strong><small>Coach, Fachsprache, Sprechen & Analyse</small></div><b>→</b></button>}
+        <button className="mobile-signout" onClick={()=>void signOut()}>Abmelden</button>
+      </section></div>}
 
       {languageOpen&&<div className="modal-backdrop" onMouseDown={()=>setLanguageOpen(false)}><section className="language-modal" onMouseDown={event=>event.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">SPRACHEN</span><h2>Was möchtest du lernen?</h2><p>Englisch ist aktuell verfügbar. Weitere Zielsprachen werden schrittweise ergänzt und erscheinen hier, sobald ihre Kurse bereit sind.</p></div><button onClick={()=>setLanguageOpen(false)}>×</button></div><div className="language-grid">{languages.map(language=><button key={language.code} disabled={!language.available} className={languageCode===language.code?'selected':''} onClick={()=>{setLanguageCode(language.code);setLanguageOpen(false)}}><span className="language-tile-symbol">{language.symbol}</span><div><strong>{language.name}</strong><small>{language.nativeName}</small></div><em>{language.available?'Verfügbar':'Bald verfügbar'}</em></button>)}</div></section></div>}
       {lessonOpen&&<LessonPlayer lesson={selectedLesson} audioRate={preferences.audioRate} onClose={()=>setLessonOpen(false)} onComplete={handleComplete}/>} 
