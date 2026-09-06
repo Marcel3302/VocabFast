@@ -69,6 +69,7 @@ export default function CoachView({ audioRate=.9 }: { audioRate?: number }) {
       const response = await fetch('/api/platform/coach', {
         method:'POST',
         credentials:'same-origin',
+        cache:'no-store',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ scenario:scenario.id, message:text, history:history.slice(-8).map(item=>({role:item.role,text:item.text})) }),
         signal:controller.signal
@@ -89,7 +90,7 @@ export default function CoachView({ audioRate=.9 }: { audioRate?: number }) {
   }
 
   return <section className="coach-view platform-view">
-    <div className="view-hero coach-view-hero"><div><span className="eyebrow">VOCABFAST COACH · PROTOTYP</span><h1>Übe Gespräche, die du außerhalb einer Lern-App wirklich brauchst.</h1><p>Der Coach versucht automatisch die geschützte VocabFast-API zu verwenden. In der eigenständigen Vorschau fällt er auf einen lokalen Demo-Dialog zurück.</p></div><div className={`coach-mode ${mode}`}><span>{mode==='live'?'● LIVE AI':'● DEMO'}</span><small>{mode==='live'?'Workers AI verbunden':'lokaler Szenario-Modus'}</small></div></div>
+    <div className="view-hero coach-view-hero"><div><span className="eyebrow">VOCABFAST COACH</span><h1>Übe Gespräche, die du außerhalb einer Lern-App wirklich brauchst.</h1><p>Trainiere realistische Situationen, formuliere eigene Antworten und höre dir natürliche englische Formulierungen direkt an.</p></div><div className={`coach-mode ${mode}`}><span>{mode==='live'?'● KI-COACH':'● GESPRÄCHSTRAINING'}</span><small>{mode==='live'?'persönliche Rückmeldung':'Szenario aktiv'}</small></div></div>
 
     <div className="coach-layout">
       <aside className="scenario-list"><div className="view-section-head inner"><div><span className="eyebrow">SITUATION</span><h2>Wähle ein Gespräch</h2></div></div>{scenarios.map(item=><button key={item.id} className={scenario.id===item.id?'active':''} onClick={()=>selectScenario(item.id)}><span>{item.icon}</span><div><strong>{item.title}</strong><small>{item.subtitle}</small></div></button>)}</aside>
@@ -98,7 +99,7 @@ export default function CoachView({ audioRate=.9 }: { audioRate?: number }) {
         <div className="chat-messages">{messages.map(message=><div key={message.id} className={`chat-message ${message.role}`}><span>{message.role==='coach'?'VF':'DU'}</span><div><p>{message.text}</p>{message.role==='coach'&&<button onClick={()=>speakEnglish(message.text,audioRate)}>▶ anhören</button>}</div></div>)}{sending&&<div className="chat-message coach"><span>VF</span><div><p className="typing">VocabFast antwortet …</p></div></div>}</div>
         <div className="quick-prompts">{scenario.prompts.map(prompt=><button key={prompt} onClick={()=>send(prompt)}>{prompt}</button>)}</div>
         <div className="chat-input"><textarea value={input} onChange={event=>setInput(event.target.value)} onKeyDown={event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();void send();}}} placeholder="Antworte auf Englisch …" rows={2}/><button disabled={!input.trim()||sending} onClick={()=>void send()}>Senden →</button></div>
-        <small className="coach-disclaimer">Die Demo korrigiert noch nicht zuverlässig jede freie Antwort. Vor dem Release wird der Live-Coach serverseitig authentifiziert, limitiert und mit Lernkontext verbunden.</small>
+        <small className="coach-disclaimer">Automatische Rückmeldungen können Fehler enthalten. Nutze den Coach als Lernhilfe und prüfe wichtige Fachinformationen zusätzlich.</small>
       </div>
     </div>
   </section>;
