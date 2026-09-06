@@ -1,5 +1,6 @@
 import { previewBilling } from '../learning/billing';
-import type { AccountUser } from '../learning/account';
+import { currentAccount, type AccountUser } from '../learning/account';
+import { useState } from 'react';
 import './pro-modal.css';
 
 type Props = { onClose: () => void; user?:AccountUser|null };
@@ -36,13 +37,19 @@ function accountCheckoutUrl(user?:AccountUser|null) {
 }
 
 export default function ProModal({ onClose,user }: Props) {
-  const checkoutUrl=accountCheckoutUrl(user);
-  const canCheckout=Boolean(checkoutUrl)&&stripeCheckoutAllowed();
+  const [opening,setOpening]=useState(false);
+  const canCheckout=Boolean(previewBilling.checkoutUrl)&&stripeCheckoutAllowed();
   const showTestNote=previewBilling.mode==='test'&&developerHost();
 
-  function checkout() {
-    if(!canCheckout)return;
-    window.location.assign(checkoutUrl);
+  async function checkout() {
+    if(!canCheckout||opening)return;
+    setOpening(true);
+    try {
+      const checkoutUser=user??await currentAccount().catch(()=>null);
+      window.location.assign(accountCheckoutUrl(checkoutUser));
+    } finally {
+      window.setTimeout(()=>setOpening(false),1500);
+    }
   }
 
   return <div className="pro-modal-backdrop" role="dialog" aria-modal="true" onMouseDown={onClose}>
@@ -61,7 +68,7 @@ export default function ProModal({ onClose,user }: Props) {
         <article className="recommended"><span>PRO · EMPFOHLEN</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>alle Fachbereiche</li><li>KI-Coach & Dokumentlernen</li></ul></article>
       </div>
       {canCheckout&&<>
-        <button className="pro-preview-action" onClick={checkout}>Weiter zu Stripe →</button>
+        <button className="pro-preview-action" disabled={opening} onClick={()=>void checkout()}>{opening?'Stripe wird geöffnet …':'Weiter zu Stripe →'}</button>
         {showTestNote&&<small className="pro-test-note">Stripe-Testmodus: Der Zahlungsablauf kann ausprobiert werden, ohne dass echtes Geld belastet wird.</small>}
       </>}
       <div className="pro-test-note"><a href="https://vocabfast.net/nutzungsbedingungen.html">Nutzungsbedingungen</a> · <a href="https://vocabfast.net/widerruf.html">Widerruf</a> · <a href="https://vocabfast.net/datenschutz.html">Datenschutz</a></div>
