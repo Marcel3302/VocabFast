@@ -91,7 +91,6 @@ async function platformAdmin(request,env) {
 export default {
   async fetch(request,env,ctx) {
     const url=new URL(request.url);
-    const onWorkersPreview=url.hostname.endsWith('.workers.dev');
 
     if(url.pathname==='/api/admin/context'&&request.method==='GET') {
       try {
@@ -103,10 +102,10 @@ export default {
       }
     }
 
-    if(onWorkersPreview&&ADMIN_AUTH_PATHS.has(url.pathname)) {
+    if(ADMIN_AUTH_PATHS.has(url.pathname)) {
       try{return await proxyAdminAuth(request,env);}
       catch(error){
-        console.error('preview admin auth proxy error',error);
+        console.error('admin auth proxy error',error);
         return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503);
       }
     }
