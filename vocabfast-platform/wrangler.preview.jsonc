@@ -12,6 +12,10 @@
     {
       "pattern": "vocabfast.net/api/platform/coach",
       "zone_name": "vocabfast.net"
+    },
+    {
+      "pattern": "vocabfast.net/api/admin/context",
+      "zone_name": "vocabfast.net"
     }
   ],
   "assets": {
