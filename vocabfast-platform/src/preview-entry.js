@@ -27,33 +27,37 @@ function accountStore(env) {
   return env.PREVIEW_ACCOUNTS.get(id);
 }
 
-async function proxyAdminAuth(request) {
+function productionService(env) {
+  if(!env?.PRODUCTION_API?.fetch)throw new Error('Production admin service binding is not configured.');
+  return env.PRODUCTION_API;
+}
+
+async function productionRequest(env,request,path) {
   const sourceUrl=new URL(request.url);
-  const targetUrl=new URL(`${sourceUrl.pathname}${sourceUrl.search}`,PRODUCTION_ORIGIN);
+  const targetUrl=new URL(path||`${sourceUrl.pathname}${sourceUrl.search}`,PRODUCTION_ORIGIN);
   const headers=new Headers(request.headers);
   headers.set('Origin',PRODUCTION_ORIGIN);
   headers.set('Referer',`${PRODUCTION_ORIGIN}/admin`);
   headers.set('Accept','application/json');
   headers.delete('host');
-
   const init={method:request.method,headers,redirect:'manual'};
   if(request.method!=='GET'&&request.method!=='HEAD')init.body=await request.arrayBuffer();
-  const upstream=await fetch(targetUrl,init);
+  return productionService(env).fetch(new Request(targetUrl,init));
+}
+
+async function proxyAdminAuth(request,env) {
+  const upstream=await productionRequest(env,request);
   const responseHeaders=new Headers(upstream.headers);
   responseHeaders.set('Cache-Control','no-store');
   responseHeaders.set('X-Robots-Tag','noindex, nofollow, noarchive');
   return new Response(upstream.body,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});
 }
 
-async function verifyAdminSession(request) {
+async function verifyAdminSession(request,env) {
   const cookie=request.headers.get('Cookie')||'';
   if(!cookie.includes('vf_admin='))return null;
-  const headers=new Headers({
-    Accept:'application/json',
-    Cookie:cookie,
-    'User-Agent':'VocabFast-Platform-Admin-Gateway'
-  });
-  const upstream=await fetch(`${PRODUCTION_ORIGIN}/api/admin/me`,{method:'GET',headers,redirect:'manual'});
+  const headers=new Headers({Accept:'application/json',Cookie:cookie,'User-Agent':'VocabFast-Platform-Admin-Gateway'});
+  const upstream=await productionService(env).fetch(new Request(`${PRODUCTION_ORIGIN}/api/admin/me`,{method:'GET',headers,redirect:'manual'}));
   if(!upstream.ok)return null;
   const data=await upstream.json().catch(()=>null);
   const admin=data?.admin;
@@ -69,7 +73,7 @@ async function verifyAdminSession(request) {
 }
 
 async function platformAdmin(request,env) {
-  const context=await verifyAdminSession(request);
+  const context=await verifyAdminSession(request,env);
   if(!context)return json({error:'Admin-Anmeldung erforderlich.'},401);
 
   const url=new URL(request.url);
@@ -91,8 +95,8 @@ export default {
 
     if(url.pathname==='/api/admin/context'&&request.method==='GET') {
       try {
-        const context=await verifyAdminSession(request);
-        return context?json(context):json({error:'Admin-Anmeldung erforderlich.'},401);
+        const context=await verifyAdminSession(request,env);
+        return context?json({context}):json({error:'Admin-Anmeldung erforderlich.'},401);
       } catch(error) {
         console.error('admin context bridge error',error);
         return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503);
@@ -100,7 +104,7 @@ export default {
     }
 
     if(onWorkersPreview&&ADMIN_AUTH_PATHS.has(url.pathname)) {
-      try{return await proxyAdminAuth(request);}
+      try{return await proxyAdminAuth(request,env);}
       catch(error){
         console.error('preview admin auth proxy error',error);
         return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503);
