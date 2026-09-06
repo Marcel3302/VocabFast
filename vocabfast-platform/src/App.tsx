@@ -96,7 +96,7 @@ function App() {
       setAccountPhase('ready');
     }catch(reason){
       setAccountUser(null);
-      setAuthNotice(reason instanceof Error?reason.message:'Die Konto-API konnte nicht geladen werden.');
+      setAuthNotice(reason instanceof Error?reason.message:'Dein Konto konnte gerade nicht geladen werden. Bitte versuche es erneut.');
       setAccountPhase('guest');
     }
   }
@@ -190,18 +190,18 @@ function App() {
         <button className="language-switch" onClick={() => setLanguageOpen(true)}><span className="language-badge">{activeLanguage.symbol}</span><span className="language-switch-copy"><small>Ich lerne · {courseState.activeLevel}</small><strong>{activeLanguage.name}</strong></span><span className="chevron">⌄</span></button>
         <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label],index)=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id)}><span className="nav-icon">{navIcons[index]}</span><span>{label}</span></button>)}</nav>
         <div className="sidebar-spacer"/>
-        <div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und unbegrenztes Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>
+        <div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und intensives Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>
         <button className={`profile-link ${activeNav==='profile'?'active':''}`} onClick={()=>setActiveNav('profile')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button>
-        <div className="account-session-row"><span><strong>{accountUser?.email}</strong><small>Preview-Konto · gespeichert</small></span><button onClick={()=>void signOut()}>Abmelden</button></div>
+        <div className="account-session-row"><span><strong>{accountUser?.email}</strong><small>Konto · synchronisiert</small></span><button onClick={()=>void signOut()}>Abmelden</button></div>
       </aside>
 
       <main className="content">
         <header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><strong>VocabFast</strong></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP gesamt</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/{activeLessons.length}</strong><small>{courseState.activeLevel} Lektionen</small></div></div></header>
-        {checkoutSuccess&&<div className="checkout-success"><div><span><strong>Stripe-Testcheckout abgeschlossen.</strong> Der Test war erfolgreich; es wurde kein echtes Geld belastet und noch kein produktiver Pro-Status gesetzt.</span><button onClick={()=>setCheckoutSuccess(false)} aria-label="Hinweis schließen">×</button></div></div>}
+        {checkoutSuccess&&<div className="checkout-success"><div><span><strong>Testkauf abgeschlossen.</strong> Der Zahlungsablauf wurde erfolgreich geprüft.</span><button onClick={()=>setCheckoutSuccess(false)} aria-label="Hinweis schließen">×</button></div></div>}
         {renderView()}
       </main>
 
-      {languageOpen&&<div className="modal-backdrop" onMouseDown={()=>setLanguageOpen(false)}><section className="language-modal" onMouseDown={event=>event.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">SPRACHEN</span><h2>Was möchtest du lernen?</h2><p>Die Engine ist für zehn Zielsprachen vorbereitet. Deutsch → Englisch besitzt jetzt einen spielbaren A1–C2-Kursrücken und wird als erstes vollständig auf Produktionsqualität gebracht.</p></div><button onClick={()=>setLanguageOpen(false)}>×</button></div><div className="language-grid">{languages.map(language=><button key={language.code} disabled={!language.available} className={languageCode===language.code?'selected':''} onClick={()=>{setLanguageCode(language.code);setLanguageOpen(false)}}><span className="language-tile-symbol">{language.symbol}</span><div><strong>{language.name}</strong><small>{language.nativeName}</small></div><em>{language.available?'Verfügbar':'In Vorbereitung'}</em></button>)}</div></section></div>}
+      {languageOpen&&<div className="modal-backdrop" onMouseDown={()=>setLanguageOpen(false)}><section className="language-modal" onMouseDown={event=>event.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">SPRACHEN</span><h2>Was möchtest du lernen?</h2><p>Englisch ist aktuell verfügbar. Weitere Zielsprachen werden schrittweise ergänzt und erscheinen hier, sobald ihre Kurse bereit sind.</p></div><button onClick={()=>setLanguageOpen(false)}>×</button></div><div className="language-grid">{languages.map(language=><button key={language.code} disabled={!language.available} className={languageCode===language.code?'selected':''} onClick={()=>{setLanguageCode(language.code);setLanguageOpen(false)}}><span className="language-tile-symbol">{language.symbol}</span><div><strong>{language.name}</strong><small>{language.nativeName}</small></div><em>{language.available?'Verfügbar':'Bald verfügbar'}</em></button>)}</div></section></div>}
       {lessonOpen&&<LessonPlayer lesson={selectedLesson} audioRate={preferences.audioRate} onClose={()=>setLessonOpen(false)} onComplete={handleComplete}/>} 
       {onboardingOpen&&<Onboarding initial={preferences} onDone={finishOnboarding}/>} 
       {placementOpen&&<PlacementTest onClose={()=>setPlacementOpen(false)} onFinish={finishPlacement}/>} 
