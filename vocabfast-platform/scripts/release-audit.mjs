@@ -35,15 +35,15 @@ requireText('src/learning/curriculum/index.ts','croatianCourseLevels','Croatian 
 requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
 requireText('wrangler.preview.jsonc','vocabfast.net/api/platform/translate','Translation API route is not wired.');
 requireText('wrangler.preview.jsonc','vocabfast.net/admin*','The new protected admin SPA route is not wired.');
+forbidText('wrangler.preview.jsonc','vocabfast.net/api/admin/login','Preview worker must not shadow the production admin login endpoint.');
+forbidText('wrangler.preview.jsonc','vocabfast.net/api/admin/logout','Preview worker must not shadow the production admin logout endpoint.');
 requireText('wrangler.preview.jsonc','./src/preview-entry.js','Cloudflare preview must deploy through preview-entry.js.');
-requireText('wrangler.preview.jsonc','vocabfast.net/api/admin/context','Protected admin context route is not wired.');
-requireText('../.github/workflows/platform-selftest.yml','protected admin context route','CI does not verify the admin context route.');
+requireText('../.github/workflows/platform-selftest.yml','/api/preview/admin/context','CI does not verify the protected preview admin context route.');
 
 if(failures.length){
   console.error('\nVocabFast release-surface audit failed:\n');
   for(const failure of failures)console.error(`- ${failure}`);
   process.exit(1);
 }
-
 console.log('VocabFast release-surface audit passed.');
 console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, Croatian curriculum, translator route, mobile navigation, lesson shuffling/grading, customer test-copy gates and protected admin routing.');
