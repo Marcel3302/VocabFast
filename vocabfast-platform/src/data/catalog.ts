@@ -4,6 +4,8 @@ export type Language = {
   nativeName: string;
   symbol: string;
   available: boolean;
+  courseAvailable: boolean;
+  translationAvailable: boolean;
   levels: string[];
 };
 
@@ -25,17 +27,25 @@ export type LearningUnit = {
 };
 
 export const languages: Language[] = [
-  { code: 'en', name: 'Englisch', nativeName: 'English', symbol: 'EN', available: true, levels: ['A1','A2','B1','B2','C1','C2'] },
-  { code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: false, levels: ['A1','A2','B1','B2','C1','C2'] },
-  { code: 'fr', name: 'Französisch', nativeName: 'Français', symbol: 'FR', available: false, levels: ['A1','A2','B1','B2','C1','C2'] },
-  { code: 'de', name: 'Deutsch', nativeName: 'Deutsch', symbol: 'DE', available: false, levels: ['A1','A2','B1','B2','C1','C2'] },
-  { code: 'it', name: 'Italienisch', nativeName: 'Italiano', symbol: 'IT', available: false, levels: ['A1','A2','B1','B2','C1','C2'] },
-  { code: 'pt', name: 'Portugiesisch', nativeName: 'Português', symbol: 'PT', available: false, levels: ['A1','A2','B1','B2','C1','C2'] },
-  { code: 'zh', name: 'Chinesisch', nativeName: '中文', symbol: '中', available: false, levels: ['A1','A2','B1','B2','C1'] },
-  { code: 'ja', name: 'Japanisch', nativeName: '日本語', symbol: '日', available: false, levels: ['A1','A2','B1','B2','C1'] },
-  { code: 'ko', name: 'Koreanisch', nativeName: '한국어', symbol: '한', available: false, levels: ['A1','A2','B1','B2','C1'] },
-  { code: 'ar', name: 'Arabisch', nativeName: 'العربية', symbol: 'ع', available: false, levels: ['A1','A2','B1','B2','C1'] }
+  { code: 'en', name: 'Englisch', nativeName: 'English', symbol: 'EN', available: true, courseAvailable: true, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
+  { code: 'hr', name: 'Kroatisch', nativeName: 'Hrvatski', symbol: 'HR', available: true, courseAvailable: true, translationAvailable: true, levels: ['A1'] },
+  { code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
+  { code: 'fr', name: 'Französisch', nativeName: 'Français', symbol: 'FR', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
+  { code: 'de', name: 'Deutsch', nativeName: 'Deutsch', symbol: 'DE', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
+  { code: 'it', name: 'Italienisch', nativeName: 'Italiano', symbol: 'IT', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
+  { code: 'pt', name: 'Portugiesisch', nativeName: 'Português', symbol: 'PT', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
+  { code: 'zh', name: 'Chinesisch', nativeName: '中文', symbol: '中', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1'] },
+  { code: 'ja', name: 'Japanisch', nativeName: '日本語', symbol: '日', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1'] },
+  { code: 'ko', name: 'Koreanisch', nativeName: '한국어', symbol: '한', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1'] },
+  { code: 'ar', name: 'Arabisch', nativeName: 'العربية', symbol: 'ع', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1'] }
 ];
+
+export const learnableLanguages = languages.filter(language=>language.courseAvailable);
+export const translationLanguages = languages.filter(language=>language.translationAvailable);
+
+export function languageByCode(code:string) {
+  return languages.find(language=>language.code===code) ?? languages[0];
+}
 
 export const specialties: Specialty[] = [
   { id: 'aviation', name: 'Aviation English', description: 'Kommunikation, Phraseology, Technik und Prüfungssituationen.', icon: '✈', pro: true },
