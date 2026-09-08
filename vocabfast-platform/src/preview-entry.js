@@ -2,7 +2,7 @@ import previewWorker from './preview-worker.js';
 export { PreviewAccountStore } from './preview-worker.js';
 
 const PRODUCTION_ORIGIN='https://vocabfast.net';
-const PRODUCTION_WORKER_ORIGIN='https://vocabfast.marcelst2003.workers.dev';
+const PRODUCTION_WORKER_ORIGIN=PRODUCTION_ORIGIN;
 const ADMIN_AUTH_PATHS=new Set(['/api/admin/login','/api/admin/logout']);
 const LANGUAGE_NAMES={en:'English',hr:'Croatian',es:'Spanish',fr:'French',de:'German',it:'Italian',pt:'Portuguese',zh:'Chinese',ja:'Japanese',ko:'Korean',ar:'Arabic'};
 
