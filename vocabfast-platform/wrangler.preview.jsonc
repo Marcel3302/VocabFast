@@ -5,6 +5,7 @@
   "compatibility_date": "2026-09-04",
   "workers_dev": true,
   "routes": [
+    { "pattern": "vocabfast.net/admin*", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/preview/*", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/platform/coach", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/platform/translate", "zone_name": "vocabfast.net" },
