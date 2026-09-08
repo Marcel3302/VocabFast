@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { languages } from './data/catalog';
+import { languageByCode } from './data/catalog';
 import LessonPlayer from './components/LessonPlayer';
 import DashboardView from './components/DashboardView';
 import CourseView from './components/CourseView';
@@ -9,240 +9,73 @@ import ProModal from './components/ProModal';
 import ProfileView from './components/ProfileView';
 import CoachView from './components/CoachView';
 import GrammarView from './components/GrammarView';
+import TranslatorView from './components/TranslatorView';
 import WelcomeGate from './components/WelcomeGate';
 import { PracticeView, ProgressView, SpecialtyView, WordsView } from './components/PlatformViews';
-import { firstEnglishLesson, levelLessons, type CefrLevel } from './learning/curriculum';
+import { firstLesson, levelLessons, type CefrLevel } from './learning/curriculum';
 import { readCourseState, saveActiveLevel, savePlacement, type PlacementBreakdown } from './learning/course-state';
-import { defaultPreferences, readPreferences, savePreferences } from './learning/preferences';
+import { defaultPreferences, readPreferences, savePreferences, type LearnerPreferences, type LanguageCode } from './learning/preferences';
 import { buildAdaptiveReviewLesson, buildModeLesson } from './learning/review';
 import { readProgress, resetLocalProgress, saveLessonResult } from './learning/progress';
 import { bootstrapAccount, clearPlatformStorage, flushAccountSync, logoutAccount, queueAccountSync, type AccountUser } from './learning/account';
-import type { LearnerPreferences } from './learning/preferences';
 import type { Lesson, LessonResult } from './learning/types';
 import './course.css';
 import './enhancements.css';
 import './layout-polish.css';
 import './mobile-release.css';
 
-const navItems = [
-  ['home', 'Lernpfad'],
-  ['course', 'A1–C2 Kurs'],
-  ['grammar', 'Grammatik'],
-  ['practice', 'Üben'],
-  ['coach', 'Coach'],
-  ['words', 'Wortschatz'],
-  ['specialty', 'Fachsprache'],
-  ['progress', 'Fortschritt']
-] as const;
-
-const navIcons=['⌂','A1','Aa','◎','AI','W','◇','↗'];
-type NavId = typeof navItems[number][0] | 'profile';
+type NavId='home'|'course'|'grammar'|'practice'|'coach'|'translate'|'words'|'specialty'|'progress'|'profile';
 type AccountPhase='loading'|'guest'|'ready';
+function initials(name:string){return name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase()||'VF';}
 
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0,2).map(part=>part[0]).join('').toUpperCase() || 'VF';
-}
-
-function App() {
+export default function App(){
   const booted=useRef(false);
-  const [accountPhase,setAccountPhase]=useState<AccountPhase>('loading');
-  const [accountUser,setAccountUser]=useState<AccountUser|null>(null);
-  const [authNotice,setAuthNotice]=useState('');
-  const [activeNav, setActiveNav] = useState<NavId>('home');
-  const [mobileMoreOpen,setMobileMoreOpen]=useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
-  const [languageCode, setLanguageCode] = useState('en');
-  const [lessonOpen, setLessonOpen] = useState(false);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson>(firstEnglishLesson);
-  const [progress, setProgress] = useState(() => readProgress());
-  const [preferences, setPreferences] = useState(() => readPreferences());
-  const [courseState, setCourseState] = useState(() => readCourseState());
-  const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [placementOpen, setPlacementOpen] = useState(false);
-  const [proOpen, setProOpen] = useState(false);
-  const [lastResult, setLastResult] = useState<LessonResult | null>(null);
-  const activeLanguage = useMemo(() => languages.find(language => language.code === languageCode) ?? languages[0], [languageCode]);
-  const activeLessons = levelLessons(courseState.activeLevel);
-  const curriculumCompleted = activeLessons.filter(lesson => progress.completedLessonIds.includes(lesson.id)).length;
+  const [accountPhase,setAccountPhase]=useState<AccountPhase>('loading');const [accountUser,setAccountUser]=useState<AccountUser|null>(null);const [authNotice,setAuthNotice]=useState('');
+  const [activeNav,setActiveNav]=useState<NavId>('home');const [mobileMoreOpen,setMobileMoreOpen]=useState(false);const [languageOpen,setLanguageOpen]=useState(false);
+  const [lessonOpen,setLessonOpen]=useState(false);const [selectedLesson,setSelectedLesson]=useState<Lesson>(()=>firstLesson('en'));const [progress,setProgress]=useState(()=>readProgress());const [preferences,setPreferences]=useState(()=>readPreferences());const [courseState,setCourseState]=useState(()=>readCourseState());
+  const [onboardingOpen,setOnboardingOpen]=useState(false);const [placementOpen,setPlacementOpen]=useState(false);const [proOpen,setProOpen]=useState(false);const [lastResult,setLastResult]=useState<LessonResult|null>(null);
+  const targetLanguage=preferences.targetLanguage,sourceLanguage=preferences.sourceLanguage,targetMeta=languageByCode(targetLanguage),sourceMeta=languageByCode(sourceLanguage),englishMode=targetLanguage==='en';
+  const activeLessons=levelLessons(courseState.activeLevel,targetLanguage),curriculumCompleted=activeLessons.filter(lesson=>progress.completedLessonIds.includes(lesson.id)).length;
+  const navItems=useMemo(()=>englishMode?[['home','Lernpfad'],['course','A1–C2 Kurs'],['grammar','Grammatik'],['practice','Üben'],['coach','Coach'],['translate','Übersetzen'],['words','Wortschatz'],['specialty','Fachsprache'],['progress','Fortschritt']] as const:[['home','Lernpfad'],['course','Kroatisch A1'],['practice','Üben'],['translate','Übersetzen'],['progress','Fortschritt']] as const,[englishMode]);
+  const icons:Record<string,string>={home:'⌂',course:'A1',grammar:'Aa',practice:'◎',coach:'AI',translate:'⇄',words:'W',specialty:'◇',progress:'↗'};
 
-  useEffect(()=>{
-    if(booted.current)return;
-    booted.current=true;
-    void hydrateAccount();
-  },[]);
+  useEffect(()=>{if(booted.current)return;booted.current=true;void hydrateAccount();},[]);
+  async function hydrateAccount(){setAccountPhase('loading');setAuthNotice('');try{const result=await bootstrapAccount();if(!result.user){setAccountUser(null);setAccountPhase('guest');return;}if(!result.hasRemoteState)savePreferences({...defaultPreferences,name:result.user.name,onboarded:false});const nextPreferences=readPreferences(),nextProgress=readProgress(),nextCourse=readCourseState();setAccountUser(result.user);setPreferences(nextPreferences);setProgress(nextProgress);setCourseState(nextCourse);setSelectedLesson(firstLesson(nextPreferences.targetLanguage));setLastResult(null);setOnboardingOpen(!nextPreferences.onboarded);setPlacementOpen(nextPreferences.onboarded&&nextPreferences.targetLanguage==='en'&&!nextCourse.placement&&nextProgress.completedLessonIds.length===0);setAccountPhase('ready');}catch(reason){setAccountUser(null);setAuthNotice(reason instanceof Error?reason.message:'Dein Konto konnte gerade nicht geladen werden.');setAccountPhase('guest');}}
+  async function handleAuthenticated(){await hydrateAccount();}
+  function navigateTo(id:NavId){setActiveNav(id);setMobileMoreOpen(false);window.scrollTo({top:0,behavior:'smooth'});}
+  function openLesson(lesson:Lesson){setSelectedLesson(lesson);setLessonOpen(true);}
+  function handleComplete(result:LessonResult){setLastResult(result);setProgress(saveLessonResult(result));queueAccountSync();}
+  function saveLearnerPreferences(next:LearnerPreferences){const saved=savePreferences(next);setPreferences(saved);queueAccountSync();}
+  async function switchLearningPair(next:LearnerPreferences){await flushAccountSync();const saved=savePreferences(next);setPreferences(saved);const nextProgress=readProgress(),nextCourse=readCourseState();setProgress(nextProgress);setCourseState(nextCourse);setSelectedLesson(firstLesson(saved.targetLanguage));setLastResult(null);setLessonOpen(false);setPlacementOpen(saved.targetLanguage==='en'&&!nextCourse.placement&&nextProgress.completedLessonIds.length===0);setActiveNav('home');queueAccountSync(100);}
+  function selectLevel(level:CefrLevel){setCourseState(saveActiveLevel(level));queueAccountSync();}
+  function finishPlacement(level:CefrLevel,score:number,total:number,details:{breakdown:PlacementBreakdown;focus:string[]}){setCourseState(savePlacement(score,total,level,details.breakdown,details.focus));setPlacementOpen(false);setActiveNav('home');queueAccountSync(100);}
+  function finishOnboarding(next:LearnerPreferences){const saved=savePreferences(next);setPreferences(saved);setCourseState(saveActiveLevel('A1'));setProgress(readProgress());setOnboardingOpen(false);setActiveNav('home');setPlacementOpen(saved.targetLanguage==='en');queueAccountSync(100);}
+  function resetProgress(){resetLocalProgress();setProgress(readProgress());setCourseState(readCourseState());setLastResult(null);setActiveNav('home');queueAccountSync(100);}
+  function returnToGuest(notice:string){clearPlatformStorage();setAccountUser(null);setPreferences(readPreferences());setProgress(readProgress());setCourseState(readCourseState());setOnboardingOpen(false);setPlacementOpen(false);setLessonOpen(false);setProOpen(false);setMobileMoreOpen(false);setActiveNav('home');setAuthNotice(notice);setAccountPhase('guest');}
+  async function signOut(){await flushAccountSync();await logoutAccount().catch(()=>{});returnToGuest('Du wurdest abgemeldet.');}
+  function handleAccountDeleted(){returnToGuest('Dein Konto und deine gespeicherten Lernfortschritte wurden gelöscht.');}
 
-  async function hydrateAccount() {
-    setAccountPhase('loading');
-    setAuthNotice('');
-    try{
-      const result=await bootstrapAccount();
-      if(!result.user){setAccountUser(null);setAccountPhase('guest');return;}
-      if(!result.hasRemoteState)savePreferences({...defaultPreferences,name:result.user.name,onboarded:false});
-      const nextPreferences=readPreferences();
-      const nextProgress=readProgress();
-      const nextCourse=readCourseState();
-      setAccountUser(result.user);
-      setPreferences(nextPreferences);
-      setProgress(nextProgress);
-      setCourseState(nextCourse);
-      setLastResult(null);
-      setOnboardingOpen(!nextPreferences.onboarded);
-      setPlacementOpen(nextPreferences.onboarded&&!nextCourse.placement&&nextProgress.completedLessonIds.length===0);
-      setAccountPhase('ready');
-    }catch(reason){
-      setAccountUser(null);
-      setAuthNotice(reason instanceof Error?reason.message:'Dein Konto konnte gerade nicht geladen werden. Bitte versuche es erneut.');
-      setAccountPhase('guest');
-    }
-  }
-
-  async function handleAuthenticated(_user:AccountUser,_isNew:boolean) {
-    await hydrateAccount();
-  }
-
-  function navigateTo(id:NavId) {
-    setActiveNav(id);
-    setMobileMoreOpen(false);
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
-
-  function openLesson(lesson: Lesson) {
-    setSelectedLesson(lesson);
-    setLessonOpen(true);
-  }
-
-  function handleComplete(result: LessonResult) {
-    setLastResult(result);
-    setProgress(saveLessonResult(result));
-    queueAccountSync();
-  }
-
-  function saveLearnerPreferences(next: LearnerPreferences) {
-    setPreferences(savePreferences(next));
-    queueAccountSync();
-  }
-
-  function selectLevel(level: CefrLevel) {
-    setCourseState(saveActiveLevel(level));
-    queueAccountSync();
-  }
-
-  function finishPlacement(level:CefrLevel,score:number,total:number,details:{breakdown:PlacementBreakdown;focus:string[]}) {
-    setCourseState(savePlacement(score,total,level,details.breakdown,details.focus));
-    setPlacementOpen(false);
-    setActiveNav('home');
-    queueAccountSync(100);
-  }
-
-  function finishOnboarding(next: LearnerPreferences) {
-    saveLearnerPreferences(next);
-    setCourseState(saveActiveLevel('A1'));
-    setOnboardingOpen(false);
-    setActiveNav('home');
-    setPlacementOpen(true);
-    queueAccountSync(100);
-  }
-
-  function resetProgress() {
-    resetLocalProgress();
-    setProgress(readProgress());
-    setLastResult(null);
-    setActiveNav('home');
-    queueAccountSync(100);
-  }
-
-  function returnToGuest(notice:string) {
-    clearPlatformStorage();
-    setAccountUser(null);
-    setPreferences(readPreferences());
-    setProgress(readProgress());
-    setCourseState(readCourseState());
-    setOnboardingOpen(false);
-    setPlacementOpen(false);
-    setLessonOpen(false);
-    setProOpen(false);
-    setMobileMoreOpen(false);
-    setActiveNav('home');
-    setAuthNotice(notice);
-    setAccountPhase('guest');
-  }
-
-  async function signOut() {
-    await flushAccountSync();
-    await logoutAccount().catch(()=>{});
-    returnToGuest('Du wurdest abgemeldet.');
-  }
-
-  function handleAccountDeleted() {
-    returnToGuest('Dein Konto und dein gespeicherter Lernfortschritt wurden gelöscht.');
-  }
-
-  function renderView() {
-    const buildReview = () => buildAdaptiveReviewLesson(courseState.activeLevel);
-    const buildMode = (types: Parameters<typeof buildModeLesson>[0], title: string, subtitle: string) => buildModeLesson(types,title,subtitle,courseState.activeLevel);
-    if (activeNav === 'course') return <CourseView progress={progress} courseState={courseState} onSelectLevel={selectLevel} openLesson={openLesson} openPlacement={()=>setPlacementOpen(true)} />;
-    if (activeNav === 'grammar') return <GrammarView activeLevel={courseState.activeLevel} openLesson={openLesson} onSelectLevel={selectLevel}/>;
-    if (activeNav === 'practice') return <PracticeView openLesson={openLesson} buildReview={buildReview} buildMode={buildMode} />;
-    if (activeNav === 'coach') return <CoachView audioRate={preferences.audioRate} level={courseState.activeLevel} />;
-    if (activeNav === 'words') return <WordsView />;
-    if (activeNav === 'specialty') return <SpecialtyView openPro={()=>setProOpen(true)} />;
-    if (activeNav === 'progress') return <ProgressView progress={progress} />;
-    if (activeNav === 'profile') return <ProfileView preferences={preferences} progress={progress} onSave={saveLearnerPreferences} onResetProgress={resetProgress} onAccountDeleted={handleAccountDeleted} />;
-    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} onSelectLevel={selectLevel} />;
+  function renderView(){
+    const buildReview=()=>buildAdaptiveReviewLesson(courseState.activeLevel,targetLanguage);const buildMode=(types:Parameters<typeof buildModeLesson>[0],title:string,subtitle:string)=>buildModeLesson(types,title,subtitle,courseState.activeLevel,targetLanguage);
+    if(activeNav==='course')return <CourseView progress={progress} courseState={courseState} targetLanguage={targetLanguage} onSelectLevel={selectLevel} openLesson={openLesson} openPlacement={()=>setPlacementOpen(true)}/>;
+    if(activeNav==='translate')return <TranslatorView sourceLanguage={sourceLanguage} targetLanguage={targetLanguage} onSwap={()=>{}}/>;
+    if(activeNav==='practice')return <PracticeView openLesson={openLesson} buildReview={buildReview} buildMode={buildMode} languageLabel={targetMeta.name}/>;
+    if(activeNav==='progress')return <ProgressView progress={progress} targetLanguage={targetLanguage}/>;
+    if(activeNav==='profile')return <ProfileView preferences={preferences} progress={progress} onSave={saveLearnerPreferences} onSwitchPair={next=>void switchLearningPair(next)} onResetProgress={resetProgress} onAccountDeleted={handleAccountDeleted}/>;
+    if(englishMode&&activeNav==='grammar')return <GrammarView activeLevel={courseState.activeLevel} openLesson={openLesson} onSelectLevel={selectLevel}/>;
+    if(englishMode&&activeNav==='coach')return <CoachView audioRate={preferences.audioRate} level={courseState.activeLevel}/>;
+    if(englishMode&&activeNav==='words')return <WordsView/>;
+    if(englishMode&&activeNav==='specialty')return <SpecialtyView openPro={()=>setProOpen(true)}/>;
+    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} targetLanguage={targetLanguage} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} openTranslator={()=>setActiveNav('translate')} onSelectLevel={selectLevel}/>;
   }
 
   if(accountPhase==='loading')return <div className="platform-loading"><div><i/><strong>Dein VocabFast-Konto wird geladen …</strong></div></div>;
   if(accountPhase==='guest')return <WelcomeGate onAuthenticated={handleAuthenticated} notice={authNotice}/>;
-
-  const moreActive=['grammar','words','specialty','progress','profile'].includes(activeNav);
-
-  return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand-row"><div className="brand-mark" aria-hidden="true">V</div><div><strong>VocabFast</strong><span>Language Platform</span></div></div>
-        <button className="language-switch" onClick={() => setLanguageOpen(true)}><span className="language-badge">{activeLanguage.symbol}</span><span className="language-switch-copy"><small>Ich lerne · {courseState.activeLevel}</small><strong>{activeLanguage.name}</strong></span><span className="chevron">⌄</span></button>
-        <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label],index)=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id)}><span className="nav-icon">{navIcons[index]}</span><span>{label}</span></button>)}</nav>
-        <div className="sidebar-spacer"/>
-        {accountUser?.plan==='pro'?<div className="pro-mini-card pro-active"><span className="pro-pill">PRO AKTIV</span><strong>Dein Pro-Zugang ist aktiv.</strong><p>Coach, Fachsprache und intensives Training stehen dir zur Verfügung.</p></div>:<div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und intensives Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>}
-        <button className={`profile-link ${activeNav==='profile'?'active':''}`} onClick={()=>setActiveNav('profile')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button>
-        <div className="account-session-row"><span><strong>{accountUser?.email}</strong><small>Konto · synchronisiert</small></span><button onClick={()=>void signOut()}>Abmelden</button></div>
-      </aside>
-
-      <main className="content">
-        <header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><div><strong>VocabFast</strong><small>Englisch · {courseState.activeLevel}</small></div></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP gesamt</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/{activeLessons.length}</strong><small>{courseState.activeLevel} Lektionen</small></div></div></header>
-        {renderView()}
-      </main>
-
-      <nav className="mobile-bottom-nav" aria-label="Mobile Hauptnavigation">
-        <button className={activeNav==='home'?'active':''} onClick={()=>navigateTo('home')}><span>⌂</span><small>Start</small></button>
-        <button className={activeNav==='course'?'active':''} onClick={()=>navigateTo('course')}><span>A1</span><small>Kurs</small></button>
-        <button className={activeNav==='practice'?'active':''} onClick={()=>navigateTo('practice')}><span>◎</span><small>Üben</small></button>
-        <button className={activeNav==='coach'?'active':''} onClick={()=>navigateTo('coach')}><span>AI</span><small>Coach</small></button>
-        <button className={mobileMoreOpen||moreActive?'active':''} onClick={()=>setMobileMoreOpen(value=>!value)}><span>•••</span><small>Mehr</small></button>
-      </nav>
-
-      {mobileMoreOpen&&<div className="mobile-more-backdrop" onMouseDown={()=>setMobileMoreOpen(false)}><section className="mobile-more-sheet" onMouseDown={event=>event.stopPropagation()}>
-        <div className="mobile-more-head"><div className="mobile-profile-mark">{initials(preferences.name)}</div><div><strong>{preferences.name}</strong><small>{accountUser?.email}</small></div><button onClick={()=>setMobileMoreOpen(false)} aria-label="Menü schließen">×</button></div>
-        <div className="mobile-account-summary"><span><strong>{courseState.activeLevel}</strong><small>Level</small></span><span><strong>{progress.totalXp}</strong><small>XP</small></span><span><strong>{progress.currentStreak}</strong><small>Streak</small></span><span><strong>{accountUser?.plan==='pro'?'PRO':'FREE'}</strong><small>Plan</small></span></div>
-        <div className="mobile-more-grid">
-          <button onClick={()=>navigateTo('grammar')}><span>Aa</span><strong>Grammatik</strong></button>
-          <button onClick={()=>navigateTo('words')}><span>W</span><strong>Wortschatz</strong></button>
-          <button onClick={()=>navigateTo('specialty')}><span>◇</span><strong>Fachsprache</strong></button>
-          <button onClick={()=>navigateTo('progress')}><span>↗</span><strong>Fortschritt</strong></button>
-          <button onClick={()=>navigateTo('profile')}><span>●</span><strong>Profil</strong></button>
-          <button onClick={()=>{setMobileMoreOpen(false);setLanguageOpen(true);}}><span>{activeLanguage.symbol}</span><strong>Sprache</strong></button>
-        </div>
-        {accountUser?.plan!=='pro'&&<button className="mobile-pro-cta" onClick={()=>{setMobileMoreOpen(false);setProOpen(true);}}><span>PRO</span><div><strong>VocabFast Pro entdecken</strong><small>Coach, Fachsprache, Sprechen & Analyse</small></div><b>→</b></button>}
-        <button className="mobile-signout" onClick={()=>void signOut()}>Abmelden</button>
-      </section></div>}
-
-      {languageOpen&&<div className="modal-backdrop" onMouseDown={()=>setLanguageOpen(false)}><section className="language-modal" onMouseDown={event=>event.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">SPRACHEN</span><h2>Was möchtest du lernen?</h2><p>Englisch ist aktuell verfügbar. Weitere Zielsprachen werden schrittweise ergänzt und erscheinen hier, sobald ihre Kurse bereit sind.</p></div><button onClick={()=>setLanguageOpen(false)}>×</button></div><div className="language-grid">{languages.map(language=><button key={language.code} disabled={!language.available} className={languageCode===language.code?'selected':''} onClick={()=>{setLanguageCode(language.code);setLanguageOpen(false)}}><span className="language-tile-symbol">{language.symbol}</span><div><strong>{language.name}</strong><small>{language.nativeName}</small></div><em>{language.available?'Verfügbar':'Bald verfügbar'}</em></button>)}</div></section></div>}
-      {lessonOpen&&<LessonPlayer lesson={selectedLesson} audioRate={preferences.audioRate} onClose={()=>setLessonOpen(false)} onComplete={handleComplete}/>} 
-      {onboardingOpen&&<Onboarding initial={preferences} onDone={finishOnboarding}/>} 
-      {placementOpen&&<PlacementTest onClose={()=>setPlacementOpen(false)} onFinish={finishPlacement}/>} 
-      {proOpen&&<ProModal onClose={()=>setProOpen(false)}/>} 
-    </div>
-  );
+  const moreActive=['grammar','translate','words','specialty','progress','profile'].includes(activeNav);
+  return <div className="app-shell"><aside className="sidebar"><div className="brand-row"><div className="brand-mark">V</div><div><strong>VocabFast</strong><span>Language Platform</span></div></div><button className="language-switch" onClick={()=>setLanguageOpen(true)}><span className="language-badge">{targetMeta.symbol}</span><span className="language-switch-copy"><small>{sourceMeta.symbol} → {targetMeta.symbol} · {courseState.activeLevel}</small><strong>{targetMeta.name}</strong></span><span className="chevron">⌄</span></button><nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label])=><button key={id} className={activeNav===id?'active':''} onClick={()=>setActiveNav(id as NavId)}><span className="nav-icon">{icons[id]}</span><span>{label}</span></button>)}</nav><div className="sidebar-spacer"/>{englishMode&&(accountUser?.plan==='pro'?<div className="pro-mini-card pro-active"><span className="pro-pill">PRO AKTIV</span><strong>Dein Pro-Zugang ist aktiv.</strong><p>Coach, Fachsprache und intensives Training stehen dir zur Verfügung.</p></div>:<div className="pro-mini-card"><span className="pro-pill">PRO</span><strong>Mehr aus jeder Minute.</strong><p>KI-Coach, Fachsprache, Analyse und intensives Training.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>)}<button className={`profile-link ${activeNav==='profile'?'active':''}`} onClick={()=>setActiveNav('profile')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button><div className="account-session-row"><span><strong>{accountUser?.email}</strong><small>Konto · synchronisiert</small></span><button onClick={()=>void signOut()}>Abmelden</button></div></aside>
+  <main className="content"><header className="topbar"><div className="mobile-brand"><div className="brand-mark">V</div><div><strong>VocabFast</strong><small>{targetMeta.name} · {courseState.activeLevel}</small></div></div><div className="topbar-stats"><div><span>◆</span><strong>{progress.totalXp}</strong><small>XP</small></div><div><span>🔥</span><strong>{progress.currentStreak}</strong><small>Streak</small></div><div><span>◉</span><strong>{curriculumCompleted}/{activeLessons.length}</strong><small>Lektionen</small></div></div></header>{renderView()}</main>
+  <nav className="mobile-bottom-nav" aria-label="Mobile Hauptnavigation"><button className={activeNav==='home'?'active':''} onClick={()=>navigateTo('home')}><span>⌂</span><small>Start</small></button><button className={activeNav==='course'?'active':''} onClick={()=>navigateTo('course')}><span>A1</span><small>Kurs</small></button><button className={activeNav==='practice'?'active':''} onClick={()=>navigateTo('practice')}><span>◎</span><small>Üben</small></button><button className={activeNav==='translate'?'active':''} onClick={()=>navigateTo('translate')}><span>⇄</span><small>Übersetzen</small></button><button className={mobileMoreOpen||moreActive?'active':''} onClick={()=>setMobileMoreOpen(value=>!value)}><span>•••</span><small>Mehr</small></button></nav>
+  {mobileMoreOpen&&<div className="mobile-more-backdrop" onMouseDown={()=>setMobileMoreOpen(false)}><section className="mobile-more-sheet" onMouseDown={event=>event.stopPropagation()}><div className="mobile-more-head"><div className="mobile-profile-mark">{initials(preferences.name)}</div><div><strong>{preferences.name}</strong><small>{sourceMeta.symbol} → {targetMeta.symbol} · {accountUser?.email}</small></div><button onClick={()=>setMobileMoreOpen(false)}>×</button></div><div className="mobile-account-summary"><span><strong>{courseState.activeLevel}</strong><small>Level</small></span><span><strong>{progress.totalXp}</strong><small>XP</small></span><span><strong>{progress.currentStreak}</strong><small>Streak</small></span><span><strong>{accountUser?.plan==='pro'?'PRO':'FREE'}</strong><small>Plan</small></span></div><div className="mobile-more-grid">{englishMode&&<button onClick={()=>navigateTo('grammar')}><span>Aa</span><strong>Grammatik</strong></button>}{englishMode&&<button onClick={()=>navigateTo('coach')}><span>AI</span><strong>Coach</strong></button>}<button onClick={()=>navigateTo('progress')}><span>↗</span><strong>Fortschritt</strong></button><button onClick={()=>navigateTo('profile')}><span>●</span><strong>Profil & Sprachen</strong></button><button onClick={()=>{setMobileMoreOpen(false);setLanguageOpen(true)}}><span>{targetMeta.symbol}</span><strong>Sprache wechseln</strong></button></div>{englishMode&&accountUser?.plan!=='pro'&&<button className="mobile-pro-cta" onClick={()=>{setMobileMoreOpen(false);setProOpen(true)}}><span>PRO</span><div><strong>VocabFast Pro entdecken</strong><small>Coach, Fachsprache, Sprechen & Analyse</small></div><b>→</b></button>}<button className="mobile-signout" onClick={()=>void signOut()}>Abmelden</button></section></div>}
+  {languageOpen&&<div className="modal-backdrop" onMouseDown={()=>setLanguageOpen(false)}><section className="language-modal" onMouseDown={event=>event.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">MEINE SPRACHEN</span><h2>Lernpfad wechseln</h2><p>Jede Sprachkombination behält ihren eigenen Fortschritt. Neue Sprachen kannst du im Profil hinzufügen.</p></div><button onClick={()=>setLanguageOpen(false)}>×</button></div><div className="language-grid">{preferences.learningPairs.map(pair=>{const source=languageByCode(pair.sourceLanguage),target=languageByCode(pair.targetLanguage),active=pair.sourceLanguage===sourceLanguage&&pair.targetLanguage===targetLanguage;return <button key={pair.id} className={active?'selected':''} onClick={()=>{setLanguageOpen(false);void switchLearningPair({...preferences,sourceLanguage:pair.sourceLanguage,targetLanguage:pair.targetLanguage})}}><span className="language-tile-symbol">{target.symbol}</span><div><strong>{target.name}</strong><small>{source.name} → {target.name}</small></div><em>{active?'Aktiv':'Wechseln'}</em></button>})}</div><button className="profile-save" onClick={()=>{setLanguageOpen(false);setActiveNav('profile')}}>Weitere Sprache hinzufügen</button></section></div>}
+  {lessonOpen&&<LessonPlayer lesson={selectedLesson} audioRate={preferences.audioRate} targetLanguage={targetLanguage} sourceLanguage={sourceLanguage} targetLabel={targetMeta.name} sourceLabel={sourceMeta.name} onClose={()=>setLessonOpen(false)} onComplete={handleComplete}/>} {onboardingOpen&&<Onboarding initial={preferences} onDone={finishOnboarding}/>} {placementOpen&&englishMode&&<PlacementTest onClose={()=>setPlacementOpen(false)} onComplete={finishPlacement}/>} {proOpen&&englishMode&&<ProModal user={accountUser} onClose={()=>setProOpen(false)}/>}</div>;
 }
-
-export default App;
