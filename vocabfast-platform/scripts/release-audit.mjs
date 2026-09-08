@@ -35,10 +35,11 @@ requireText('src/learning/curriculum/index.ts','croatianCourseLevels','Croatian 
 requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
 requireText('wrangler.preview.jsonc','vocabfast.net/api/platform/translate','Translation API route is not wired.');
 requireText('wrangler.preview.jsonc','vocabfast.net/admin*','The new protected admin SPA route is not wired.');
+requireText('wrangler.preview.jsonc','vocabfast.net/api/admin/context','Protected admin context bridge is not wired.');
 forbidText('wrangler.preview.jsonc','vocabfast.net/api/admin/login','Preview worker must not shadow the production admin login endpoint.');
 forbidText('wrangler.preview.jsonc','vocabfast.net/api/admin/logout','Preview worker must not shadow the production admin logout endpoint.');
 requireText('wrangler.preview.jsonc','./src/preview-entry.js','Cloudflare preview must deploy through preview-entry.js.');
-requireText('../.github/workflows/platform-selftest.yml','/api/preview/admin/context','CI does not verify the protected preview admin context route.');
+requireText('../.github/workflows/platform-selftest.yml','/api/admin/context','CI does not verify the protected admin context bridge.');
 
 if(failures.length){
   console.error('\nVocabFast release-surface audit failed:\n');
