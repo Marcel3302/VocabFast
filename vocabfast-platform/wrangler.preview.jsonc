@@ -12,9 +12,6 @@
     { "pattern": "vocabfast.net/api/admin/logout", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/admin/context", "zone_name": "vocabfast.net" }
   ],
-  "services": [
-    { "binding": "PRODUCTION_API", "service": "vocabfast" }
-  ],
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
