@@ -10,6 +10,8 @@ const requireFile=(file,message)=>{if(!existsSync(resolve(root,file)))failures.p
 
 requireFile('src/mobile-release.css','Mobile release stylesheet is missing.');
 requireFile('src/preview-entry.js','Preview entry worker is missing.');
+requireFile('src/components/TranslatorView.tsx','Multilingual translator UI is missing.');
+requireFile('src/learning/curriculum/hr-a1.ts','Croatian A1 course is missing.');
 requireFile('src/learning/curriculum/release-units.ts','Release curriculum expansion is missing.');
 
 forbidText('src/components/WelcomeGate.tsx','/admin','Public welcome page must not expose an admin link.');
@@ -19,8 +21,20 @@ forbidText('src/components/ProModal.tsx','Testkauf öffnen','Customer Pro dialog
 
 requireText('src/components/ProModal.tsx','developerHost()','Stripe test-mode copy must remain restricted to developer hosts.');
 requireText('src/App.tsx','mobile-bottom-nav','Mobile bottom navigation is not wired into the app.');
+requireText('src/App.tsx','switchLearningPair','Persistent multi-language switching is not wired into the app.');
+requireText('src/components/ProfileView.tsx','learningPairs','Profile language-pair management is missing.');
+requireText('src/components/Onboarding.tsx','sourceLanguage','First-run source language selection is missing.');
+requireText('src/components/Onboarding.tsx','targetLanguage','First-run target language selection is missing.');
 requireText('src/components/LessonPlayer.tsx','seededChoices','Lesson answer choices are not shuffled.');
 requireText('src/components/LessonPlayer.tsx','answerMatches','Forgiving production/speech grading is not enabled.');
+requireText('src/components/LessonPlayer.tsx','speakLanguage','Lessons are not using target-language speech.');
+requireText('src/learning/progress.ts','activePairKey','Progress is not isolated by language pair.');
+requireText('src/learning/mastery.ts','activePairKey','Mastery is not isolated by language pair.');
+requireText('src/learning/course-state.ts','activePairKey','CEFR/course state is not isolated by language pair.');
+requireText('src/learning/curriculum/index.ts','croatianCourseLevels','Croatian course is not registered.');
+requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
+requireText('wrangler.preview.jsonc','vocabfast.net/api/platform/translate','Translation API route is not wired.');
+requireText('wrangler.preview.jsonc','vocabfast.net/admin*','The new protected admin SPA route is not wired.');
 requireText('wrangler.preview.jsonc','./src/preview-entry.js','Cloudflare preview must deploy through preview-entry.js.');
 requireText('wrangler.preview.jsonc','vocabfast.net/api/admin/context','Protected admin context route is not wired.');
 requireText('../.github/workflows/platform-selftest.yml','protected admin context route','CI does not verify the admin context route.');
@@ -32,4 +46,4 @@ if(failures.length){
 }
 
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, mobile navigation, lesson shuffling/grading, customer test copy gates and admin route wiring.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, Croatian curriculum, translator route, mobile navigation, lesson shuffling/grading, customer test-copy gates and protected admin routing.');
