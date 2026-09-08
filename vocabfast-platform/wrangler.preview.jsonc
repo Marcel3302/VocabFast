@@ -5,32 +5,15 @@
   "compatibility_date": "2026-09-04",
   "workers_dev": true,
   "routes": [
-    {
-      "pattern": "vocabfast.net/api/preview/*",
-      "zone_name": "vocabfast.net"
-    },
-    {
-      "pattern": "vocabfast.net/api/platform/coach",
-      "zone_name": "vocabfast.net"
-    },
-    {
-      "pattern": "vocabfast.net/api/admin/login",
-      "zone_name": "vocabfast.net"
-    },
-    {
-      "pattern": "vocabfast.net/api/admin/logout",
-      "zone_name": "vocabfast.net"
-    },
-    {
-      "pattern": "vocabfast.net/api/admin/context",
-      "zone_name": "vocabfast.net"
-    }
+    { "pattern": "vocabfast.net/api/preview/*", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/platform/coach", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/platform/translate", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/admin/login", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/admin/logout", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/admin/context", "zone_name": "vocabfast.net" }
   ],
   "services": [
-    {
-      "binding": "PRODUCTION_API",
-      "service": "vocabfast"
-    }
+    { "binding": "PRODUCTION_API", "service": "vocabfast" }
   ],
   "assets": {
     "directory": "./dist",
@@ -38,22 +21,14 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
-  "ai": {
-    "binding": "AI"
-  },
+  "ai": { "binding": "AI" },
   "durable_objects": {
     "bindings": [
-      {
-        "name": "PREVIEW_ACCOUNTS",
-        "class_name": "PreviewAccountStore"
-      }
+      { "name": "PREVIEW_ACCOUNTS", "class_name": "PreviewAccountStore" }
     ]
   },
   "exports": {
-    "PreviewAccountStore": {
-      "type": "durable-object",
-      "storage": "sqlite"
-    }
+    "PreviewAccountStore": { "type": "durable-object", "storage": "sqlite" }
   },
   "observability": { "enabled": true }
 }
