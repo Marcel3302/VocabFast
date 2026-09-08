@@ -1,4 +1,5 @@
 import type { LessonResult } from './types';
+import { activePairKey } from './preferences';
 
 export type PlatformProgress = {
   completedLessonIds: string[];
@@ -11,19 +12,15 @@ export type PlatformProgress = {
   lastStudyDate: string | null;
 };
 
-const STORAGE_KEY = 'vocabfast.platform.progress.v2';
-const LEGACY_KEY = 'vocabfast.platform.progress.v1';
+const STORAGE_PREFIX = 'vocabfast.platform.progress.v3:';
+const LEGACY_KEY = 'vocabfast.platform.progress.v2';
+const LEGACY_KEY_V1 = 'vocabfast.platform.progress.v1';
 
 const emptyProgress: PlatformProgress = {
-  completedLessonIds: [],
-  results: {},
-  totalXp: 0,
-  sessions: 0,
-  studyDates: [],
-  currentStreak: 0,
-  longestStreak: 0,
-  lastStudyDate: null
+  completedLessonIds: [], results: {}, totalXp: 0, sessions: 0, studyDates: [], currentStreak: 0, longestStreak: 0, lastStudyDate: null
 };
+
+function storageKey(){return `${STORAGE_PREFIX}${activePairKey()}`;}
 
 function dateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -35,8 +32,7 @@ function dateKey(date = new Date()) {
 function calculateStreak(dates: string[]) {
   const unique = [...new Set(dates)].sort();
   if (!unique.length) return { current: 0, longest: 0 };
-  let longest = 1;
-  let running = 1;
+  let longest = 1, running = 1;
   for (let i = 1; i < unique.length; i += 1) {
     const previous = new Date(`${unique[i - 1]}T12:00:00`);
     const current = new Date(`${unique[i]}T12:00:00`);
@@ -47,8 +43,7 @@ function calculateStreak(dates: string[]) {
   const today = new Date(`${dateKey()}T12:00:00`);
   const last = new Date(`${unique[unique.length - 1]}T12:00:00`);
   const gap = Math.round((today.getTime() - last.getTime()) / 86400000);
-  const current = gap <= 1 ? running : 0;
-  return { current, longest };
+  return { current: gap <= 1 ? running : 0, longest };
 }
 
 function normalize(parsed: Partial<PlatformProgress>): PlatformProgress {
@@ -68,20 +63,21 @@ function normalize(parsed: Partial<PlatformProgress>): PlatformProgress {
 
 export function readProgress(): PlatformProgress {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_KEY);
+    const key=storageKey();
+    let raw=localStorage.getItem(key);
+    if(!raw&&activePairKey()==='de-en') {
+      raw=localStorage.getItem(LEGACY_KEY)??localStorage.getItem(LEGACY_KEY_V1);
+      if(raw)localStorage.setItem(key,raw);
+    }
     if (!raw) return { ...emptyProgress };
     return normalize(JSON.parse(raw) as Partial<PlatformProgress>);
-  } catch {
-    return { ...emptyProgress };
-  }
+  } catch { return { ...emptyProgress }; }
 }
 
 export function saveLessonResult(result: LessonResult): PlatformProgress {
   const current = readProgress();
   const isCurriculumLesson = !result.lessonId.startsWith('review-') && !result.lessonId.startsWith('practice-');
-  const completedLessonIds = isCurriculumLesson && !current.completedLessonIds.includes(result.lessonId)
-    ? [...current.completedLessonIds, result.lessonId]
-    : current.completedLessonIds;
+  const completedLessonIds = isCurriculumLesson && !current.completedLessonIds.includes(result.lessonId) ? [...current.completedLessonIds, result.lessonId] : current.completedLessonIds;
   const today = dateKey();
   const studyDates = current.studyDates.includes(today) ? current.studyDates : [...current.studyDates, today];
   const streak = calculateStreak(studyDates);
@@ -95,16 +91,14 @@ export function saveLessonResult(result: LessonResult): PlatformProgress {
     longestStreak: Math.max(current.longestStreak, streak.longest),
     lastStudyDate: today
   };
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* optional local persistence */ }
+  try { localStorage.setItem(storageKey(), JSON.stringify(next)); } catch { /* optional persistence */ }
   return next;
 }
 
-export function sessionsToday(progress: PlatformProgress) {
-  return progress.studyDates.includes(dateKey()) ? 1 : 0;
-}
+export function sessionsToday(progress: PlatformProgress) { return progress.studyDates.includes(dateKey()) ? 1 : 0; }
 
 export function resetLocalProgress() {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(LEGACY_KEY);
-  localStorage.removeItem('vocabfast.platform.mastery.v1');
+  localStorage.removeItem(storageKey());
+  localStorage.removeItem(`vocabfast.platform.mastery.v2:${activePairKey()}`);
+  localStorage.removeItem(`vocabfast.platform.course.v2:${activePairKey()}`);
 }
