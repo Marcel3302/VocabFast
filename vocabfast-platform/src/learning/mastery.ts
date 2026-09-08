@@ -1,3 +1,5 @@
+import { activePairKey } from './preferences';
+
 export type ConceptMastery = {
   conceptId: string;
   attempts: number;
@@ -8,21 +10,22 @@ export type ConceptMastery = {
   dueAt: string;
 };
 
-const STORAGE_KEY = 'vocabfast.platform.mastery.v1';
+const STORAGE_PREFIX = 'vocabfast.platform.mastery.v2:';
+const LEGACY_KEY = 'vocabfast.platform.mastery.v1';
+function storageKey(){return `${STORAGE_PREFIX}${activePairKey()}`;}
 
 function readAll(): Record<string, ConceptMastery> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(storageKey());
+    if(!raw&&activePairKey()==='de-en') {
+      raw=localStorage.getItem(LEGACY_KEY);
+      if(raw)localStorage.setItem(storageKey(),raw);
+    }
     return raw ? JSON.parse(raw) as Record<string, ConceptMastery> : {};
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 }
 
-function clamp(value: number) {
-  return Math.max(0, Math.min(1, value));
-}
-
+function clamp(value: number) { return Math.max(0, Math.min(1, value)); }
 function dueDelayMs(strength: number, correct: boolean) {
   if (!correct) return 10 * 60 * 1000;
   if (strength >= .85) return 14 * 24 * 60 * 60 * 1000;
@@ -34,7 +37,6 @@ function dueDelayMs(strength: number, correct: boolean) {
 export function recordConceptAnswer(conceptIds: string[], correct: boolean) {
   const all = readAll();
   const now = new Date();
-
   for (const conceptId of conceptIds) {
     const previous = all[conceptId];
     const nextStrength = clamp((previous?.strength ?? .12) + (correct ? .12 : -.18));
@@ -48,18 +50,12 @@ export function recordConceptAnswer(conceptIds: string[], correct: boolean) {
       dueAt: new Date(now.getTime() + dueDelayMs(nextStrength, correct)).toISOString()
     };
   }
-
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(all)); } catch { /* prototype storage can fail in private modes */ }
+  try { localStorage.setItem(storageKey(), JSON.stringify(all)); } catch { /* storage can fail */ }
   return all;
 }
 
-export function getMasterySnapshot() {
-  return Object.values(readAll()).sort((a, b) => a.strength - b.strength || b.attempts - a.attempts);
-}
-
+export function getMasterySnapshot() { return Object.values(readAll()).sort((a, b) => a.strength - b.strength || b.attempts - a.attempts); }
 export function getDueConcepts(reference = new Date()) {
   const now = reference.getTime();
-  return getMasterySnapshot()
-    .filter(item => new Date(item.dueAt).getTime() <= now)
-    .sort((a, b) => a.strength - b.strength);
+  return getMasterySnapshot().filter(item => new Date(item.dueAt).getTime() <= now).sort((a, b) => a.strength - b.strength);
 }
