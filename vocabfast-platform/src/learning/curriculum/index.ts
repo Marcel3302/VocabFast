@@ -7,6 +7,7 @@ import { englishA2ReleaseUnits, englishB1ReleaseUnits } from './release-units';
 import { englishB2ReleaseUnits, englishC1ReleaseUnits, englishC2ReleaseUnits } from './release-advanced-units';
 import { croatianA1Units as croatianA1UnitsRaw } from './hr-a1';
 import { croatianA2Units as croatianA2UnitsRaw } from './hr-a2';
+import { croatianA1ExtraLessonsByUnit, croatianA2ExtraLessonsByUnit } from './hr-release-extras';
 import { expandLesson } from '../lesson-expansion';
 import type { Lesson } from '../types';
 
@@ -15,6 +16,7 @@ export type CourseUnit = {id:string;number:number;title:string;subtitle:string;l
 export type CourseLevel = {id:CefrLevel;title:string;descriptor:string;goal:string;units:CourseUnit[];productionTargetUnits:number};
 
 function expandUnits(units:CourseUnit[]):CourseUnit[] { return units.map(unit=>({...unit,lessons:unit.lessons.map(expandLesson)})); }
+function appendLessons(units:CourseUnit[],extras:Record<string,Lesson[]>):CourseUnit[]{return units.map(unit=>({...unit,lessons:[...unit.lessons,...(extras[unit.id]??[])]}));}
 
 export const englishA1Units: CourseUnit[] = expandUnits([
   {id:'en-a1-u1',number:1,title:'Erste Gespräche',subtitle:'Begrüßen, vorstellen, bestellen und erste Fragen stellen.',lessons:englishA1Unit1Lessons},
@@ -36,8 +38,8 @@ export const englishCourseLevels: CourseLevel[] = [
   {id:'C2',title:'Feinschliff',descriptor:'Nahezu muttersprachliche Kontrolle',goal:'Subtile Bedeutungsunterschiede, Register, Synthese und anspruchsvolle professionelle Kommunikation sehr präzise steuern.',units:englishC2Units,productionTargetUnits:8}
 ];
 
-export const croatianA1Units:CourseUnit[]=expandUnits(croatianA1UnitsRaw);
-export const croatianA2Units:CourseUnit[]=expandUnits(croatianA2UnitsRaw);
+export const croatianA1Units:CourseUnit[]=expandUnits(appendLessons(croatianA1UnitsRaw,croatianA1ExtraLessonsByUnit));
+export const croatianA2Units:CourseUnit[]=expandUnits(appendLessons(croatianA2UnitsRaw,croatianA2ExtraLessonsByUnit));
 export const croatianCourseLevels:CourseLevel[]=[
   {id:'A1',title:'Osnove',descriptor:'Ankommen & erste Gespräche',goal:'Kroatische Begrüßungen, Bestellungen, Reise- und Alltagssituationen aktiv verstehen und selbst formulieren.',units:croatianA1Units,productionTargetUnits:4},
   {id:'A2',title:'Svakodnevna komunikacija',descriptor:'Selbstständiger im Alltag',goal:'Über Erlebnisse und Pläne sprechen, Probleme erklären, Termine abstimmen sowie Meinungen und Empfehlungen einfach ausdrücken.',units:croatianA2Units,productionTargetUnits:4}
