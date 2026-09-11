@@ -10,6 +10,7 @@ type AdminContext={
   permissions?:string[];
 };
 
+type DailyUsage={date:string;seconds:number};
 type PlatformAccount={
   id:string;
   email:string;
@@ -32,12 +33,18 @@ type PlatformAccount={
   placementScore?:number;
   placementTotal?:number;
   savedAt?:string|null;
+  totalActiveSeconds?:number;
+  todayActiveSeconds?:number;
+  firstActiveAt?:number|null;
+  lastActiveAt?:number|null;
+  activeDays?:number;
+  recentActivity?:DailyUsage[];
 };
 
 type Mode='loading'|'login'|'admin'|'error';
 type StatusFilter='all'|'active'|'inactive'|'disabled';
 type PlanFilter='all'|'free'|'pro';
-type SortMode='activity'|'created'|'name';
+type SortMode='activity'|'usage'|'created'|'name';
 
 type ApiOptions={method?:string;body?:unknown;adminWrite?:boolean};
 
@@ -68,7 +75,18 @@ function fmtDateTime(value?:number|string|null) {
   try{return new Intl.DateTimeFormat('de-AT',{dateStyle:'medium',timeStyle:'short'}).format(new Date(value));}catch{return '–';}
 }
 
-function relativeActivity(value?:number) {
+function fmtDuration(value?:number|null) {
+  const seconds=Math.max(0,Math.round(Number(value)||0));
+  if(seconds<60)return seconds?'< 1 Min.':'0 Min.';
+  const minutes=Math.round(seconds/60);
+  if(minutes<60)return `${minutes} Min.`;
+  const hours=Math.floor(minutes/60),rest=minutes%60;
+  if(hours<24)return rest?`${hours} Std. ${rest} Min.`:`${hours} Std.`;
+  const days=Math.floor(hours/24),remaining=hours%24;
+  return remaining?`${days} Tg. ${remaining} Std.`:`${days} Tg.`;
+}
+
+function relativeActivity(value?:number|null) {
   if(!value)return 'Noch nie aktiv';
   const minutes=Math.max(0,Math.round((Date.now()-value)/60000));
   if(minutes<1)return 'gerade eben';
@@ -109,13 +127,16 @@ export default function AdminPortal() {
     return filtered.sort((a,b)=>{
       if(sortMode==='name')return (a.name||a.email).localeCompare(b.name||b.email,'de');
       if(sortMode==='created')return (b.createdAt||0)-(a.createdAt||0);
-      return (b.lastSeenAt||b.createdAt||0)-(a.lastSeenAt||a.createdAt||0);
+      if(sortMode==='usage')return (b.totalActiveSeconds||0)-(a.totalActiveSeconds||0);
+      return (b.lastActiveAt||b.lastSeenAt||b.createdAt||0)-(a.lastActiveAt||a.lastSeenAt||a.createdAt||0);
     });
   },[accounts,query,statusFilter,planFilter,sortMode]);
 
   const activeCount=accounts.filter(account=>account.activeNow).length;
   const proCount=accounts.filter(account=>account.plan==='pro').length;
   const disabledCount=accounts.filter(account=>account.disabled).length;
+  const totalUsage=accounts.reduce((sum,account)=>sum+(Number(account.totalActiveSeconds)||0),0);
+  const todayUsage=accounts.reduce((sum,account)=>sum+(Number(account.todayActiveSeconds)||0),0);
 
   useEffect(()=>{
     document.title='VocabFast Admin';
@@ -277,6 +298,7 @@ export default function AdminPortal() {
 
   if(mode==='error')return <div className="admin-shell center"><h1>Adminbereich nicht erreichbar</h1><p>{error}</p><button className="admin-retry" onClick={()=>void bootstrap()}>Erneut versuchen</button></div>;
 
+  const recent=selected?.recentActivity||[],maxRecent=Math.max(1,...recent.map(item=>item.seconds));
   return <div className="admin-shell">
     <header className="admin-top">
       <div className="admin-brand"><span>V</span><div><strong>VocabFast Admin</strong><small>{context?.superadmin?'Superadmin':'Verwaltung'}</small></div></div>
@@ -284,12 +306,14 @@ export default function AdminPortal() {
     </header>
 
     <main className="admin-main">
-      <section className="admin-hero compact"><div><span>ADMIN KONSOLE</span><h1>Konten und Aktivität im Blick behalten.</h1><p>„Aktiv“ bedeutet: Das Konto hat innerhalb der letzten {activeWindowMinutes} Minuten eine gültige Sitzung verwendet. Alle Änderungen laufen über geschützte Admin-Endpunkte und werden nicht im Browser allein freigeschaltet.</p></div><div className="admin-security-badge"><b>LOCKED</b><span>server-side auth</span></div></section>
+      <section className="admin-hero compact"><div><span>ADMIN KONSOLE</span><h1>Konten und echte Nutzung im Blick behalten.</h1><p>Du siehst alle registrierten Plattformkonten, den letzten Aktivitätszeitpunkt und die aktiv verbrachte Zeit. Gezählt wird nur bei sichtbarer Seite und aktiver Nutzung; reine offene Hintergrund-Tabs werden nach kurzer Inaktivität nicht weitergezählt.</p></div><div className="admin-security-badge"><b>LOCKED</b><span>server-side auth</span></div></section>
       {notice&&<div className="admin-notice">✓ {notice}</div>}{error&&<div className="admin-global-error">{error}</div>}
 
-      <div className="admin-metrics">
+      <div className="admin-metrics usage-metrics">
         <article><span>Registriert</span><strong>{accounts.length}</strong><small>alle Plattformkonten</small></article>
         <article><span>Aktuell aktiv</span><strong>{activeCount}</strong><small>letzte {activeWindowMinutes} Minuten</small></article>
+        <article><span>Heute genutzt</span><strong>{fmtDuration(todayUsage)}</strong><small>aktive Zeit aller Konten</small></article>
+        <article><span>Gesamtnutzung</span><strong>{fmtDuration(totalUsage)}</strong><small>aktive Zeit seit Tracking-Start</small></article>
         <article><span>Pro</span><strong>{proCount}</strong><small>freigeschaltete Konten</small></article>
         <article><span>Gesperrt</span><strong>{disabledCount}</strong><small>kein Login möglich</small></article>
       </div>
@@ -301,28 +325,29 @@ export default function AdminPortal() {
           <div className="admin-filter-grid">
             <select value={statusFilter} onChange={event=>setStatusFilter(event.target.value as StatusFilter)}><option value="all">Alle Status</option><option value="active">Aktuell aktiv</option><option value="inactive">Inaktiv</option><option value="disabled">Gesperrt</option></select>
             <select value={planFilter} onChange={event=>setPlanFilter(event.target.value as PlanFilter)}><option value="all">Free & Pro</option><option value="free">Nur Free</option><option value="pro">Nur Pro</option></select>
-            <select value={sortMode} onChange={event=>setSortMode(event.target.value as SortMode)}><option value="activity">Letzte Aktivität</option><option value="created">Neu registriert</option><option value="name">Name A–Z</option></select>
+            <select value={sortMode} onChange={event=>setSortMode(event.target.value as SortMode)}><option value="activity">Letzte Aktivität</option><option value="usage">Meiste Nutzungszeit</option><option value="created">Neu registriert</option><option value="name">Name A–Z</option></select>
           </div>
           <div className="admin-user-list">
             {filteredAccounts.map(account=><button key={account.id} className={selected?.id===account.id?'active':''} onClick={()=>void openAccount(account.id)}>
               <span className="admin-avatar">{(account.name||account.email||'VF').slice(0,2).toUpperCase()}</span>
-              <span className="admin-user-copy"><strong>{account.name||account.email}</strong><small>{account.email}</small><em><i className={account.activeNow?'online':'offline'}/>{account.disabled?'Gesperrt':account.activeNow?'Aktiv':relativeActivity(account.lastSeenAt)} · {account.plan.toUpperCase()} · {account.xp.toLocaleString('de-AT')} XP</em></span>
+              <span className="admin-user-copy"><strong>{account.name||account.email}</strong><small>{account.email}</small><em><i className={account.activeNow?'online':'offline'}/>{account.disabled?'Gesperrt':account.activeNow?'Aktiv':relativeActivity(account.lastActiveAt||account.lastSeenAt)} · {account.plan.toUpperCase()} · {fmtDuration(account.totalActiveSeconds)}</em></span>
             </button>)}
             {!filteredAccounts.length&&<div className="admin-empty compact"><strong>Keine Treffer</strong><span>Filter oder Suche anpassen.</span></div>}
           </div>
         </aside>
 
         <section className="admin-workspace">
-          {!selected?<div className="admin-empty"><strong>Konto auswählen</strong><span>Links ein Konto öffnen, um Daten, Plan, Zugang und Lernstand zu verwalten.</span></div>:<>
+          {!selected?<div className="admin-empty"><strong>Konto auswählen</strong><span>Links ein Konto öffnen, um Registrierung, Nutzung, Plan, Zugang und Lernstand zu sehen.</span></div>:<>
             <div className="admin-profile-head">
               <div className="admin-avatar large">{(selected.name||selected.email||'VF').slice(0,2).toUpperCase()}</div>
-              <div><span><i className={selected.activeNow?'online':'offline'}/>{selected.disabled?'GESPERRT':selected.activeNow?'AKTUELL AKTIV':'INAKTIV'}</span><h2>{selected.name||selected.email}</h2><p>{selected.email} · registriert {fmtDate(selected.createdAt)}</p></div>
+              <div><span><i className={selected.activeNow?'online':'offline'}/>{selected.disabled?'GESPERRT':selected.activeNow?'AKTUELL AKTIV':'INAKTIV'}</span><h2>{selected.name||selected.email}</h2><p>{selected.email} · registriert {fmtDateTime(selected.createdAt)}</p></div>
               <b className={selected.plan==='pro'?'pro':''}>{selected.plan.toUpperCase()}</b>
             </div>
 
             <div className="admin-detail-grid">
-              <article className="admin-detail-card admin-learning-summary"><div className="admin-card-head"><div><span>AKTIVITÄT</span><h3>Nutzung & Lernstand</h3></div><button type="button" onClick={()=>void openAccount(selected.id)} disabled={busy}>Aktualisieren</button></div>
-                <div className="admin-account-metrics"><div><span>Letzte Aktivität</span><strong>{relativeActivity(selected.lastSeenAt)}</strong><small>{fmtDateTime(selected.lastSeenAt)}</small></div><div><span>Offene Sitzungen</span><strong>{selected.sessionCount}</strong><small>gültige Logins</small></div><div><span>XP</span><strong>{selected.xp.toLocaleString('de-AT')}</strong><small>{selected.learningSessions} Lern-Sessions</small></div><div><span>Lektionen</span><strong>{selected.lessons}</strong><small>Streak {selected.streak}</small></div><div><span>Aktives Level</span><strong>{selected.activeLevel||'A1'}</strong><small>Lernpfad</small></div><div><span>Einstufung</span><strong>{selected.placementLevel||'–'}</strong><small>{selected.placementTotal?`${selected.placementScore}/${selected.placementTotal}`:'noch nicht absolviert'}</small></div></div>
+              <article className="admin-detail-card admin-learning-summary"><div className="admin-card-head"><div><span>NUTZUNG</span><h3>Aktivität & Lernstand</h3></div><button type="button" onClick={()=>void openAccount(selected.id)} disabled={busy}>Aktualisieren</button></div>
+                <div className="admin-account-metrics usage-detail-metrics"><div><span>Registriert</span><strong>{fmtDate(selected.createdAt)}</strong><small>{fmtDateTime(selected.createdAt)}</small></div><div><span>Letzte Aktivität</span><strong>{relativeActivity(selected.lastActiveAt||selected.lastSeenAt)}</strong><small>{fmtDateTime(selected.lastActiveAt||selected.lastSeenAt)}</small></div><div><span>Aktive Zeit gesamt</span><strong>{fmtDuration(selected.totalActiveSeconds)}</strong><small>sichtbar & aktiv genutzt</small></div><div><span>Heute</span><strong>{fmtDuration(selected.todayActiveSeconds)}</strong><small>aktive Nutzungszeit</small></div><div><span>Aktive Tage</span><strong>{selected.activeDays||0}</strong><small>mit gemessener Nutzung</small></div><div><span>Offene Sitzungen</span><strong>{selected.sessionCount}</strong><small>gültige Logins</small></div><div><span>XP</span><strong>{selected.xp.toLocaleString('de-AT')}</strong><small>{selected.learningSessions} Lern-Sessions</small></div><div><span>Lektionen</span><strong>{selected.lessons}</strong><small>Streak {selected.streak}</small></div><div><span>Aktives Level</span><strong>{selected.activeLevel||'A1'}</strong><small>Lernpfad</small></div><div><span>Einstufung</span><strong>{selected.placementLevel||'–'}</strong><small>{selected.placementTotal?`${selected.placementScore}/${selected.placementTotal}`:'noch nicht absolviert'}</small></div></div>
+                <div className="admin-usage-chart"><div className="admin-card-head mini"><div><span>LETZTE TAGE</span><h3>Aktive Zeit pro Tag</h3></div><small>Keine Seiteninhalte oder Eingaben werden protokolliert.</small></div>{recent.length?<div className="usage-bars">{recent.map(item=><div key={item.date} title={`${fmtDate(item.date)} · ${fmtDuration(item.seconds)}`}><span className="usage-bar-track"><i style={{height:`${Math.max(6,Math.round(item.seconds/maxRecent*100))}%`}}/></span><b>{new Date(`${item.date}T12:00:00`).toLocaleDateString('de-AT',{day:'2-digit',month:'2-digit'})}</b><small>{fmtDuration(item.seconds)}</small></div>)}</div>:<div className="admin-empty usage-empty"><strong>Noch keine Nutzungszeit gemessen</strong><span>Die Zeitmessung startet ab dem nächsten aktiven Login.</span></div>}</div>
               </article>
 
               <form className="admin-detail-card" onSubmit={saveAccount}><div className="admin-card-head"><div><span>KONTO</span><h3>Kontodaten ändern</h3></div><small>ID {selected.id.slice(0,8)}…</small></div>
@@ -332,13 +357,13 @@ export default function AdminPortal() {
 
               <article className="admin-detail-card"><div className="admin-card-head"><div><span>SICHERHEIT</span><h3>Sitzungen & Passwort</h3></div></div><p className="admin-card-copy">Sicherheitsaktionen werden serverseitig geprüft. Passwortwerte werden nicht aus dem Account-Speicher ausgelesen oder im Adminbereich angezeigt.</p><div className="admin-actions"><button type="button" onClick={()=>void revokeSessions()} disabled={busy||!can('security.manage')}>Alle Sitzungen abmelden</button><button type="button" onClick={()=>void resetProgress()} disabled={busy||!can('progress.edit')}>Lernstand zurücksetzen</button></div><form className="admin-password-form" onSubmit={resetPassword}><label><span>Temporäres Passwort</span><input type="password" name="temporaryPassword" minLength={12} autoComplete="new-password" placeholder="mindestens 12 Zeichen" disabled={!can('security.manage')}/></label><button disabled={busy||!can('security.manage')}>Temporäres Passwort setzen</button></form></article>
 
-              <article className="admin-detail-card danger-zone"><div className="admin-card-head"><div><span>GEFAHRENZONE</span><h3>Konto endgültig löschen</h3></div></div><p>Entfernt Konto, gespeicherten Lernstand und alle zugehörigen Plattform-Sitzungen. Diese Aktion kann nicht rückgängig gemacht werden.</p><button type="button" className="danger" onClick={()=>void deleteAccount()} disabled={busy||!can('accounts.manage')}>Konto endgültig löschen</button></article>
+              <article className="admin-detail-card danger-zone"><div className="admin-card-head"><div><span>GEFAHRENZONE</span><h3>Konto endgültig löschen</h3></div></div><p>Entfernt Konto, gespeicherten Lernstand, Nutzungsstatistik und alle zugehörigen Plattform-Sitzungen. Diese Aktion kann nicht rückgängig gemacht werden.</p><button type="button" className="danger" onClick={()=>void deleteAccount()} disabled={busy||!can('accounts.manage')}>Konto endgültig löschen</button></article>
             </div>
           </>}
         </section>
       </section>
 
-      <section className="admin-release-panel"><div><span>PLATTFORMSTATUS</span><h2>Release-Infrastruktur</h2><p>{stats.levels} CEFR-Stufen · {stats.units} Units · {stats.lessons} Lektionen · {stats.exercises} Übungen im aktuellen Build.</p></div><div className="admin-security-lines"><span>✓ Admin nicht in der Kunden-Navigation verlinkt</span><span>✓ noindex / nofollow</span><span>✓ HttpOnly/Secure Admin-Session</span><span>✓ Schreibzugriffe mit Berechtigungsprüfung</span></div></section>
+      <section className="admin-release-panel"><div><span>PLATTFORMSTATUS</span><h2>Release-Infrastruktur</h2><p>{stats.levels} CEFR-Stufen · {stats.units} Units · {stats.lessons} Lektionen · {stats.exercises} Übungen im aktuellen Build.</p></div><div className="admin-security-lines"><span>✓ Admin nicht in der Kunden-Navigation verlinkt</span><span>✓ noindex / nofollow</span><span>✓ HttpOnly/Secure Admin-Session</span><span>✓ aktive Zeit ohne Seiteninhalts-Tracking</span><span>✓ Schreibzugriffe mit Berechtigungsprüfung</span></div></section>
     </main>
   </div>;
 }
