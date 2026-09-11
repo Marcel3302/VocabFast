@@ -1,3 +1,0 @@
-const {CLOUDFLARE_API_TOKEN:token,CLOUDFLARE_ACCOUNT_ID:account}=process.env;
-const response=await fetch(`https://api.cloudflare.com/client/v4/accounts/${account}/workers/scripts/vocabfast-language-preview/settings`,{headers:{Authorization:`Bearer ${token}`}});const data=await response.json();if(!response.ok||!data.success){console.log('Settings inspection unavailable:',response.status);process.exit(0);}console.log('Current binding names:',JSON.stringify(data.result.bindings.map(b=>({name:b.name,type:b.type,bucket_name:b.bucket_name}))));
-console.log('GitHub admin secret available:',Boolean(process.env.RECOVERY_ADMIN_PASSWORD));

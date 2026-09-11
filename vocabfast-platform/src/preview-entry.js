@@ -4,7 +4,7 @@ export { PreviewAccountStore } from './preview-worker.js';
 
 const PRODUCTION_ORIGIN='https://vocabfast.net';
 const PRODUCTION_WORKER_ORIGIN=PRODUCTION_ORIGIN;
-const ADMIN_AUTH_PATHS=new Set(['/api/admin/login','/api/admin/logout']);
+const ADMIN_AUTH_PATHS=new Set(['/api/admin/login','/api/admin/logout','/api/admin/me']);
 const LANGUAGE_NAMES={en:'English',hr:'Croatian',es:'Spanish',fr:'French',de:'German',it:'Italian',pt:'Portuguese',zh:'Chinese',ja:'Japanese',ko:'Korean',ar:'Arabic'};
 
 function json(data,status=200,headers={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow, noarchive',...headers}})}
@@ -16,8 +16,7 @@ async function productionRequest(env,request,path){
   headers.set('Origin',PRODUCTION_ORIGIN);headers.set('Referer',`${PRODUCTION_ORIGIN}/admin`);headers.set('Accept','application/json');headers.delete('host');
   const init={method:request.method,headers,redirect:'manual'};
   if(request.method!=='GET'&&request.method!=='HEAD')init.body=await request.arrayBuffer();
-  if(!env.LEGACY_AUTH?.fetch)throw new Error('Admin authentication service is not configured.');
-  return env.LEGACY_AUTH.fetch(new Request(targetUrl,init));
+  return accountStore(env).fetch(new Request(targetUrl,init));
 }
 async function proxyAdminAuth(request,env){if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);const upstream=await productionRequest(env,request),responseHeaders=new Headers(upstream.headers);responseHeaders.set('Cache-Control','no-store');responseHeaders.set('X-Robots-Tag','noindex, nofollow, noarchive');return new Response(upstream.body,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});}
 async function verifyAdminSession(request,env){const cookie=request.headers.get('Cookie')||'';if(!cookie.includes('vf_admin='))return null;const headers=new Headers({Accept:'application/json',Cookie:cookie,'User-Agent':'VocabFast-Platform-Admin-Gateway'});const upstream=await productionRequest(env,new Request(request.url,{method:'GET',headers}),'/api/admin/me');if(!upstream.ok)return null;const data=await upstream.json().catch(()=>null),admin=data?.admin;if(!admin)return null;return{superadmin:true,username:admin.username||'admin',name:'Superadmin',createdAt:admin.createdAt||null,expiresAt:admin.expiresAt||null,permissions:['users.read','users.edit','plans.manage','security.manage','progress.edit','accounts.manage']};}

@@ -1,3 +1,4 @@
+import { adminAuth } from './admin-auth.js';
 const securityHeaders = {
   'X-Content-Type-Options':'nosniff',
   'Referrer-Policy':'strict-origin-when-cross-origin',
@@ -168,7 +169,8 @@ async function productionAdminContext(request) {
 }
 
 export class PreviewAccountStore {
-  constructor(state) {
+  constructor(state,env) {
+    this.env=env;
     this.storage=state.storage;
   }
 
@@ -466,6 +468,7 @@ export class PreviewAccountStore {
 
   async fetch(request) {
     const path=new URL(request.url).pathname;
+    if(['/api/admin/login','/api/admin/logout','/api/admin/me'].includes(path))return adminAuth(request,this.env,this.storage);
     if(path==='/internal/platform-billing'){
       if(request.method==='GET'){const userId=new URL(request.url).searchParams.get('user');return json(await this.storage.get(`billing:${userId}`)||{});}
       const data=await request.json();const account=await this.storage.get(`account:${data.userId}`);if(!account)return json({received:true,ignored:true});

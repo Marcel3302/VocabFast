@@ -37,11 +37,6 @@ jobs:
           name: VocabFast_PLATFORM_PREVIEW
           path: vocabfast-platform/dist
           retention-days: 14
-      - name: Inspect authentication service availability
-        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
-        env:
-          RECOVERY_ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-        run: node scripts/auth-service-inspect.mjs
       - name: Deploy isolated Cloudflare preview
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         run: npx wrangler deploy --config wrangler.preview.jsonc
@@ -79,7 +74,9 @@ jobs:
           cat /tmp/vf-admin-login.json
           echo
           echo "admin login probe status: $ADMIN_LOGIN_STATUS"
-          if [ "$ADMIN_LOGIN_STATUS" != '401' ]; then
+          if [ "$ADMIN_LOGIN_STATUS" = '503' ] && node -e "const d=require('/tmp/vf-admin-login.json');process.exit(d.code==='ADMIN_SETUP_REQUIRED'?0:1)"; then
+            echo '::warning::Admin routing restored; ADMIN_PASSWORD secret must be configured before login.'
+          elif [ "$ADMIN_LOGIN_STATUS" != '401' ]; then
             echo 'Expected 401 from the protected admin login route.'
             exit 1
           fi

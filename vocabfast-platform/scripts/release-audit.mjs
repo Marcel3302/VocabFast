@@ -38,8 +38,8 @@ requireText('wrangler.preview.jsonc','vocabfast.net/admin*','The new protected a
 requireText('wrangler.preview.jsonc','vocabfast.net/api/admin/context','Protected admin context bridge is not wired.');
 requireText('wrangler.preview.jsonc','vocabfast.net/api/admin/login','Admin login route must use the internal service bridge.');
 requireText('wrangler.preview.jsonc','vocabfast.net/api/admin/logout','Admin logout route must use the internal service bridge.');
-requireText('src/preview-entry.js','env.LEGACY_AUTH.fetch','Admin authentication must use the direct service binding, not public DNS.');
-requireText('wrangler.preview.jsonc','LEGACY_AUTH','Admin service binding is missing.');
+requireText('src/preview-entry.js','accountStore(env).fetch(new Request(targetUrl,init))','Admin authentication must use the existing account store, not public DNS.');
+requireText('src/admin-auth.js','ADMIN_SETUP_REQUIRED','Missing admin credentials must fail closed.');
 requireText('wrangler.preview.jsonc','./src/preview-entry.js','Cloudflare preview must deploy through preview-entry.js.');
 requireText('../.github/workflows/platform-selftest.yml','/api/admin/context','CI does not verify the protected admin context bridge.');
 
