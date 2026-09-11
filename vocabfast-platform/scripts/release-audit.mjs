@@ -18,6 +18,7 @@ requireFile('src/learning/curriculum/hr-a1.ts','Croatian A1 course is missing.')
 requireFile('src/learning/curriculum/hr-a2.ts','Croatian A2 course is missing.');
 requireFile('src/learning/curriculum/release-units.ts','Release curriculum expansion is missing.');
 requireFile('src/platform-billing.js','Platform billing worker module is missing.');
+requireFile('src/language-hub.css','Language switcher release styling is missing.');
 
 forbidText('src/components/WelcomeGate.tsx','/admin','Public welcome page must not expose an admin link.');
 forbidText('src/components/WelcomeGate.tsx','Admin','Public welcome page must not mention the admin area.');
@@ -39,23 +40,28 @@ requireText('wrangler.preview.jsonc','PLATFORM_STRIPE_PRICE_TEST','Cloudflare pr
 
 requireText('src/App.tsx','mobile-bottom-nav','Mobile bottom navigation is not wired into the app.');
 requireText('src/App.tsx','switchLearningPair','Persistent multi-language switching is not wired into the app.');
+requireText('src/App.tsx','readProgressForPair','Language switcher does not expose progress per learning pair.');
+requireText('src/App.tsx','Hinzufügen & öffnen','Language switcher cannot add a new learning pair directly.');
 requireText('src/App.tsx',"lazy(()=>import('./components/LessonPlayer'))",'Lesson player must stay out of the initial customer bundle.');
 requireText('src/main.tsx',"lazy(()=>import('./admin/AdminPortal'))",'Admin portal must stay out of the customer startup bundle.');
 requireText('src/components/ProfileView.tsx','learningPairs','Profile language-pair management is missing.');
 requireText('src/components/ProfileView.tsx','Kroatisch: A1–A2','Profile course availability copy is stale.');
 requireText('src/components/Onboarding.tsx','sourceLanguage','First-run source language selection is missing.');
 requireText('src/components/Onboarding.tsx','targetLanguage','First-run target language selection is missing.');
+requireText('src/components/WelcomeGate.tsx','confirmPassword','Registration password confirmation is missing.');
 requireText('src/components/LessonPlayer.tsx','seededChoices','Lesson answer choices are not shuffled.');
 requireText('src/components/LessonPlayer.tsx','answerMatches','Forgiving production/speech grading is not enabled.');
 requireText('src/components/LessonPlayer.tsx','speakLanguage','Lessons are not using target-language speech.');
 requireText('src/components/LessonPlayer.tsx','localizeGermanTexts','Lessons do not adapt support text to the selected source language.');
 requireText('src/learning/localization.ts','/api/platform/translate','Lesson localization is not using the authenticated translation service.');
 requireText('src/learning/progress.ts','activePairKey','Progress is not isolated by language pair.');
+requireText('src/learning/progress.ts','readProgressForPair','Per-language progress summaries are missing.');
 requireText('src/learning/mastery.ts','activePairKey','Mastery is not isolated by language pair.');
 requireText('src/learning/course-state.ts','activePairKey','CEFR/course state is not isolated by language pair.');
 requireText('src/learning/curriculum/index.ts','croatianA2Units','Croatian A2 is not registered.');
 requireText('src/learning/curriculum/index.ts',"id:'A2'",'Croatian multi-level progression is missing.');
 requireText('src/data/catalog.ts',"levels: ['A1','A2']",'Croatian A1-A2 range is not exposed in the language catalog.');
+requireText('src/components/TranslatorView.tsx','Als Karteikarte speichern','Translator results cannot be saved into personal vocabulary.');
 requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
 requireText('src/preview-entry.js','/api/preview/activity','Authenticated activity API is missing.');
 requireText('src/preview-entry.js','analyticsSummaries','Admin account responses are not enriched with usage analytics.');
@@ -90,4 +96,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, Croatian A1/A2, authenticated active-time analytics, admin account visibility, translator route, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, Croatian A1/A2, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
