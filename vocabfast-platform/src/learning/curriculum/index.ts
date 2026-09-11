@@ -6,6 +6,7 @@ import { englishC2Units as englishC2UnitsRaw } from './c2';
 import { englishA2ReleaseUnits, englishB1ReleaseUnits } from './release-units';
 import { englishB2ReleaseUnits, englishC1ReleaseUnits, englishC2ReleaseUnits } from './release-advanced-units';
 import { croatianA1Units as croatianA1UnitsRaw } from './hr-a1';
+import { croatianA2Units as croatianA2UnitsRaw } from './hr-a2';
 import { expandLesson } from '../lesson-expansion';
 import type { Lesson } from '../types';
 
@@ -36,8 +37,10 @@ export const englishCourseLevels: CourseLevel[] = [
 ];
 
 export const croatianA1Units:CourseUnit[]=expandUnits(croatianA1UnitsRaw);
+export const croatianA2Units:CourseUnit[]=expandUnits(croatianA2UnitsRaw);
 export const croatianCourseLevels:CourseLevel[]=[
-  {id:'A1',title:'Osnove',descriptor:'Ankommen & erste Gespräche',goal:'Kroatische Begrüßungen, Bestellungen, Reise- und Alltagssituationen aktiv verstehen und selbst formulieren.',units:croatianA1Units,productionTargetUnits:8}
+  {id:'A1',title:'Osnove',descriptor:'Ankommen & erste Gespräche',goal:'Kroatische Begrüßungen, Bestellungen, Reise- und Alltagssituationen aktiv verstehen und selbst formulieren.',units:croatianA1Units,productionTargetUnits:4},
+  {id:'A2',title:'Svakodnevna komunikacija',descriptor:'Selbstständiger im Alltag',goal:'Über Erlebnisse und Pläne sprechen, Probleme erklären, Termine abstimmen sowie Meinungen und Empfehlungen einfach ausdrücken.',units:croatianA2Units,productionTargetUnits:4}
 ];
 
 export function courseLevels(targetLanguage='en'):CourseLevel[] { return targetLanguage==='hr'?croatianCourseLevels:englishCourseLevels; }
