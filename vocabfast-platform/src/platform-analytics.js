@@ -1,9 +1,10 @@
 const MAX_GAP_MS=90_000;
 const MAX_DAYS=120;
+const REPORTING_TIMEZONE='Europe/Vienna';
 
 function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}});}
 function cleanId(value){return String(value||'').trim().slice(0,120);}
-function validDay(value){const day=String(value||'');return /^\d{4}-\d{2}-\d{2}$/.test(day)?day:new Date().toISOString().slice(0,10);}
+function reportingDay(){return new Intl.DateTimeFormat('sv-SE',{timeZone:REPORTING_TIMEZONE,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
 function normalize(record={}){
   const days=record.days&&typeof record.days==='object'?record.days:{};
   return {
@@ -15,14 +16,15 @@ function normalize(record={}){
   };
 }
 function publicUsage(record){
-  const usage=normalize(record),today=new Date().toISOString().slice(0,10),entries=Object.entries(usage.days).sort(([a],[b])=>a.localeCompare(b));
+  const usage=normalize(record),today=reportingDay(),entries=Object.entries(usage.days).sort(([a],[b])=>a.localeCompare(b));
   return {
     totalActiveSeconds:Math.round(usage.totalActiveSeconds),
     todayActiveSeconds:Math.round(usage.days[today]||0),
     firstActiveAt:usage.firstActiveAt||null,
     lastActiveAt:usage.lastActiveAt||null,
     activeDays:entries.filter(([,seconds])=>Number(seconds)>0).length,
-    recentActivity:entries.slice(-14).map(([date,seconds])=>({date,seconds:Math.round(Number(seconds)||0)}))
+    recentActivity:entries.slice(-14).map(([date,seconds])=>({date,seconds:Math.round(Number(seconds)||0)})),
+    reportingTimezone:REPORTING_TIMEZONE
   };
 }
 
@@ -31,7 +33,7 @@ export class PlatformAnalyticsStore {
 
   async ping(request){
     if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405);
-    const data=await request.json().catch(()=>({})),userId=cleanId(data.userId),day=validDay(data.day);
+    const data=await request.json().catch(()=>({})),userId=cleanId(data.userId),day=reportingDay();
     if(!userId)return json({error:'Benutzer fehlt.'},400);
     const key=`usage:${userId}`,now=Date.now(),current=normalize(await this.storage.get(key)||{});
     let credit=0;
