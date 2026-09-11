@@ -1,5 +1,5 @@
 import type { LessonResult } from './types';
-import { activePairKey } from './preferences';
+import { activePairKey, type LanguageCode } from './preferences';
 
 export type PlatformProgress = {
   completedLessonIds: string[];
@@ -20,6 +20,7 @@ const emptyProgress: PlatformProgress = {
   completedLessonIds: [], results: {}, totalXp: 0, sessions: 0, studyDates: [], currentStreak: 0, longestStreak: 0, lastStudyDate: null
 };
 
+const pairStorageKey=(sourceLanguage:LanguageCode,targetLanguage:LanguageCode)=>`${STORAGE_PREFIX}${sourceLanguage}-${targetLanguage}`;
 function storageKey(){return `${STORAGE_PREFIX}${activePairKey()}`;}
 
 function dateKey(date = new Date()) {
@@ -61,17 +62,24 @@ function normalize(parsed: Partial<PlatformProgress>): PlatformProgress {
   };
 }
 
-export function readProgress(): PlatformProgress {
+function readStoredProgress(key:string,isLegacyEnglishPair=false):PlatformProgress {
   try {
-    const key=storageKey();
     let raw=localStorage.getItem(key);
-    if(!raw&&activePairKey()==='de-en') {
+    if(!raw&&isLegacyEnglishPair) {
       raw=localStorage.getItem(LEGACY_KEY)??localStorage.getItem(LEGACY_KEY_V1);
       if(raw)localStorage.setItem(key,raw);
     }
     if (!raw) return { ...emptyProgress };
     return normalize(JSON.parse(raw) as Partial<PlatformProgress>);
   } catch { return { ...emptyProgress }; }
+}
+
+export function readProgressForPair(sourceLanguage:LanguageCode,targetLanguage:LanguageCode):PlatformProgress {
+  return readStoredProgress(pairStorageKey(sourceLanguage,targetLanguage),sourceLanguage==='de'&&targetLanguage==='en');
+}
+
+export function readProgress(): PlatformProgress {
+  return readStoredProgress(storageKey(),activePairKey()==='de-en');
 }
 
 export function saveLessonResult(result: LessonResult): PlatformProgress {
