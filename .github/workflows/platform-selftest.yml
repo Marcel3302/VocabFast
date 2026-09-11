@@ -37,6 +37,9 @@ jobs:
           name: VocabFast_PLATFORM_PREVIEW
           path: vocabfast-platform/dist
           retention-days: 14
+      - name: Inspect authentication service availability
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: node scripts/auth-service-inspect.mjs
       - name: Deploy isolated Cloudflare preview
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         run: npx wrangler deploy --config wrangler.preview.jsonc
