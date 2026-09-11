@@ -45,7 +45,7 @@ export default function Onboarding({ initial, onDone }: Props) {
           <label><span>Ich möchte lernen</span><select value={targetLanguage} onChange={event=>setTargetLanguage(event.target.value as LanguageCode)}>{targetOptions.map(language=><option key={language.code} value={language.code}>{language.name} · {language.nativeName}</option>)}</select></label>
         </div>
         <div className="pair-preview"><span>{source.symbol}</span><b>→</b><span>{target.symbol}</span><div><strong>{target.name} lernen</strong><small>mit {source.name} als Hilfs- und Übersetzungssprache</small></div></div>
-        <small className="onboarding-note">Englisch ist als A1–C2-Kurs verfügbar. Kroatisch startet mit einem vollständigen A1-Grundkurs und wird weiter ausgebaut. Übersetzen funktioniert zwischen allen angebotenen Sprachen.</small>
+        <small className="onboarding-note">Englisch ist als A1–C2-Lernpfad verfügbar, Kroatisch aktuell als A1–A2-Lernpfad. Übersetzen funktioniert zwischen allen angebotenen Sprachen. Weitere strukturierte Kurse werden schrittweise ergänzt.</small>
         <button className="onboarding-primary" onClick={()=>setStep(1)}>Weiter →</button>
       </section>}
 
@@ -66,7 +66,7 @@ export default function Onboarding({ initial, onDone }: Props) {
         <h1>{name.trim() || 'Du'}, dein {target.name} beginnt mit echten Situationen.</h1>
         <p>Dein Fortschritt wird für diese Sprachkombination separat gespeichert. Wenn du später eine weitere Sprache hinzufügst, bleibt dieser Lernstand vollständig erhalten.</p>
         <div className="ready-summary"><div><span>Ziel</span><strong>{reasons.find(item=>item.id===reason)?.title}</strong></div><div><span>Täglich</span><strong>{minutes} Minuten</strong></div><div><span>Lernpfad</span><strong>{source.symbol} → {target.symbol}</strong></div></div>
-        <div className="onboarding-actions"><button className="onboarding-back" onClick={()=>setStep(2)}>Zurück</button><button className="onboarding-primary" onClick={finish}>Einstufung starten →</button></div>
+        <div className="onboarding-actions"><button className="onboarding-back" onClick={()=>setStep(2)}>Zurück</button><button className="onboarding-primary" onClick={finish}>{targetLanguage==='en'?'Einstufung starten →':'Lernpfad starten →'}</button></div>
       </section>}
     </div>
   </div>;
