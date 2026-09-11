@@ -45,8 +45,18 @@ function clearBillingReturnQuery() {
 
 async function reconcileBillingReturn() {
   if(typeof window==='undefined')return;
-  const params=new URLSearchParams(window.location.search),upgrade=params.get('upgrade'),sessionId=params.get('session_id');
-  if(upgrade!=='success'||!sessionId){if(upgrade==='cancelled'||params.get('billing')==='return')clearBillingReturnQuery();return;}
+  const params=new URLSearchParams(window.location.search),upgrade=params.get('upgrade'),sessionId=params.get('session_id'),billingReturn=params.get('billing')==='return';
+  if(upgrade==='cancelled'){clearBillingReturnQuery();return;}
+  if(billingReturn){
+    try{
+      const response=await fetch('/api/preview/billing/refresh',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'}});
+      await responseJson<{ok:boolean;plan:'free'|'pro'}>(response);
+      window.dispatchEvent(new CustomEvent('vocabfast-billing',{detail:'updated'}));
+    }catch(error){console.error('billing portal return refresh failed',error);window.dispatchEvent(new CustomEvent('vocabfast-billing',{detail:'error'}));}
+    finally{clearBillingReturnQuery();}
+    return;
+  }
+  if(upgrade!=='success'||!sessionId)return;
   try {
     const response=await fetch('/api/preview/billing/sync',{
       method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId})
