@@ -35,6 +35,7 @@ async function refreshSubscription(env,c,userId,record){
 }
 export async function platformBilling(request,env){
  const url=new URL(request.url),c=config(env),checkoutReady=Boolean(c.key&&c.price),webhookReady=Boolean(c.secret)||(c.mode==='test'&&Boolean(c.key)),ready=checkoutReady;
+ if(url.pathname==='/api/preview/billing/health'&&request.method==='GET')return json({ok:true,mode:c.mode,checkoutReady,webhookReady});
  if(url.pathname==='/api/preview/billing/webhook'){
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405);
   if(!checkoutReady)return json({error:'Stripe-Webhook ist noch nicht vollständig eingerichtet.'},503);
