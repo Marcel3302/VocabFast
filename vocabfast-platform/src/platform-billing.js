@@ -11,6 +11,11 @@ export async function verifiedEvent(request,secret){
  let valid=false;for(const signature of signatures){if(!/^[a-f0-9]{64}$/i.test(signature))continue;const bytes=Uint8Array.from(signature.match(/../g),hex=>parseInt(hex,16));if(await crypto.subtle.verify('HMAC',key,bytes,encoder.encode(`${timestamp}.${raw}`)))valid=true;}
  if(!valid)throw new Error('Ungültige Stripe-Signatur.');return JSON.parse(raw);
 }
+async function canonicalTestEvent(request,c){
+ const body=await request.json().catch(()=>({})),eventId=String(body?.id||'');
+ if(c.mode!=='test'||!c.key||!/^evt_[A-Za-z0-9]+$/.test(eventId))throw new Error('Webhook konnte nicht verifiziert werden.');
+ return stripe(c,`events/${encodeURIComponent(eventId)}`);
+}
 async function publishSubscription(env,c,subscription,eventId,created){
  if(subscription.metadata?.platform!=='language-v2'||!subscription.items?.data?.some(item=>objectId(item.price)===c.price))return {ignored:true};
  const userId=subscription.metadata?.vocabfast_user_id;if(!userId)return {ignored:true};
@@ -29,11 +34,11 @@ async function refreshSubscription(env,c,userId,record){
  return {record:refreshedRecord,subscription};
 }
 export async function platformBilling(request,env){
- const url=new URL(request.url),c=config(env),checkoutReady=Boolean(c.key&&c.price),webhookReady=Boolean(c.secret),ready=checkoutReady;
+ const url=new URL(request.url),c=config(env),checkoutReady=Boolean(c.key&&c.price),webhookReady=Boolean(c.secret)||(c.mode==='test'&&Boolean(c.key)),ready=checkoutReady;
  if(url.pathname==='/api/preview/billing/webhook'){
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405);
-  if(!checkoutReady||!webhookReady)return json({error:'Stripe-Webhook ist noch nicht vollständig eingerichtet.'},503);
-  let event;try{event=await verifiedEvent(request,c.secret);}catch{return json({error:'Ungültige Stripe-Signatur.'},400);}
+  if(!checkoutReady)return json({error:'Stripe-Webhook ist noch nicht vollständig eingerichtet.'},503);
+  let event;try{event=c.secret?await verifiedEvent(request,c.secret):await canonicalTestEvent(request,c);}catch{return json({error:'Ungültige Stripe-Signatur.'},400);}
   if(event.livemode!==(c.mode==='live'))return json({error:'Stripe-Modus stimmt nicht überein.'},400);
   const object=event.data?.object||{},subscriptionId=event.type?.startsWith('customer.subscription.')?object.id:objectId(object.subscription)||objectId(object.parent?.subscription_details?.subscription);
   if(!subscriptionId)return json({received:true,ignored:true});
