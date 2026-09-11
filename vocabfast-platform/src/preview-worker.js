@@ -466,6 +466,15 @@ export class PreviewAccountStore {
 
   async fetch(request) {
     const path=new URL(request.url).pathname;
+    if(path==='/internal/platform-billing'){
+      if(request.method==='GET'){const userId=new URL(request.url).searchParams.get('user');return json(await this.storage.get(`billing:${userId}`)||{});}
+      const data=await request.json();const account=await this.storage.get(`account:${data.userId}`);if(!account)return json({received:true,ignored:true});
+      const previous=await this.storage.get(`billing:${data.userId}`);
+      if(previous?.eventId===data.eventId||Number(previous?.created)>Number(data.created))return json({received:true,duplicate:true});
+      const active=['active','trialing'].includes(data.status);
+      const next={...account,plan:active?'pro':account.planSource==='stripe'?'free':account.plan,planSource:active?'stripe':account.planSource};
+      await this.storage.put({[`billing:${data.userId}`]:data,[`account:${data.userId}`]:next});return json({received:true});
+    }
     if(path==='/api/preview/auth/register'&&request.method==='POST')return this.register(request);
     if(path==='/api/preview/auth/login'&&request.method==='POST')return this.login(request);
     if(path==='/api/preview/auth/logout'&&request.method==='POST')return this.logout(request);

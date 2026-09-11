@@ -119,7 +119,7 @@ export function queueAccountSync(delay=750) {
   if(syncTimer!==undefined)window.clearTimeout(syncTimer);
   syncTimer=window.setTimeout(()=>{
     syncTimer=undefined;
-    syncInFlight=saveAccountState().catch(()=>{}).finally(()=>{syncInFlight=null;});
+    syncInFlight=saveAccountState().then(()=>window.dispatchEvent(new CustomEvent('vocabfast-sync',{detail:'saved'}))).catch(()=>window.dispatchEvent(new CustomEvent('vocabfast-sync',{detail:'error'}))).then(()=>{}).finally(()=>{syncInFlight=null;});
   },delay);
 }
 
