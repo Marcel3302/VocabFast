@@ -18,9 +18,9 @@ const proFeatures = [
   ['KI-Sprachcoach', 'Rollenspiele, freie Dialoge und persönliches Feedback'],
   ['Aussprache & Sprechen', 'Spracherkennung, bessere Stimmen und gezielte Wiederholung'],
   ['Fachsprache', 'Aviation, Business, Medizin, Technik & IT und Tourismus'],
-  ['Dokumentlernen', 'Eigene PDFs und Texte in persönliche Übungen verwandeln'],
+  ['Intensives Training', 'Zusätzliche Produktions-, Hör-, Diktat- und Sprechübungen'],
   ['Adaptive Analyse', 'Schwachstellen, Mastery und intelligente Wiederholungen'],
-  ['Kompetenztests', 'Strukturierte Tests, Einstufung und Fortschrittsnachweise']
+  ['Kompetenztraining', 'Gezielte Sessions nach Niveau, Lernziel und Übungstyp']
 ];
 
 function periodLabel(value?:string|null){if(!value)return '';try{return new Intl.DateTimeFormat('de-AT',{dateStyle:'medium'}).format(new Date(value));}catch{return '';}}
@@ -48,8 +48,8 @@ export default function ProModal({ onClose,user }: Props) {
       {activePlan&&<div className="pro-test-note"><strong>PRO AKTIV</strong>{billing?.cancelAtPeriodEnd?<> · endet am {renewalDate||'Ende der aktuellen Laufzeit'}</>:renewalDate?<> · nächste Laufzeit ab {renewalDate}</>:null}{billing?.subscriptionStatus&&<> · Status: {billing.subscriptionStatus}</>}</div>}
       <div className="pro-feature-grid">{proFeatures.map(([title,copy])=><article key={title}><span>✓</span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div>
       <div className="plan-compare">
-        <article><span>FREE</span><h2>VocabFast Free</h2><strong>0 €</strong><ul><li>A1–C2-Lernpfad</li><li>Wortschatz & Grammatik</li><li>Hörtraining</li><li>Basis-Fortschritt</li></ul></article>
-        <article className="recommended"><span>PRO · EMPFOHLEN</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>alle Fachbereiche</li><li>KI-Coach & Dokumentlernen</li></ul></article>
+        <article><span>FREE</span><h2>VocabFast Free</h2><strong>0 €</strong><ul><li>verfügbare Sprachlernpfade</li><li>Wortschatz & Grammatik</li><li>Hörtraining</li><li>Basis-Fortschritt</li></ul></article>
+        <article className="recommended"><span>PRO · EMPFOHLEN</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>Fachbereiche</li><li>KI-Coach & erweiterte Analyse</li></ul></article>
       </div>
       {error&&<p className="pro-test-note" role="alert">{error}</p>}
       {billing&&!billing.ready&&<p className="pro-test-note">Pro-Zahlungen sind technisch vorbereitet, aber noch nicht vollständig freigeschaltet. Dein kostenloser Lernzugang bleibt uneingeschränkt nutzbar.</p>}
