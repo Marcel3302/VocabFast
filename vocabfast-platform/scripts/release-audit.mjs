@@ -10,6 +10,8 @@ const requireFile=(file,message)=>{if(!existsSync(resolve(root,file)))failures.p
 
 requireFile('src/mobile-release.css','Mobile release stylesheet is missing.');
 requireFile('src/preview-entry.js','Preview entry worker is missing.');
+requireFile('src/platform-analytics.js','Account activity analytics Durable Object is missing.');
+requireFile('src/learning/activity.ts','Authenticated active-time tracker is missing.');
 requireFile('src/components/TranslatorView.tsx','Multilingual translator UI is missing.');
 requireFile('src/learning/localization.ts','Source-language lesson localization is missing.');
 requireFile('src/learning/curriculum/hr-a1.ts','Croatian A1 course is missing.');
@@ -55,6 +57,16 @@ requireText('src/learning/curriculum/index.ts','croatianA2Units','Croatian A2 is
 requireText('src/learning/curriculum/index.ts',"id:'A2'",'Croatian multi-level progression is missing.');
 requireText('src/data/catalog.ts',"levels: ['A1','A2']",'Croatian A1-A2 range is not exposed in the language catalog.');
 requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
+requireText('src/preview-entry.js','/api/preview/activity','Authenticated activity API is missing.');
+requireText('src/preview-entry.js','analyticsSummaries','Admin account responses are not enriched with usage analytics.');
+requireText('src/learning/account.ts','startActivityTracking','Account bootstrap does not start active-time tracking.');
+requireText('src/learning/activity.ts','IDLE_AFTER_MS','Active-time tracking must stop counting idle tabs.');
+requireText('src/platform-analytics.js','totalActiveSeconds','Usage analytics do not aggregate active time.');
+requireText('src/platform-analytics.js','recentActivity','Usage analytics do not expose recent daily history.');
+requireText('src/admin/AdminPortal.tsx','Aktive Zeit gesamt','Admin portal does not show per-account usage time.');
+requireText('src/admin/AdminPortal.tsx','Meiste Nutzungszeit','Admin portal cannot sort accounts by usage time.');
+requireText('wrangler.preview.jsonc','PLATFORM_ANALYTICS','Cloudflare preview is missing the isolated analytics Durable Object binding.');
+requireText('wrangler.preview.jsonc','PlatformAnalyticsStore','Cloudflare preview does not export the analytics Durable Object class.');
 requireText('wrangler.preview.jsonc','vocabfast.net/api/platform/translate','Translation API route is not wired.');
 requireText('wrangler.preview.jsonc','vocabfast.net/admin*','The new protected admin SPA route is not wired.');
 requireText('wrangler.preview.jsonc','vocabfast.net/api/admin/context','Protected admin context bridge is not wired.');
@@ -78,4 +90,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, Croatian A1/A2, translator route, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, Croatian A1/A2, authenticated active-time analytics, admin account visibility, translator route, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
