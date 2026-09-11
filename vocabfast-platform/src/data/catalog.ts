@@ -28,7 +28,7 @@ export type LearningUnit = {
 
 export const languages: Language[] = [
   { code: 'en', name: 'Englisch', nativeName: 'English', symbol: 'EN', available: true, courseAvailable: true, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
-  { code: 'hr', name: 'Kroatisch', nativeName: 'Hrvatski', symbol: 'HR', available: true, courseAvailable: true, translationAvailable: true, levels: ['A1'] },
+  { code: 'hr', name: 'Kroatisch', nativeName: 'Hrvatski', symbol: 'HR', available: true, courseAvailable: true, translationAvailable: true, levels: ['A1','A2'] },
   { code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
   { code: 'fr', name: 'Französisch', nativeName: 'Français', symbol: 'FR', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
   { code: 'de', name: 'Deutsch', nativeName: 'Deutsch', symbol: 'DE', available: true, courseAvailable: false, translationAvailable: true, levels: ['A1','A2','B1','B2','C1','C2'] },
