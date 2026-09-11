@@ -1,16 +1,25 @@
 import { useRef, useState } from 'react';
 import { loginAccount, registerAccount, type AccountUser } from '../learning/account';
 import './welcome-gate.css';
+import './welcome-auth-polish.css';
 
 type Props={onAuthenticated:(user:AccountUser,isNew:boolean)=>void|Promise<void>;notice?:string};
 type Mode='login'|'register';
 const legalBase='https://vocabfast.net';
 
 export default function WelcomeGate({onAuthenticated,notice}:Props){
-  const [mode,setMode]=useState<Mode>('login'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const [mode,setMode]=useState<Mode>('login'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
   const authRef=useRef<HTMLElement|null>(null),nameRef=useRef<HTMLInputElement|null>(null),emailRef=useRef<HTMLInputElement|null>(null);
-  function focusAuth(nextMode:Mode){setMode(nextMode);setError('');requestAnimationFrame(()=>{authRef.current?.scrollIntoView({behavior:'smooth',block:'center'});window.setTimeout(()=>nextMode==='register'?nameRef.current?.focus():emailRef.current?.focus(),260);});}
-  async function submit(event:React.FormEvent){event.preventDefault();if(busy)return;setBusy(true);setError('');try{const result=mode==='register'?await registerAccount({name,email,password}):await loginAccount({email,password});setPassword('');await onAuthenticated(result.user,result.isNew);}catch(reason){setError(reason instanceof Error?reason.message:'Die Anmeldung ist fehlgeschlagen.');}finally{setBusy(false);}}
+  function selectMode(nextMode:Mode){setMode(nextMode);setError('');setConfirmPassword('');}
+  function focusAuth(nextMode:Mode){selectMode(nextMode);requestAnimationFrame(()=>{authRef.current?.scrollIntoView({behavior:'smooth',block:'center'});window.setTimeout(()=>nextMode==='register'?nameRef.current?.focus():emailRef.current?.focus(),260);});}
+  async function submit(event:React.FormEvent){
+    event.preventDefault();if(busy)return;setError('');
+    if(mode==='register'&&password.length<12){setError('Dein Passwort muss mindestens 12 Zeichen lang sein.');return;}
+    if(mode==='register'&&password!==confirmPassword){setError('Die beiden Passwörter stimmen nicht überein.');return;}
+    setBusy(true);
+    try{const result=mode==='register'?await registerAccount({name,email,password}):await loginAccount({email,password});setPassword('');setConfirmPassword('');await onAuthenticated(result.user,result.isNew);}catch(reason){setError(reason instanceof Error?reason.message:'Die Anmeldung ist fehlgeschlagen.');}finally{setBusy(false);}
+  }
+  const passwordsMatch=Boolean(confirmPassword)&&password===confirmPassword;
   return <div className="welcome-shell">
     <header className="welcome-topbar">
       <a className="welcome-brand" href="/" aria-label="VocabFast Startseite"><span>V</span><div><strong>VocabFast</strong><small>Language Learning</small></div></a>
@@ -49,15 +58,16 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
       <aside className="welcome-side">
         <section className="welcome-auth-card" ref={authRef}>
           <div className="welcome-auth-head"><span className="welcome-auth-mark">V</span><div><small>DEIN VOCABFAST KONTO</small><h2>{mode==='login'?'Schön, dass du wieder da bist.':'In wenigen Schritten startklar.'}</h2></div></div>
-          <div className="welcome-auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>{setMode('login');setError('')}}>Anmelden</button><button className={mode==='register'?'active':''} onClick={()=>{setMode('register');setError('')}}>Registrieren</button></div>
+          <div className="welcome-auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>selectMode('login')}>Anmelden</button><button className={mode==='register'?'active':''} onClick={()=>selectMode('register')}>Registrieren</button></div>
           {notice&&<div className="welcome-notice">{notice}</div>}
           {mode==='register'&&<div className="welcome-register-promise"><strong>Nach der Registrierung:</strong><span>Sprachen wählen → Lernziel festlegen → passenden Einstieg finden → direkt loslegen.</span></div>}
           <form onSubmit={submit}>
             {mode==='register'&&<label><span>Name</span><input ref={nameRef} autoComplete="name" value={name} onChange={event=>setName(event.target.value)} placeholder="Wie dürfen wir dich nennen?" required minLength={2}/></label>}
             <label><span>E-Mail</span><input ref={emailRef} type="email" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@beispiel.at" required/></label>
-            <label><span>Passwort</span><input type="password" autoComplete={mode==='register'?'new-password':'current-password'} value={password} onChange={event=>setPassword(event.target.value)} placeholder={mode==='register'?'Mindestens 12 Zeichen':'Dein Passwort'} required minLength={mode==='register'?12:1}/></label>
+            <div className="welcome-field"><label htmlFor="vf-password">Passwort</label><div className="welcome-password-row"><input id="vf-password" type={showPassword?'text':'password'} autoComplete={mode==='register'?'new-password':'current-password'} value={password} onChange={event=>setPassword(event.target.value)} placeholder={mode==='register'?'Mindestens 12 Zeichen':'Dein Passwort'} required minLength={mode==='register'?12:1}/><button type="button" className="welcome-password-toggle" onClick={()=>setShowPassword(value=>!value)}>{showPassword?'Verbergen':'Anzeigen'}</button></div></div>
+            {mode==='register'&&<><div className="welcome-field"><label htmlFor="vf-password-confirm">Passwort wiederholen</label><div className="welcome-password-row"><input id="vf-password-confirm" type={showPassword?'text':'password'} autoComplete="new-password" value={confirmPassword} onChange={event=>setConfirmPassword(event.target.value)} placeholder="Passwort erneut eingeben" required minLength={12}/></div></div><div className="welcome-password-hint"><span>Mindestens 12 Zeichen.</span>{confirmPassword&&<strong className={passwordsMatch?'match':'mismatch'}>{passwordsMatch?'✓ Passwörter stimmen überein':'Passwörter stimmen noch nicht überein'}</strong>}</div></>}
             {error&&<div className="welcome-error">{error}</div>}
-            <button className="welcome-submit" disabled={busy||!email||!password||(mode==='register'&&!name.trim())}>{busy?'Bitte warten …':mode==='login'?'Anmelden →':'Kostenloses Konto erstellen →'}</button>
+            <button className="welcome-submit" disabled={busy||!email||!password||(mode==='register'&&(!name.trim()||password.length<12||password!==confirmPassword))}>{busy?'Bitte warten …':mode==='login'?'Anmelden →':'Kostenloses Konto erstellen →'}</button>
           </form>
           <div className="welcome-card-note">{mode==='register'?<>Mit der Registrierung akzeptierst du unsere <a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a> und bestätigst, die <a href={`${legalBase}/datenschutz.html`}>Datenschutzhinweise</a> gelesen zu haben.</>:<>Nach der Anmeldung wird dein gespeicherter Lernstand automatisch geladen.</>}</div>
           <div className="welcome-security"><span>✓</span><p><strong>Dein Lernstand bleibt bei dir.</strong> Konto und Fortschritt werden sicher gespeichert und geräteübergreifend synchronisiert.</p></div>
