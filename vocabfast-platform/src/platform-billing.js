@@ -19,11 +19,20 @@ async function publishSubscription(env,c,subscription,eventId,created){
  return {ignored:false,userId};
 }
 async function currentUser(request,env){const response=await store(env).fetch(new Request(new URL('/api/preview/me',request.url),{headers:request.headers}));const data=await response.json().catch(()=>({}));return data.user||null;}
+async function billingRecord(env,userId){const response=await store(env).fetch(new Request(`https://internal/internal/platform-billing?user=${encodeURIComponent(userId)}`));return response.json().catch(()=>({}));}
+async function refreshSubscription(env,c,userId,record){
+ if(!c.key||!record?.subscriptionId)return {record,user:null};
+ const subscription=await stripe(c,`subscriptions/${encodeURIComponent(record.subscriptionId)}`);
+ const result=await publishSubscription(env,c,subscription,`refresh:${subscription.id}:${subscription.status}:${subscription.current_period_end||0}`,Math.floor(Date.now()/1000));
+ if(result.ignored)return {record,user:null};
+ const refreshedRecord=await billingRecord(env,userId);
+ return {record:refreshedRecord,subscription};
+}
 export async function platformBilling(request,env){
- const url=new URL(request.url),c=config(env),checkoutReady=Boolean(c.key&&c.price),webhookReady=Boolean(c.secret),ready=checkoutReady&&webhookReady;
+ const url=new URL(request.url),c=config(env),checkoutReady=Boolean(c.key&&c.price),webhookReady=Boolean(c.secret),ready=checkoutReady;
  if(url.pathname==='/api/preview/billing/webhook'){
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405);
-  if(!ready)return json({error:'Stripe-Verknüpfung ist noch nicht vollständig eingerichtet.'},503);
+  if(!checkoutReady||!webhookReady)return json({error:'Stripe-Webhook ist noch nicht vollständig eingerichtet.'},503);
   let event;try{event=await verifiedEvent(request,c.secret);}catch{return json({error:'Ungültige Stripe-Signatur.'},400);}
   if(event.livemode!==(c.mode==='live'))return json({error:'Stripe-Modus stimmt nicht überein.'},400);
   const object=event.data?.object||{},subscriptionId=event.type?.startsWith('customer.subscription.')?object.id:objectId(object.subscription)||objectId(object.parent?.subscription_details?.subscription);
@@ -33,14 +42,21 @@ export async function platformBilling(request,env){
  }
  const user=await currentUser(request,env);if(!user)return json({error:'Bitte zuerst anmelden.'},401);
  if(url.pathname==='/api/preview/billing/status'&&request.method==='GET'){
-  const recordResponse=await store(env).fetch(new Request(`https://internal/internal/platform-billing?user=${encodeURIComponent(user.id)}`));const record=await recordResponse.json().catch(()=>({}));
-  return json({ready,checkoutReady,webhookReady,mode:c.mode,plan:user.plan,subscriptionStatus:record.status||'',cancelAtPeriodEnd:Boolean(record.cancelAtPeriodEnd),currentPeriodEnd:record.currentPeriodEnd||null});
+  let record=await billingRecord(env,user.id);
+  if(record.subscriptionId&&checkoutReady){try{record=(await refreshSubscription(env,c,user.id,record)).record;}catch(error){console.error('stripe status refresh failed',error);}}
+  const refreshedUser=await currentUser(request,env);
+  return json({ready,checkoutReady,webhookReady,mode:c.mode,plan:refreshedUser?.plan||user.plan,subscriptionStatus:record.status||'',cancelAtPeriodEnd:Boolean(record.cancelAtPeriodEnd),currentPeriodEnd:record.currentPeriodEnd||null});
  }
  if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405);
  if(request.headers.get('Origin')!==url.origin)return json({error:'Ungültiger Ursprung.'},403);
  if(!checkoutReady)return json({error:'Pro-Zahlungen sind noch nicht freigeschaltet. Die Stripe-Verknüpfung wird eingerichtet.'},503);
  try{
-  const recordResponse=await store(env).fetch(new Request(`https://internal/internal/platform-billing?user=${encodeURIComponent(user.id)}`));const record=await recordResponse.json();
+  const record=await billingRecord(env,user.id);
+  if(url.pathname==='/api/preview/billing/refresh'){
+   if(!record.subscriptionId)return json({ok:true,plan:user.plan,subscriptionStatus:record.status||''});
+   const refreshed=await refreshSubscription(env,c,user.id,record),refreshedUser=await currentUser(request,env);
+   return json({ok:true,plan:refreshedUser?.plan||user.plan,subscriptionStatus:refreshed.record.status||''});
+  }
   if(url.pathname==='/api/preview/billing/sync'){
    const body=await request.json().catch(()=>({})),sessionId=String(body.sessionId||'');
    if(!/^cs_(?:test_)?[A-Za-z0-9]+$/.test(sessionId))return json({error:'Ungültige Checkout-Sitzung.'},400);
@@ -54,7 +70,6 @@ export async function platformBilling(request,env){
   if(url.pathname==='/api/preview/billing/portal'){if(!record.customerId)return json({error:'Zu diesem Konto besteht noch kein Stripe-Abo.'},409);const session=await stripe(c,'billing_portal/sessions',{customer:record.customerId,return_url:`${url.origin}/?billing=return`});return json({url:session.url});}
   if(url.pathname!=='/api/preview/billing/checkout')return json({error:'Route nicht gefunden.'},404);
   if(user.plan==='pro')return json({error:'Dein Pro-Zugang ist bereits aktiv.'},409);
-  const suffix=Array.from(crypto.getRandomValues(new Uint8Array(8)),n=>String.fromCharCode(97+n%26)).join('');
-  const session=await stripe(c,'checkout/sessions',{mode:'subscription',integration_identifier:`vocabfast_${suffix}`,'line_items[0][price]':c.price,'line_items[0][quantity]':'1',success_url:`${url.origin}/?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,cancel_url:`${url.origin}/?upgrade=cancelled`,client_reference_id:user.id,...(record.customerId?{customer:record.customerId}:{customer_email:user.email}),'metadata[platform]':'language-v2','metadata[vocabfast_user_id]':user.id,'subscription_data[metadata][platform]':'language-v2','subscription_data[metadata][vocabfast_user_id]':user.id,'subscription_data[metadata][price_key]':'vocabfast-pro-monthly'});return json({url:session.url,mode:c.mode});
+  const session=await stripe(c,'checkout/sessions',{mode:'subscription','line_items[0][price]':c.price,'line_items[0][quantity]':'1',success_url:`${url.origin}/?upgrade=success&session_id={CHECKOUT_SESSION_ID}`,cancel_url:`${url.origin}/?upgrade=cancelled`,client_reference_id:user.id,...(record.customerId?{customer:record.customerId}:{customer_email:user.email}),'metadata[platform]':'language-v2','metadata[vocabfast_user_id]':user.id,'subscription_data[metadata][platform]':'language-v2','subscription_data[metadata][vocabfast_user_id]':user.id,'subscription_data[metadata][price_key]':'vocabfast-pro-monthly'});return json({url:session.url,mode:c.mode});
  }catch(error){console.error('stripe billing route failed',error);return json({error:error instanceof Error?error.message:'Stripe ist gerade nicht erreichbar.'},503);}
 }
