@@ -32,6 +32,33 @@ async function responseJson<T>(response:Response):Promise<T> {
   return data;
 }
 
+function clearBillingReturnQuery() {
+  if(typeof window==='undefined')return;
+  const url=new URL(window.location.href);
+  url.searchParams.delete('upgrade');
+  url.searchParams.delete('session_id');
+  url.searchParams.delete('billing');
+  window.history.replaceState({},'',`${url.pathname}${url.search}${url.hash}`);
+}
+
+async function reconcileBillingReturn() {
+  if(typeof window==='undefined')return;
+  const params=new URLSearchParams(window.location.search),upgrade=params.get('upgrade'),sessionId=params.get('session_id');
+  if(upgrade!=='success'||!sessionId){if(upgrade==='cancelled'||params.get('billing')==='return')clearBillingReturnQuery();return;}
+  try {
+    const response=await fetch('/api/preview/billing/sync',{
+      method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId})
+    });
+    await responseJson<{ok:boolean;plan:'free'|'pro'}>(response);
+    window.dispatchEvent(new CustomEvent('vocabfast-billing',{detail:'updated'}));
+  } catch(error) {
+    console.error('billing return reconciliation failed',error);
+    window.dispatchEvent(new CustomEvent('vocabfast-billing',{detail:'error'}));
+  } finally {
+    clearBillingReturnQuery();
+  }
+}
+
 export async function currentAccount():Promise<AccountUser|null> {
   const response=await fetch(freshApiUrl('/api/preview/me'),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
   const data=await responseJson<{user:AccountUser|null}>(response);
@@ -133,6 +160,7 @@ export async function flushAccountSync() {
 }
 
 export async function bootstrapAccount() {
+  await reconcileBillingReturn();
   const user=await currentAccount();
   if(!user)return {user:null as AccountUser|null,hasRemoteState:false};
   const hasRemoteState=await loadAccountState();
