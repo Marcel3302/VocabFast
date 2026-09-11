@@ -32,11 +32,13 @@
   },
   "durable_objects": {
     "bindings": [
-      { "name": "PREVIEW_ACCOUNTS", "class_name": "PreviewAccountStore" }
+      { "name": "PREVIEW_ACCOUNTS", "class_name": "PreviewAccountStore" },
+      { "name": "PLATFORM_ANALYTICS", "class_name": "PlatformAnalyticsStore" }
     ]
   },
   "exports": {
-    "PreviewAccountStore": { "type": "durable-object", "storage": "sqlite" }
+    "PreviewAccountStore": { "type": "durable-object", "storage": "sqlite" },
+    "PlatformAnalyticsStore": { "type": "durable-object", "storage": "sqlite" }
   },
   "observability": { "enabled": true }
 }
