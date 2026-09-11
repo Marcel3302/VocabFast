@@ -13,6 +13,7 @@ function json(data,status=200,headers={}){return new Response(JSON.stringify(dat
 function sameOrigin(request){const origin=request.headers.get('Origin');return !origin||origin===new URL(request.url).origin;}
 function accountStore(env){if(!env?.PREVIEW_ACCOUNTS)throw new Error('Account storage is not configured.');const id=env.PREVIEW_ACCOUNTS.idFromName('global');return env.PREVIEW_ACCOUNTS.get(id);}
 function analyticsStore(env){if(!env?.PLATFORM_ANALYTICS)throw new Error('Analytics storage is not configured.');const id=env.PLATFORM_ANALYTICS.idFromName('global');return env.PLATFORM_ANALYTICS.get(id);}
+function syntheticAccount(account){return /^ci-\d+-\d+@example\.invalid$/i.test(String(account?.email||''));}
 
 async function productionRequest(env,request,path){
   const sourceUrl=new URL(request.url),targetUrl=new URL(path||`${sourceUrl.pathname}${sourceUrl.search}`,PRODUCTION_WORKER_ORIGIN),headers=new Headers(request.headers);
@@ -45,8 +46,9 @@ async function enrichAdminResponse(upstream,env){
   const status=upstream.status,data=await upstream.json().catch(()=>null);
   if(!data||!upstream.ok)return data?json(data,status):json({error:'Admin-Daten konnten nicht gelesen werden.'},502);
   if(Array.isArray(data.accounts)){
-    const usage=await analyticsSummaries(env,data.accounts.map(account=>account.id).filter(Boolean));
-    return json({...data,accounts:data.accounts.map(account=>({...account,...(usage[account.id]||{})}))},status);
+    const accounts=data.accounts.filter(account=>!syntheticAccount(account));
+    const usage=await analyticsSummaries(env,accounts.map(account=>account.id).filter(Boolean));
+    return json({...data,accounts:accounts.map(account=>({...account,...(usage[account.id]||{})}))},status);
   }
   if(data.account?.id)return json({...data,account:{...data.account,...await analyticsOne(env,data.account.id)}},status);
   return json(data,status);
@@ -72,8 +74,7 @@ async function activityApi(request,env){
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});
   if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
   const user=await authenticatedPlatformUser(request,env);if(!user)return json({error:'Bitte zuerst anmelden.'},401);
-  const data=await request.json().catch(()=>({})),day=String(data.day||'');
-  return analyticsStore(env).fetch(new Request('https://analytics.internal/internal/analytics/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:user.id,day})}));
+  return analyticsStore(env).fetch(new Request('https://analytics.internal/internal/analytics/ping',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:user.id})}));
 }
 async function deleteAccountWithAnalytics(request,env){
   const user=await authenticatedPlatformUser(request,env),response=await previewWorker.fetch(request,env);
