@@ -95,11 +95,11 @@ export async function changeAccountPassword(input:{currentPassword:string;newPas
 }
 
 export async function deleteAccount(password:string) {
-  stopActivityTracking();
   const response=await fetch('/api/preview/account',{
     method:'DELETE',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})
   });
   await responseJson<{ok:boolean}>(response);
+  stopActivityTracking();
 }
 
 export function clearPlatformStorage() {
