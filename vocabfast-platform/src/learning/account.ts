@@ -1,3 +1,5 @@
+import { startActivityTracking, stopActivityTracking } from './activity';
+
 export type AccountUser = {
   id:string;
   email:string;
@@ -80,6 +82,7 @@ export async function loginAccount(input:{email:string;password:string}):Promise
 }
 
 export async function logoutAccount() {
+  stopActivityTracking();
   const response=await fetch('/api/preview/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
   await responseJson<{ok:boolean}>(response);
 }
@@ -92,6 +95,7 @@ export async function changeAccountPassword(input:{currentPassword:string;newPas
 }
 
 export async function deleteAccount(password:string) {
+  stopActivityTracking();
   const response=await fetch('/api/preview/account',{
     method:'DELETE',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({password})
   });
@@ -162,7 +166,8 @@ export async function flushAccountSync() {
 export async function bootstrapAccount() {
   await reconcileBillingReturn();
   const user=await currentAccount();
-  if(!user)return {user:null as AccountUser|null,hasRemoteState:false};
+  if(!user){stopActivityTracking();return {user:null as AccountUser|null,hasRemoteState:false};}
+  startActivityTracking();
   const hasRemoteState=await loadAccountState();
   return {user,hasRemoteState};
 }
