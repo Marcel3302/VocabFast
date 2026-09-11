@@ -44,6 +44,14 @@
     {
       "pattern": "vocabfast.net/sw.js",
       "zone_name": "vocabfast.net"
+    },
+    {
+      "pattern": "vocabfast.net/api/admin/login",
+      "zone_name": "vocabfast.net"
+    },
+    {
+      "pattern": "vocabfast.net/api/admin/logout",
+      "zone_name": "vocabfast.net"
     }
   ],
   "assets": {
@@ -73,5 +81,11 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "services": [
+    {
+      "binding": "LEGACY_AUTH",
+      "service": "vocabfast"
+    }
+  ]
 }

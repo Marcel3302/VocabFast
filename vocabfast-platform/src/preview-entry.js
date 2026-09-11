@@ -11,14 +11,15 @@ function json(data,status=200,headers={}){return new Response(JSON.stringify(dat
 function sameOrigin(request){const origin=request.headers.get('Origin');return !origin||origin===new URL(request.url).origin;}
 function accountStore(env){if(!env?.PREVIEW_ACCOUNTS)throw new Error('Account storage is not configured.');const id=env.PREVIEW_ACCOUNTS.idFromName('global');return env.PREVIEW_ACCOUNTS.get(id);}
 
-async function productionRequest(_env,request,path){
+async function productionRequest(env,request,path){
   const sourceUrl=new URL(request.url),targetUrl=new URL(path||`${sourceUrl.pathname}${sourceUrl.search}`,PRODUCTION_WORKER_ORIGIN),headers=new Headers(request.headers);
   headers.set('Origin',PRODUCTION_ORIGIN);headers.set('Referer',`${PRODUCTION_ORIGIN}/admin`);headers.set('Accept','application/json');headers.delete('host');
   const init={method:request.method,headers,redirect:'manual'};
   if(request.method!=='GET'&&request.method!=='HEAD')init.body=await request.arrayBuffer();
-  return fetch(new Request(targetUrl,init));
+  if(!env.LEGACY_AUTH?.fetch)throw new Error('Admin authentication service is not configured.');
+  return env.LEGACY_AUTH.fetch(new Request(targetUrl,init));
 }
-async function proxyAdminAuth(request,env){const upstream=await productionRequest(env,request),responseHeaders=new Headers(upstream.headers);responseHeaders.set('Cache-Control','no-store');responseHeaders.set('X-Robots-Tag','noindex, nofollow, noarchive');return new Response(upstream.body,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});}
+async function proxyAdminAuth(request,env){if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);const upstream=await productionRequest(env,request),responseHeaders=new Headers(upstream.headers);responseHeaders.set('Cache-Control','no-store');responseHeaders.set('X-Robots-Tag','noindex, nofollow, noarchive');return new Response(upstream.body,{status:upstream.status,statusText:upstream.statusText,headers:responseHeaders});}
 async function verifyAdminSession(request,env){const cookie=request.headers.get('Cookie')||'';if(!cookie.includes('vf_admin='))return null;const headers=new Headers({Accept:'application/json',Cookie:cookie,'User-Agent':'VocabFast-Platform-Admin-Gateway'});const upstream=await productionRequest(env,new Request(request.url,{method:'GET',headers}),'/api/admin/me');if(!upstream.ok)return null;const data=await upstream.json().catch(()=>null),admin=data?.admin;if(!admin)return null;return{superadmin:true,username:admin.username||'admin',name:'Superadmin',createdAt:admin.createdAt||null,expiresAt:admin.expiresAt||null,permissions:['users.read','users.edit','plans.manage','security.manage','progress.edit','accounts.manage']};}
 async function platformAdmin(request,env){const context=await verifyAdminSession(request,env);if(!context)return json({error:'Admin-Anmeldung erforderlich.'},401);const url=new URL(request.url);if(url.pathname==='/api/preview/admin/context'&&request.method==='GET')return json({context});if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);const write=request.method!=='GET'&&request.method!=='HEAD';if(write&&request.headers.get('X-VocabFast-Admin')!=='1')return json({error:'Admin-Sicherheitsprüfung fehlgeschlagen.'},403);if(url.pathname==='/api/preview/admin/accounts'&&request.method==='GET')return accountStore(env).fetch(request);if(/^\/api\/preview\/admin\/accounts\/[^/]+(?:\/(?:sessions|password|state))?$/.test(url.pathname))return accountStore(env).fetch(request);return json({error:'Admin-Route nicht gefunden.'},404);}
 
