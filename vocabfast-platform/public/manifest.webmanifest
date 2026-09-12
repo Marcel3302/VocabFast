@@ -1,0 +1,14 @@
+{
+  "name": "VocabFast Language Platform",
+  "short_name": "VocabFast",
+  "description": "Modernes Sprachenlernen mit Lernpfad, adaptiven Wiederholungen, Sprechen und Fachsprache.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#14233c",
+  "lang": "de",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

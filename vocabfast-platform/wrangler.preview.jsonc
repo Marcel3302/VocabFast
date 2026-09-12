@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "vocabfast-language-preview",
+  "main": "./src/preview-entry.js",
+  "compatibility_date": "2026-09-04",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "vocabfast.net/admin*", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/preview/*", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/platform/coach", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/platform/translate", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/admin/context", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/assets/*", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/manifest.webmanifest", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/icon.svg", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/sw.js", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/admin/login", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/admin/logout", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/admin/me", "zone_name": "vocabfast.net" }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "ai": { "binding": "AI" },
+  "vars": {
+    "PLATFORM_STRIPE_MODE": "test",
+    "PLATFORM_STRIPE_PRICE_TEST": "price_1UEYLfE7p7RMnz3LrZmAFkvO"
+  },
+  "durable_objects": {
+    "bindings": [
+      { "name": "PREVIEW_ACCOUNTS", "class_name": "PreviewAccountStore" },
+      { "name": "PLATFORM_ANALYTICS", "class_name": "PlatformAnalyticsStore" }
+    ]
+  },
+  "exports": {
+    "PreviewAccountStore": { "type": "durable-object", "storage": "sqlite" },
+    "PlatformAnalyticsStore": { "type": "durable-object", "storage": "sqlite" }
+  },
+  "observability": { "enabled": true }
+}
