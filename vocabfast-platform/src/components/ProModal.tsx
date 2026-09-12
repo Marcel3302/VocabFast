@@ -55,10 +55,10 @@ export default function ProModal({ onClose,user }: Props) {
     if(canCheckout)return true;
     const response=await fetch('/api/preview/billing/health',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
     const health=await response.json().catch(()=>({})) as BillingHealth;
-    if(!response.ok)throw new Error(health.error||'Die Stripe-Verknüpfung konnte nicht geprüft werden.');
+    if(!response.ok)throw new Error(health.error||'Die Zahlungsfunktion konnte nicht geprüft werden.');
     if(!health.checkoutReady) {
       setBilling(current=>current?{...current,mode:health.mode||current.mode,checkoutReady:false,webhookReady:Boolean(health.webhookReady)}:current);
-      throw new Error('Stripe ist noch nicht vollständig mit VocabFast verknüpft. Bitte zuerst die Stripe-Schlüssel und die Pro-Price-ID in Cloudflare konfigurieren.');
+      throw new Error('Der Pro-Checkout ist momentan noch nicht verfügbar. Bitte versuche es später erneut.');
     }
     await loadBillingStatus().catch(()=>null);
     return true;
@@ -78,7 +78,7 @@ export default function ProModal({ onClose,user }: Props) {
     }catch(reason){setError(reason instanceof Error?reason.message:'Stripe konnte nicht geöffnet werden.');setOpening(false);}
   }
 
-  const actionLabel=opening?'Stripe wird geöffnet …':activePlan?'Abo sicher verwalten →':statusLoading?'Stripe-Verknüpfung prüfen …':canCheckout?(testMode?'Pro-Testkauf bei Stripe starten →':'Pro für 19,99 € / Monat kaufen →'):'Stripe-Verknüpfung prüfen →';
+  const actionLabel=opening?'Stripe wird geöffnet …':activePlan?'Abo sicher verwalten →':statusLoading?'Verfügbarkeit wird geprüft …':testMode&&canCheckout?'Pro-Testcheckout starten →':'VocabFast Pro starten →';
 
   return <div className="pro-modal-backdrop" role="dialog" aria-modal="true" onMouseDown={onClose}>
     <section className="pro-modal" onMouseDown={event=>event.stopPropagation()}>
@@ -90,18 +90,17 @@ export default function ProModal({ onClose,user }: Props) {
         <div className="pro-price"><strong>19,99 €</strong><span>/ Monat</span></div>
         <small>Monatlich kündbar. Free bleibt dauerhaft nutzbar.</small>
       </div>
-      {activePlan&&<div className="pro-test-note"><strong>PRO AKTIV</strong>{billing?.cancelAtPeriodEnd?<> · endet am {renewalDate||'Ende der aktuellen Laufzeit'}</>:renewalDate?<> · nächste Laufzeit ab {renewalDate}</>:null}{billing?.subscriptionStatus&&<> · Status: {billing.subscriptionStatus}</>}</div>}
+      {activePlan&&<div className="pro-status-note success"><strong>PRO AKTIV</strong>{billing?.cancelAtPeriodEnd?<> · endet am {renewalDate||'Ende der aktuellen Laufzeit'}</>:renewalDate?<> · nächste Laufzeit ab {renewalDate}</>:null}{billing?.subscriptionStatus&&<> · Status: {billing.subscriptionStatus}</>}</div>}
       <div className="pro-feature-grid">{proFeatures.map(([title,copy])=><article key={title}><span>✓</span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div>
       <div className="plan-compare">
         <article><span>FREE</span><h2>VocabFast Free</h2><strong>0 €</strong><ul><li>verfügbare Sprachlernpfade</li><li>Wortschatz & Grammatik</li><li>Hörtraining</li><li>Basis-Fortschritt</li></ul></article>
-        <article className="recommended"><span>PRO · EMPFOHLEN</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>Fachbereiche</li><li>KI-Coach & erweiterte Analyse</li></ul></article>
+        <article className="recommended"><span>PRO</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>Fachbereiche</li><li>KI-Coach & erweiterte Analyse</li></ul></article>
       </div>
-      {error&&<p className="pro-test-note" role="alert">{error}</p>}
-      {billing&&!billing.checkoutReady&&<p className="pro-test-note">Die Stripe-Verknüpfung ist noch nicht vollständig aktiv. Der Button bleibt sichtbar und prüft die Verbindung erneut, statt einfach zu verschwinden.</p>}
+      {error?<p className="pro-status-note warning" role="alert">{error}</p>:billing&&!billing.checkoutReady&&!statusLoading?<p className="pro-status-note neutral">Der Pro-Checkout wird gerade eingerichtet. Du kannst die Verfügbarkeit jederzeit erneut prüfen.</p>:null}
       <button className="pro-preview-action" disabled={opening||statusLoading} onClick={()=>void checkout()}>{actionLabel}</button>
-      {!activePlan&&canCheckout&&<small className="pro-test-note">Nach dem erfolgreichen Stripe-Checkout wird der Pro-Zugang deinem angemeldeten VocabFast-Konto zugeordnet.</small>}
-      {testMode&&canCheckout&&<small className="pro-test-note">Stripe-Testmodus: Der Checkout funktioniert vollständig, es wird aber noch kein echtes Geld belastet.</small>}
-      <div className="pro-test-note"><a href="https://vocabfast.net/nutzungsbedingungen.html">Nutzungsbedingungen</a> · <a href="https://vocabfast.net/widerruf.html">Widerruf</a> · <a href="https://vocabfast.net/datenschutz.html">Datenschutz</a></div>
+      {!activePlan&&canCheckout&&<small className="pro-status-note neutral">Nach dem erfolgreichen Stripe-Checkout wird Pro automatisch deinem angemeldeten VocabFast-Konto zugeordnet.</small>}
+      {testMode&&canCheckout&&<small className="pro-status-note test">Testmodus: Es wird kein echtes Geld belastet.</small>}
+      <div className="pro-legal-links"><a href="https://vocabfast.net/nutzungsbedingungen.html">Nutzungsbedingungen</a><span>·</span><a href="https://vocabfast.net/widerruf.html">Widerruf</a><span>·</span><a href="https://vocabfast.net/datenschutz.html">Datenschutz</a></div>
     </section>
   </div>;
 }
