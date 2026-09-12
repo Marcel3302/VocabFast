@@ -9,7 +9,7 @@ type Props={onSaved?:(count:number)=>void};
 type PageText={page:number;text:string;wordCount:number};
 type TranslationResult={translation:string};
 
-const ocrCodes:Partial<Record<LanguageCode,string>>={en:'eng',de:'deu',it:'ita',sl:'slv',es:'spa',fr:'fra',la:'lat',hr:'hrv'};
+const ocrCodes:Partial<Record<LanguageCode,string>>={en:'eng',de:'deu',it:'ita',es:'spa',fr:'fra',hr:'hrv',pt:'por',zh:'chi_sim',ja:'jpn',ko:'kor',ar:'ara'};
 const isWord=(value:string)=>/^\p{L}[\p{L}\p{M}'’\-]{1,}$/u.test(value);
 const normalize=(value:string)=>value.trim().toLocaleLowerCase();
 function uniqueWords(text:string){const matches=text.match(/\p{L}[\p{L}\p{M}'’\-]{1,}/gu)??[];const seen=new Set<string>();return matches.filter(word=>{const key=normalize(word);if(seen.has(key))return false;seen.add(key);return true;});}
