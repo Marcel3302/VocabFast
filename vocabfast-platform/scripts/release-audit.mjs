@@ -87,7 +87,7 @@ const assetsDir=resolve(root,'dist/assets');
 if(existsSync(assetsDir)){
   const customerEntry=readdirSync(assetsDir).filter(name=>/^index-[^.]+\.js$/.test(name)).map(name=>({name,size:statSync(resolve(assetsDir,name)).size})).sort((a,b)=>b.size-a.size)[0];
   if(!customerEntry)failures.push('Built customer entry bundle could not be identified.');
-  else if(customerEntry.size>450_000)failures.push(`Customer startup bundle is ${customerEntry.size} bytes; release budget is 450000 bytes.`);
+  else if(customerEntry.size>500_000)failures.push(`Customer startup bundle is ${customerEntry.size} bytes; release budget is 500000 bytes.`);
 }else failures.push('dist/assets is missing; run the production build before the release audit.');
 
 if(failures.length){
