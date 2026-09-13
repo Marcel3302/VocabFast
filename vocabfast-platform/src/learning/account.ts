@@ -23,6 +23,11 @@ const PLATFORM_PREFIX='vocabfast.platform.';
 const SANDBOX_PRO_SESSION_KEY='vocabfast.platform.sandbox-pro';
 let syncTimer:number|undefined;
 let syncInFlight:Promise<void>|null=null;
+let entitlementTimer:number|undefined;
+let entitlementFocusHandler:(()=>void)|null=null;
+let entitlementVisibilityHandler:(()=>void)|null=null;
+let lastKnownPlan:'free'|'pro'|null=null;
+let entitlementCheckInFlight=false;
 
 function freshApiUrl(path:string) {
   const separator=path.includes('?')?'&':'?';
@@ -91,6 +96,45 @@ export async function currentAccount():Promise<AccountUser|null> {
   return data.user;
 }
 
+function stopEntitlementWatcher() {
+  if(typeof window==='undefined')return;
+  if(entitlementTimer!==undefined){window.clearInterval(entitlementTimer);entitlementTimer=undefined;}
+  if(entitlementFocusHandler){window.removeEventListener('focus',entitlementFocusHandler);entitlementFocusHandler=null;}
+  if(entitlementVisibilityHandler){document.removeEventListener('visibilitychange',entitlementVisibilityHandler);entitlementVisibilityHandler=null;}
+  entitlementCheckInFlight=false;
+  lastKnownPlan=null;
+}
+
+async function checkEntitlementChange() {
+  if(typeof window==='undefined'||entitlementCheckInFlight||document.visibilityState==='hidden')return;
+  entitlementCheckInFlight=true;
+  try {
+    const fresh=await currentAccount();
+    if(!fresh)return;
+    if(lastKnownPlan===null){lastKnownPlan=fresh.plan;return;}
+    if(fresh.plan!==lastKnownPlan){
+      lastKnownPlan=fresh.plan;
+      window.dispatchEvent(new CustomEvent('vocabfast-account-entitlement',{detail:{plan:fresh.plan}}));
+      window.location.reload();
+    }
+  } catch(error) {
+    console.warn('account entitlement refresh failed',error);
+  } finally {
+    entitlementCheckInFlight=false;
+  }
+}
+
+function startEntitlementWatcher(user:AccountUser) {
+  if(typeof window==='undefined')return;
+  lastKnownPlan=user.plan;
+  if(entitlementTimer!==undefined)return;
+  entitlementFocusHandler=()=>{void checkEntitlementChange();};
+  entitlementVisibilityHandler=()=>{if(document.visibilityState==='visible')void checkEntitlementChange();};
+  window.addEventListener('focus',entitlementFocusHandler);
+  document.addEventListener('visibilitychange',entitlementVisibilityHandler);
+  entitlementTimer=window.setInterval(()=>{void checkEntitlementChange();},30000);
+}
+
 export async function registerAccount(input:{name:string;email:string;password:string}):Promise<AuthResult> {
   const response=await fetch('/api/preview/auth/register',{
     method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)
@@ -107,6 +151,7 @@ export async function loginAccount(input:{email:string;password:string}):Promise
 
 export async function logoutAccount() {
   stopActivityTracking();
+  stopEntitlementWatcher();
   if(typeof window!=='undefined')window.sessionStorage.removeItem(SANDBOX_PRO_SESSION_KEY);
   const response=await fetch('/api/preview/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
   await responseJson<{ok:boolean}>(response);
@@ -125,6 +170,7 @@ export async function deleteAccount(password:string) {
   });
   await responseJson<{ok:boolean}>(response);
   stopActivityTracking();
+  stopEntitlementWatcher();
 }
 
 export function clearPlatformStorage() {
@@ -191,8 +237,9 @@ export async function flushAccountSync() {
 export async function bootstrapAccount() {
   await reconcileBillingReturn();
   const user=await currentAccount();
-  if(!user){stopActivityTracking();return {user:null as AccountUser|null,hasRemoteState:false};}
+  if(!user){stopActivityTracking();stopEntitlementWatcher();return {user:null as AccountUser|null,hasRemoteState:false};}
   startActivityTracking();
+  startEntitlementWatcher(user);
   const hasRemoteState=await loadAccountState();
   return {user,hasRemoteState};
 }
