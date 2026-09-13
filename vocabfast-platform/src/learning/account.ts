@@ -134,7 +134,6 @@ export function clearPlatformStorage() {
     if(key?.startsWith(PLATFORM_PREFIX))keys.push(key);
   }
   for(const key of keys)localStorage.removeItem(key);
-  if(typeof window!=='undefined')window.sessionStorage.removeItem(SANDBOX_PRO_SESSION_KEY);
 }
 
 export function capturePlatformSnapshot():PlatformSnapshot {
