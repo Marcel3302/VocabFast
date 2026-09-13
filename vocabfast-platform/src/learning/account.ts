@@ -20,12 +20,17 @@ export type PlatformSnapshot = {
 };
 
 const PLATFORM_PREFIX='vocabfast.platform.';
+const SANDBOX_PRO_SESSION_KEY='vocabfast.platform.sandbox-pro';
 let syncTimer:number|undefined;
 let syncInFlight:Promise<void>|null=null;
 
 function freshApiUrl(path:string) {
   const separator=path.includes('?')?'&':'?';
   return `${path}${separator}_=${Date.now()}`;
+}
+
+function sandboxProActive(){
+  return typeof window!=='undefined'&&window.sessionStorage.getItem(SANDBOX_PRO_SESSION_KEY)==='1';
 }
 
 async function responseJson<T>(response:Response):Promise<T> {
@@ -47,6 +52,14 @@ async function reconcileBillingReturn() {
   if(typeof window==='undefined')return;
   const params=new URLSearchParams(window.location.search),upgrade=params.get('upgrade'),sessionId=params.get('session_id'),billingReturn=params.get('billing')==='return';
   if(upgrade==='cancelled'){clearBillingReturnQuery();return;}
+
+  if(upgrade==='test-success'&&sessionId&&/^cs_test_[A-Za-z0-9]+$/.test(sessionId)){
+    window.sessionStorage.setItem(SANDBOX_PRO_SESSION_KEY,'1');
+    window.dispatchEvent(new CustomEvent('vocabfast-billing',{detail:'updated'}));
+    clearBillingReturnQuery();
+    return;
+  }
+
   if(billingReturn){
     try{
       const response=await fetch('/api/preview/billing/refresh',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'}});
@@ -74,6 +87,7 @@ async function reconcileBillingReturn() {
 export async function currentAccount():Promise<AccountUser|null> {
   const response=await fetch(freshApiUrl('/api/preview/me'),{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
   const data=await responseJson<{user:AccountUser|null}>(response);
+  if(data.user&&sandboxProActive())return {...data.user,plan:'pro'};
   return data.user;
 }
 
@@ -93,6 +107,7 @@ export async function loginAccount(input:{email:string;password:string}):Promise
 
 export async function logoutAccount() {
   stopActivityTracking();
+  if(typeof window!=='undefined')window.sessionStorage.removeItem(SANDBOX_PRO_SESSION_KEY);
   const response=await fetch('/api/preview/auth/logout',{method:'POST',credentials:'same-origin',cache:'no-store'});
   await responseJson<{ok:boolean}>(response);
 }
@@ -119,6 +134,7 @@ export function clearPlatformStorage() {
     if(key?.startsWith(PLATFORM_PREFIX))keys.push(key);
   }
   for(const key of keys)localStorage.removeItem(key);
+  if(typeof window!=='undefined')window.sessionStorage.removeItem(SANDBOX_PRO_SESSION_KEY);
 }
 
 export function capturePlatformSnapshot():PlatformSnapshot {
