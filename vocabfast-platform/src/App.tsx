@@ -133,7 +133,7 @@ export default function App(){
     if(activeNav==='profile')return <ProfileView preferences={preferences} progress={progress} onSave={saveLearnerPreferences} onSwitchPair={next=>void switchLearningPair(next)} onResetProgress={resetProgress} onAccountDeleted={handleAccountDeleted}/>;
     if(englishMode&&activeNav==='grammar')return <GrammarView activeLevel={courseState.activeLevel} openLesson={openLesson} onSelectLevel={selectLevel}/>;
     if(englishMode&&activeNav==='coach')return <CoachView audioRate={preferences.audioRate} level={courseState.activeLevel} openPro={()=>setProOpen(true)}/>;
-    if(englishMode&&activeNav==='words')return <WordsView/>;
+    if(englishMode&&activeNav==='words')return <WordsView isPro={accountUser?.plan==='pro'} openPro={()=>setProOpen(true)}/>;
     if(englishMode&&activeNav==='specialty')return <SpecialtyView openPro={()=>setProOpen(true)}/>;
     return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} targetLanguage={targetLanguage} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} openTranslator={()=>setActiveNav('translate')} onSelectLevel={selectLevel}/>;
   }
