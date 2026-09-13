@@ -25,58 +25,43 @@ const proFeatures = [
   ['Intensives Training', 'Zusätzliche Produktions-, Hör-, Diktat- und Sprechübungen']
 ];
 
-function periodLabel(value?:string|null){if(!value)return '';try{return new Intl.DateTimeFormat('de-AT',{dateStyle:'medium'}).format(new Date(value));}catch{return '';}}
-
 export default function ProModal({ onClose,user }: Props) {
   const [opening,setOpening]=useState(false),[error,setError]=useState('');
   const [billing,setBilling]=useState<BillingStatus|null>(null);
   const [statusLoading,setStatusLoading]=useState(true);
 
-  async function loadBillingStatus() {
-    setStatusLoading(true);
-    try {
-      const response=await fetch('/api/preview/billing/status',{credentials:'same-origin',cache:'no-store'});
-      const data=await response.json().catch(()=>({})) as BillingStatus&{error?:string};
-      if(!response.ok)throw new Error(data.error||'Zahlungsstatus nicht verfügbar.');
-      setBilling(data);
-      setError('');
-      return data;
-    } finally {
-      setStatusLoading(false);
-    }
-  }
-
   useEffect(()=>{let active=true;setStatusLoading(true);fetch('/api/preview/billing/status',{credentials:'same-origin',cache:'no-store'}).then(async r=>{const data=await r.json().catch(()=>({}));if(!r.ok)throw new Error(data.error||'Zahlungsstatus nicht verfügbar.');return data as BillingStatus}).then(data=>{if(active){setBilling(data);setError('')}}).catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'Der Zahlungsstatus konnte nicht geladen werden.');}).finally(()=>{if(active)setStatusLoading(false)});return()=>{active=false}},[]);
+  const testMode=billing?.mode==='test';
   const activePlan=user?.plan==='pro'||billing?.plan==='pro';
-  const renewalDate=periodLabel(billing?.currentPeriodEnd);
 
   async function checkout(){
     if(opening)return;
     setOpening(true);setError('');
     try{
-      if(!activePlan){
+      if(!activePlan&&testMode){
         const url=new URL(SANDBOX_PAYMENT_LINK);
         if(url.protocol!=='https:'||url.hostname!=='buy.stripe.com')throw new Error('Ungültige Stripe-Testadresse.');
         window.location.assign(url.href);
         return;
       }
 
-      if(!billing?.checkoutReady){
+      if(activePlan&&!billing?.checkoutReady){
         setError('Dein Pro-Testzugang ist für diese Sitzung aktiv. Eine echte Abo-Verwaltung ist in der Sandbox noch nicht erforderlich.');
         setOpening(false);
         return;
       }
 
-      const response=await fetch('/api/preview/billing/portal',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'}});
+      const endpoint=activePlan?'portal':'checkout';
+      const response=await fetch(`/api/preview/billing/${endpoint}`,{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'}});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.url)throw new Error(data.error||'Stripe konnte nicht geöffnet werden.');
       const url=new URL(data.url);
-      if(url.protocol!=='https:'||url.hostname!=='billing.stripe.com')throw new Error('Ungültige Zahlungsadresse.');
+      if(url.protocol!=='https:'||!['checkout.stripe.com','billing.stripe.com'].includes(url.hostname))throw new Error('Ungültige Zahlungsadresse.');
       window.location.assign(url.href);
     }catch(reason){setError(reason instanceof Error?reason.message:'Stripe konnte nicht geöffnet werden.');setOpening(false);}
   }
 
-  const actionLabel=opening?'Stripe-Testcheckout wird geöffnet …':activePlan?'PRO TEST AKTIV':'Stripe-Testkauf starten →';
+  const actionLabel=opening?'Stripe-Testcheckout wird geöffnet …':activePlan?'PRO TEST AKTIV':testMode?'Stripe-Testkauf starten →':'VocabFast Pro starten →';
 
   return <div className="pro-modal-backdrop" role="dialog" aria-modal="true" onMouseDown={onClose}>
     <section className="pro-modal" onMouseDown={event=>event.stopPropagation()}>
@@ -96,8 +81,8 @@ export default function ProModal({ onClose,user }: Props) {
       </div>
       {error?<p className="pro-status-note warning" role="alert">{error}</p>:null}
       <button className="pro-preview-action" disabled={opening||statusLoading||activePlan} onClick={()=>void checkout()}>{actionLabel}</button>
-      {!activePlan&&<small className="pro-status-note neutral">Du wirst zu Stripe Sandbox weitergeleitet. Nach einem erfolgreichen Testcheckout wird Pro für diese Browsersitzung freigeschaltet.</small>}
-      <small className="pro-status-note test">TESTMODUS: Es wird kein echtes Geld belastet. Diese Freischaltung dient nur zum Erproben des Kaufablaufs.</small>
+      {!activePlan&&testMode&&<small className="pro-status-note neutral">Du wirst zu Stripe Sandbox weitergeleitet. Nach einem erfolgreichen Testcheckout wird Pro für diese Browsersitzung freigeschaltet.</small>}
+      {testMode&&<small className="pro-status-note test">TESTMODUS: Es wird kein echtes Geld belastet. Diese Freischaltung dient nur zum Erproben des Kaufablaufs.</small>}
       <div className="pro-legal-links"><a href="https://vocabfast.net/nutzungsbedingungen.html">Nutzungsbedingungen</a><span>·</span><a href="https://vocabfast.net/widerruf.html">Widerruf</a><span>·</span><a href="https://vocabfast.net/datenschutz.html">Datenschutz</a></div>
     </section>
   </div>;
