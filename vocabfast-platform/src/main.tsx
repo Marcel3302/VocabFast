@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { registerPwa } from './pwa';
+import './data/level-vocabulary-extra';
 import './styles.css';
 import './accessibility.css';
 import './deferred-loading.css';
