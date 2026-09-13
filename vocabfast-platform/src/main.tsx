@@ -6,6 +6,7 @@ import './styles.css';
 import './accessibility.css';
 import './deferred-loading.css';
 import './admin/admin-usage.css';
+import './premium-polish.css';
 
 const adminRoute=window.location.pathname==='/admin'||window.location.pathname.startsWith('/admin/');
 const AdminPortal=lazy(()=>import('./admin/AdminPortal'));
