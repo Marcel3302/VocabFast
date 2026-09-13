@@ -8,6 +8,7 @@ import './profile-view.css';
 type Props = {
   preferences: LearnerPreferences;
   progress: PlatformProgress;
+  isPro?: boolean;
   onSave: (preferences: LearnerPreferences) => void;
   onSwitchPair: (preferences:LearnerPreferences) => void;
   onResetProgress: () => void;
@@ -15,7 +16,7 @@ type Props = {
 };
 const reasonLabels: Record<LearningReason,string> = {alltag:'Alltag',reise:'Reisen',beruf:'Beruf',fachsprache:'Fachsprache'};
 
-export default function ProfileView({ preferences, progress, onSave, onSwitchPair, onResetProgress, onAccountDeleted }: Props) {
+export default function ProfileView({ preferences, progress, isPro=false, onSave, onSwitchPair, onResetProgress, onAccountDeleted }: Props) {
   const [draft, setDraft] = useState(preferences);
   const [newSource,setNewSource]=useState<LanguageCode>(preferences.sourceLanguage);
   const [newTarget,setNewTarget]=useState<LanguageCode>(preferences.targetLanguage==='en'?'hr':'en');
@@ -23,6 +24,7 @@ export default function ProfileView({ preferences, progress, onSave, onSwitchPai
   const [currentPassword,setCurrentPassword]=useState('');const [newPassword,setNewPassword]=useState('');const [repeatPassword,setRepeatPassword]=useState('');
   const [passwordBusy,setPasswordBusy]=useState(false);const [securityMessage,setSecurityMessage]=useState('');const [securityError,setSecurityError]=useState('');
   const [deletePassword,setDeletePassword]=useState('');const [deleteBusy,setDeleteBusy]=useState(false);
+  const [billingBusy,setBillingBusy]=useState(false);const [billingMessage,setBillingMessage]=useState('');const [billingError,setBillingError]=useState('');
   const activeId=activePairKey(preferences);
   const availableTargets=useMemo(()=>learnableLanguages.filter(language=>language.code!==newSource),[newSource]);
 
@@ -40,6 +42,24 @@ export default function ProfileView({ preferences, progress, onSave, onSwitchPai
   function removePair(id:string){
     if(!window.confirm('Diese Sprachkombination aus der Auswahl entfernen? Der gespeicherte Lernstand bleibt erhalten und kann später wieder aktiviert werden.'))return;
     const next=removeLearningPair(preferences,id);setDraft(next);onSwitchPair(next);
+  }
+
+  async function manageSubscription() {
+    if(!isPro||billingBusy)return;
+    setBillingBusy(true);setBillingError('');setBillingMessage('');
+    try{
+      const response=await fetch('/api/preview/billing/portal',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'}});
+      const data=await response.json().catch(()=>({})) as {url?:string;error?:string};
+      if(!response.ok||!data.url)throw new Error(data.error||'Die Abo-Verwaltung konnte nicht geöffnet werden.');
+      const url=new URL(data.url);
+      if(url.protocol!=='https:'||url.hostname!=='billing.stripe.com')throw new Error('Ungültige Stripe-Adresse.');
+      window.location.assign(url.href);
+    }catch(reason){
+      const message=reason instanceof Error?reason.message:'Die Abo-Verwaltung konnte nicht geöffnet werden.';
+      if(/subscription|abonnement|customer|stripe|billing|abo/i.test(message))setBillingMessage('Dieser Pro-Zugang hat derzeit kein kündbares Stripe-Abo. Wurde Pro im Adminbereich freigeschaltet, entstehen dadurch keine Abo-Kosten.');
+      else setBillingError(message);
+      setBillingBusy(false);
+    }
   }
 
   async function updatePassword(event:React.FormEvent) {
@@ -77,6 +97,8 @@ export default function ProfileView({ preferences, progress, onSave, onSwitchPai
       </article>
 
       <article className="profile-panel stats-panel"><div className="view-section-head inner"><div><span className="eyebrow">AKTUELLER LERNPFAD</span><h2>Fortschritt auf einen Blick</h2></div></div><div className="profile-stats"><div><strong>{progress.totalXp}</strong><span>XP</span></div><div><strong>{progress.sessions}</strong><span>Lerneinheiten</span></div><div><strong>{progress.currentStreak}</strong><span>Streak</span></div><div><strong>{progress.completedLessonIds.length}</strong><span>Lektionen</span></div></div><div className="local-note"><strong>Automatisch synchronisiert</strong><p>{languageByCode(preferences.sourceLanguage).symbol} → {languageByCode(preferences.targetLanguage).symbol} wird als eigener Lernpfad gespeichert.</p></div><button className="danger-button" onClick={reset}>Diesen Lernpfad zurücksetzen</button></article>
+
+      {isPro&&<article className="profile-panel subscription-panel"><div className="view-section-head inner"><div><span className="eyebrow">ABONNEMENT</span><h2>Pro-Abo verwalten</h2></div></div><p>Deine erweiterten Funktionen sind aktiv. Über das sichere Stripe-Kundenportal kannst du ein kostenpflichtiges Abo verwalten oder kündigen.</p><button className="profile-save" disabled={billingBusy} onClick={()=>void manageSubscription()}>{billingBusy?'Abo-Verwaltung wird geöffnet …':'Pro-Abo kündigen / verwalten'}</button>{billingMessage&&<div className="profile-message success">{billingMessage}</div>}{billingError&&<div className="profile-message error">{billingError}</div>}</article>}
 
       <article className="profile-panel security-panel"><div className="view-section-head inner"><div><span className="eyebrow">SICHERHEIT</span><h2>Passwort ändern</h2></div></div><form onSubmit={updatePassword}><label><span>Aktuelles Passwort</span><input type="password" autoComplete="current-password" value={currentPassword} onChange={event=>setCurrentPassword(event.target.value)}/></label><label><span>Neues Passwort</span><input type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={event=>setNewPassword(event.target.value)} placeholder="Mindestens 12 Zeichen"/></label><label><span>Neues Passwort wiederholen</span><input type="password" autoComplete="new-password" minLength={12} value={repeatPassword} onChange={event=>setRepeatPassword(event.target.value)}/></label><button className="profile-save" disabled={passwordBusy}>{passwordBusy?'Wird geändert …':'Passwort ändern'}</button></form>{securityMessage&&<div className="profile-message success">{securityMessage}</div>}{securityError&&<div className="profile-message error">{securityError}</div>}</article>
 
