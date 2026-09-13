@@ -17,11 +17,11 @@ type BillingHealth={ok?:boolean;mode?:'test'|'live'|string;checkoutReady?:boolea
 
 const proFeatures = [
   ['KI-Sprachcoach', 'Rollenspiele, freie Dialoge und persönliches Feedback'],
+  ['PDF-Wortscanner', 'Wörter aus PDFs und Scan-Unterlagen markieren, übersetzen und direkt speichern'],
   ['Aussprache & Sprechen', 'Spracherkennung, bessere Stimmen und gezielte Wiederholung'],
   ['Fachsprache', 'Aviation, Business, Medizin, Technik & IT und Tourismus'],
-  ['Intensives Training', 'Zusätzliche Produktions-, Hör-, Diktat- und Sprechübungen'],
   ['Adaptive Analyse', 'Schwachstellen, Mastery und intelligente Wiederholungen'],
-  ['Kompetenztraining', 'Gezielte Sessions nach Niveau, Lernziel und Übungstyp']
+  ['Intensives Training', 'Zusätzliche Produktions-, Hör-, Diktat- und Sprechübungen']
 ];
 
 function periodLabel(value?:string|null){if(!value)return '';try{return new Intl.DateTimeFormat('de-AT',{dateStyle:'medium'}).format(new Date(value));}catch{return '';}}
@@ -86,7 +86,7 @@ export default function ProModal({ onClose,user }: Props) {
       <div className="pro-modal-hero">
         <span className="pro-pill">VOCABFAST PRO</span>
         <h1>{activePlan?'Dein Pro-Zugang ist aktiv.':'Mehr als Lektionen. Ein persönliches Sprachtraining.'}</h1>
-        <p>{activePlan?'Du hast Zugriff auf die erweiterten Lernfunktionen und kannst dein Abo jederzeit über Stripe verwalten.':'Pro verbindet intensives Training mit Sprechen, Fachsprache, Analyse und dem VocabFast Coach.'}</p>
+        <p>{activePlan?'Du hast Zugriff auf die erweiterten Lernfunktionen und kannst dein Abo jederzeit über Stripe verwalten.':'Pro verbindet intensives Training mit Sprechen, Fachsprache, PDF-Wortscanner, Analyse und dem VocabFast Coach.'}</p>
         <div className="pro-price"><strong>19,99 €</strong><span>/ Monat</span></div>
         <small>Monatlich kündbar. Free bleibt dauerhaft nutzbar.</small>
       </div>
@@ -94,7 +94,7 @@ export default function ProModal({ onClose,user }: Props) {
       <div className="pro-feature-grid">{proFeatures.map(([title,copy])=><article key={title}><span>✓</span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div>
       <div className="plan-compare">
         <article><span>FREE</span><h2>VocabFast Free</h2><strong>0 €</strong><ul><li>verfügbare Sprachlernpfade</li><li>Wortschatz & Grammatik</li><li>Hörtraining</li><li>Basis-Fortschritt</li></ul></article>
-        <article className="recommended"><span>PRO</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>Fachbereiche</li><li>KI-Coach & erweiterte Analyse</li></ul></article>
+        <article className="recommended"><span>PRO</span><h2>VocabFast Pro</h2><strong>19,99 € <small>/ Monat</small></strong><ul><li>alles aus Free</li><li>PDF-Wortscanner mit OCR</li><li>intensives adaptives Training</li><li>Sprechen & Aussprache</li><li>Fachbereiche</li><li>KI-Coach & erweiterte Analyse</li></ul></article>
       </div>
       {error?<p className="pro-status-note warning" role="alert">{error}</p>:billing&&!billing.checkoutReady&&!statusLoading?<p className="pro-status-note neutral">Der Pro-Checkout wird gerade eingerichtet. Du kannst die Verfügbarkeit jederzeit erneut prüfen.</p>:null}
       <button className="pro-preview-action" disabled={opening||statusLoading} onClick={()=>void checkout()}>{actionLabel}</button>
