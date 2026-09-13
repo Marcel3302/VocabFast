@@ -12,14 +12,21 @@ type TranslationResult={translation:string};
 const ocrCodes:Partial<Record<LanguageCode,string>>={en:'eng',de:'deu',it:'ita',es:'spa',fr:'fra',hr:'hrv',pt:'por',zh:'chi_sim',ja:'jpn',ko:'kor',ar:'ara'};
 const isWord=(value:string)=>/^\p{L}[\p{L}\p{M}'’\-]{1,}$/u.test(value);
 const normalize=(value:string)=>value.trim().toLocaleLowerCase();
+const wait=(ms:number)=>new Promise(resolve=>window.setTimeout(resolve,ms));
 function uniqueWords(text:string){const matches=text.match(/\p{L}[\p{L}\p{M}'’\-]{1,}/gu)??[];const seen=new Set<string>();return matches.filter(word=>{const key=normalize(word);if(seen.has(key))return false;seen.add(key);return true;});}
 function displayTokens(text:string){return text.split(/(\p{L}[\p{L}\p{M}'’\-]*)/gu).filter(Boolean);}
 
 async function translateWord(text:string,source:LanguageCode,target:LanguageCode){
-  const response=await fetch('/api/platform/translate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source,target})});
-  const data=await response.json().catch(()=>({})) as Partial<TranslationResult>&{error?:string};
-  if(!response.ok||!data.translation)throw new Error(data.error||`„${text}“ konnte nicht übersetzt werden.`);
-  return data.translation;
+  let lastError='';
+  for(let attempt=0;attempt<2;attempt+=1){
+    const response=await fetch('/api/platform/pdf-translate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source,target})});
+    const data=await response.json().catch(()=>({})) as Partial<TranslationResult>&{error?:string};
+    if(response.ok&&data.translation)return data.translation;
+    lastError=data.error||`„${text}“ konnte nicht übersetzt werden.`;
+    if(response.status===401||response.status===403||response.status===400)throw new Error(lastError);
+    if(attempt===0)await wait(300);
+  }
+  throw new Error(lastError||`„${text}“ konnte nicht übersetzt werden.`);
 }
 
 export default function PDFWordScanner({onSaved}:Props){
@@ -101,28 +108,40 @@ export default function PDFWordScanner({onSaved}:Props){
     const terms=selectedWords.slice(0,60);
     if(!terms.length||saving)return;
     if(source===target){setError('Quell- und Zielsprache müssen unterschiedlich sein.');return;}
-    setSaving(true);setError('');setStatus(`0/${terms.length} Wörter übersetzt …`);
+    setSaving(true);setError('');setStatus(`0/${terms.length} Wörter verarbeitet …`);
+    const translated:{word:string;translation:string}=[] as {word:string;translation:string}[];
+    const failed:string[]=[];
     try{
-      const translated:{word:string;translation:string}[]=[];
-      for(let i=0;i<terms.length;i+=4){
-        const batch=terms.slice(i,i+4);
-        const results=await Promise.all(batch.map(async word=>({word,translation:await translateWord(word,source,target)})));
-        translated.push(...results);setStatus(`${translated.length}/${terms.length} Wörter übersetzt …`);
+      for(let i=0;i<terms.length;i+=1){
+        const term=terms[i];
+        try{
+          const translation=await translateWord(term,source,target);
+          translated.push({word:term,translation});
+        }catch(reason){
+          const message=reason instanceof Error?reason.message:'';
+          if(message.includes('VocabFast Pro')||message.includes('Bitte zuerst anmelden'))throw reason;
+          failed.push(term);
+        }
+        setStatus(`${i+1}/${terms.length} Wörter verarbeitet · ${translated.length} übersetzt${failed.length?` · ${failed.length} übersprungen`:''}`);
+        if(i<terms.length-1)await wait(90);
       }
+      if(!translated.length)throw new Error('Keines der ausgewählten Wörter konnte übersetzt werden. Bitte versuche es erneut.');
       const before=readWords();
       const tag=`PDF · ${fileName.replace(/\.pdf$/i,'').slice(0,44)||'Dokument'}`;
       const after=mergeWords(before,translated.map(item=>makeWord(item.word,item.translation,tag)));
       saveWords(after);
       const added=after.length-before.length;
-      setStatus(`${added} neue Übungswörter gespeichert${added<terms.length?` · ${terms.length-added} waren bereits vorhanden`:''}.`);
-      setSelected({});onSaved?.(added);
+      setStatus(`${added} neue Übungswörter gespeichert${failed.length?` · ${failed.length} konnten nicht übersetzt werden`:''}${translated.length-added>0?` · ${translated.length-added} waren bereits vorhanden`:''}.`);
+      setSelected(failed.reduce<Record<string,string>>((next,term)=>{next[normalize(term)]=term;return next;},{}));
+      onSaved?.(added);
+      if(failed.length)setError(`${failed.length} Wörter wurden übersprungen. Sie bleiben markiert, damit du es erneut versuchen kannst.`);
     }catch(reason){setError(reason instanceof Error?reason.message:'Die markierten Wörter konnten nicht gespeichert werden.');}
     finally{setSaving(false);}
   }
 
   return <section className="pdf-scanner">
-    <div className="pdf-scanner-head"><div><span className="eyebrow">PDF-WORTSCANNER</span><h3>Wörter direkt aus deinen Unterlagen übernehmen.</h3><p>PDF öffnen, Wörter im Text oder in der vollständigen Wortliste anklicken und automatisch übersetzen lassen. Jedes Wort wird in der PDF-Gesamtliste nur einmal angezeigt.</p></div>{pages.length>0&&<button onClick={clear}>Andere PDF</button>}</div>
-    {!pages.length&&<label className={`pdf-drop ${busy?'busy':''}`}><input type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event=>{const file=event.target.files?.[0];if(file)void loadPdf(file);event.target.value='';}}/><span>{busy?'PDF wird analysiert …':'PDF auswählen oder hier öffnen'}</span><small>Text-PDFs bis 30 MB · Scan-PDFs mit OCR-Fallback</small></label>}
+    <div className="pdf-scanner-head"><div><span className="eyebrow">PDF-WORTSCANNER · PRO</span><h3>Wörter direkt aus deinen Unterlagen übernehmen.</h3><p>PDF öffnen, Wörter im Text oder in der vollständigen Wortliste anklicken und automatisch übersetzen lassen. Jedes Wort wird in der PDF-Gesamtliste nur einmal angezeigt.</p></div>{pages.length>0&&<button onClick={clear}>Andere PDF</button>}</div>
+    {!pages.length&&<label className={`pdf-drop ${busy?'busy':''}`}><input type="file" accept="application/pdf,.pdf" disabled={busy} onChange={event=>{const file=event.target.files?.[0];if(file)void loadPdf(file);event.target.value='';}}/><span>{busy?'PDF wird analysiert …':'PDF auswählen oder hier öffnen'}</span><small>PRO · Text-PDFs bis 30 MB · Scan-PDFs mit OCR-Fallback</small></label>}
     {pages.length>0&&<>
       <div className="pdf-controls"><label><span>Sprache im PDF</span><select value={source} onChange={event=>setSource(event.target.value as LanguageCode)}>{translationLanguages.map(language=><option key={language.code} value={language.code} disabled={language.code===target}>{language.name}</option>)}</select></label><button className="pdf-swap" onClick={swap} aria-label="Übersetzungsrichtung tauschen">⇄</button><label><span>Übersetzen nach</span><select value={target} onChange={event=>setTarget(event.target.value as LanguageCode)}>{translationLanguages.map(language=><option key={language.code} value={language.code} disabled={language.code===source}>{language.name}</option>)}</select></label><div className="pdf-file-meta"><strong>{fileName}</strong><small>{totalPages} Seiten · {allWords.length} eindeutige Wörter{usedOcr?' · OCR':''}</small></div></div>
       <div className="pdf-workspace"><aside className="pdf-pages"><span>SEITEN</span>{pages.map((page,index)=><button key={page.page} className={index===pageIndex?'active':''} onClick={()=>{setPageIndex(index);setSearch('')}}><strong>{page.page}</strong><small>{page.wordCount} Wörter</small></button>)}</aside><div className="pdf-page"><div className="pdf-page-toolbar"><div><strong>Seite {current?.page}</strong><small>Wörter anklicken, um sie zu markieren</small></div><label><span>⌕</span><input type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Wort auf dieser Seite suchen …"/></label></div>{search.trim()?<div className="pdf-word-results">{filteredWords.length?filteredWords.map(word=><button key={normalize(word)} className={selected[normalize(word)]?'selected':''} onClick={()=>toggle(word)}>{word}</button>):<span>Keine Treffer auf dieser Seite.</span>}</div>:<div className="pdf-text" aria-label={`Text von Seite ${current?.page}`}>{displayTokens(current?.text||'').map((token,index)=>isWord(token)?<button key={`${index}-${token}`} className={selected[normalize(token)]?'selected':''} onClick={()=>toggle(token)}>{token}</button>:<span key={`${index}-space`}>{token}</span>)}</div>}</div></div>
