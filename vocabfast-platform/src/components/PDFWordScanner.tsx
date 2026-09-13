@@ -109,7 +109,7 @@ export default function PDFWordScanner({onSaved}:Props){
     if(!terms.length||saving)return;
     if(source===target){setError('Quell- und Zielsprache müssen unterschiedlich sein.');return;}
     setSaving(true);setError('');setStatus(`0/${terms.length} Wörter verarbeitet …`);
-    const translated:{word:string;translation:string}=[] as {word:string;translation:string}[];
+    const translated:{word:string;translation:string}[]=[];
     const failed:string[]=[];
     try{
       for(let i=0;i<terms.length;i+=1){
