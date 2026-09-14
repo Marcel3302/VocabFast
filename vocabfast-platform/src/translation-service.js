@@ -1,5 +1,5 @@
-const LANGUAGE_NAMES={en:'English',hr:'Croatian',es:'Spanish',fr:'French',de:'German',it:'Italian',pt:'Portuguese',zh:'Chinese',ja:'Japanese',ko:'Korean',ar:'Arabic'};
-const MEMORY_CODES={en:'en',hr:'hr',es:'es',fr:'fr',de:'de',it:'it',pt:'pt',zh:'zh-CN',ja:'ja',ko:'ko',ar:'ar'};
+const LANGUAGE_NAMES={en:'English',hr:'Croatian',sl:'Slovenian',es:'Spanish',fr:'French',de:'German',it:'Italian',pt:'Portuguese',nl:'Dutch',pl:'Polish',cs:'Czech',tr:'Turkish',el:'Greek',ru:'Russian',uk:'Ukrainian',zh:'Chinese',ja:'Japanese',ko:'Korean',ar:'Arabic'};
+const MEMORY_CODES={en:'en',hr:'hr',sl:'sl',es:'es',fr:'fr',de:'de',it:'it',pt:'pt',nl:'nl',pl:'pl',cs:'cs',tr:'tr',el:'el',ru:'ru',uk:'uk',zh:'zh-CN',ja:'ja',ko:'ko',ar:'ar'};
 
 function json(data,status=200,headers={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow, noarchive',...headers}})}
 function sameOrigin(request){const origin=request.headers.get('Origin');return !origin||origin===new URL(request.url).origin;}
@@ -21,7 +21,7 @@ async function cloudflareTranslate(text,source,target,env){
     const translated=translatedValue(result);if(!translated)throw new Error('translation-model-empty');parts.push(translated);
   }
   const translation=parts.join(' ');if(!useful(text,translation))throw new Error('translation-model-unchanged');
-  return{translation,alternatives:[],note:'Übersetzt mit dem VocabFast Translation Engine. Fachbegriffe können je nach Kontext mehrere richtige Varianten haben.',source,target,provider:'cloudflare-translation'};
+  return{translation,alternatives:[],note:'Übersetzt mit der VocabFast Translation Engine. Fachbegriffe und idiomatische Wendungen können je nach Kontext mehrere richtige Varianten haben.',source,target,provider:'cloudflare-translation'};
 }
 
 async function memoryTranslate(text,source,target){
@@ -57,7 +57,7 @@ async function userFor(request,env,baseWorker){const url=new URL('/api/preview/m
 
 export async function robustTranslateApi(request,env,baseWorker,{requirePro=false}={}){
   if(request.method==='GET'&&new URL(request.url).searchParams.get('health')==='1'){
-    try{const result=await runTranslation('Guten Morgen, ich habe eine Reservierung.','de','en',env);return json({ok:true,provider:result.provider,engine:'translation',checkedAt:new Date().toISOString()});}catch{return json({ok:false,engine:'translation'},503);}
+    try{const result=await runTranslation('Guten Morgen, ich habe eine Reservierung.','de','en',env);return json({ok:true,provider:result.provider,engine:'translation',languages:Object.keys(LANGUAGE_NAMES).length,checkedAt:new Date().toISOString()});}catch{return json({ok:false,engine:'translation'},503);}
   }
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});
   if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
