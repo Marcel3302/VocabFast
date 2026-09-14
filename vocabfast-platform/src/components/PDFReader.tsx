@@ -17,8 +17,8 @@ type ReaderState={lastPage:number;bookmarks:number[];notes:Record<string,string>
 
 const TEXT_PAGE_LIMIT=120;
 const MAX_FILE_SIZE=40_000_000;
-const localeMap:Partial<Record<LanguageCode,string>>={de:'de-DE',en:'en-US',it:'it-IT',es:'es-ES',fr:'fr-FR',hr:'hr-HR',pt:'pt-PT',zh:'zh-CN',ja:'ja-JP',ko:'ko-KR',ar:'ar-SA'};
-const ocrCodes:Partial<Record<LanguageCode,string>>={en:'eng',de:'deu',it:'ita',es:'spa',fr:'fra',hr:'hrv',pt:'por',zh:'chi_sim',ja:'jpn',ko:'kor',ar:'ara'};
+const localeMap:Partial<Record<LanguageCode,string>>={de:'de-DE',en:'en-US',hr:'hr-HR',sl:'sl-SI',it:'it-IT',es:'es-ES',fr:'fr-FR',pt:'pt-PT',nl:'nl-NL',pl:'pl-PL',cs:'cs-CZ',tr:'tr-TR',el:'el-GR',ru:'ru-RU',uk:'uk-UA',zh:'zh-CN',ja:'ja-JP',ko:'ko-KR',ar:'ar-SA'};
+const ocrCodes:Partial<Record<LanguageCode,string>>={en:'eng',de:'deu',hr:'hrv',sl:'slv',it:'ita',es:'spa',fr:'fra',pt:'por',nl:'nld',pl:'pol',cs:'ces',tr:'tur',el:'ell',ru:'rus',uk:'ukr',zh:'chi_sim',ja:'jpn',ko:'kor',ar:'ara'};
 
 function cleanText(value:string){return value.replace(/\s+/g,' ').trim();}
 function signature(file:File){return `${file.name}:${file.size}:${file.lastModified}`;}
@@ -41,7 +41,7 @@ function speak(text:string,language:LanguageCode){
   if(!('speechSynthesis' in window)||!text.trim())return false;
   window.speechSynthesis.cancel();
   const utterance=new SpeechSynthesisUtterance(text.slice(0,12000));
-  utterance.lang=localeMap[language]||'en-US';utterance.rate=.92;
+  utterance.lang=localeMap[language]||language;utterance.rate=.92;
   window.speechSynthesis.speak(utterance);return true;
 }
 async function translateText(text:string,source:LanguageCode,target:LanguageCode){
