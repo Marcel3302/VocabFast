@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { studySeconds } from '../learning/study-time';
 import { specialties, languageByCode } from '../data/catalog';
 import { courseLevels, levelById, type CefrLevel } from '../learning/curriculum';
@@ -6,9 +6,10 @@ import type { PlacementResult } from '../learning/course-state';
 import type { LearnerPreferences } from '../learning/preferences';
 import type { PlatformProgress } from '../learning/progress';
 import type { Lesson, LessonResult } from '../learning/types';
-import PDFReader from './PDFReader';
 import './dashboard-experience.css';
 import './dashboard-toolkit.css';
+
+const PDFReader=lazy(()=>import('./PDFReader'));
 
 type Props={progress:PlatformProgress;preferences:LearnerPreferences;activeLevel:CefrLevel;placement:PlacementResult|null;lastResult:LessonResult|null;targetLanguage:string;isPro?:boolean;openLesson:(lesson:Lesson)=>void;buildReview:()=>Lesson;openPro:()=>void;openCourse:()=>void;openPlacement:()=>void;openTranslator:()=>void;onSelectLevel:(level:CefrLevel)=>void};
 const placementLabels={grammar:'Grammatik',vocabulary:'Wortschatz',communication:'Kommunikation'} as const;
@@ -69,5 +70,5 @@ export default function DashboardView({progress,preferences,activeLevel,placemen
     <section className="streak-card streak-card-modern"><div className="card-heading"><div><span className="eyebrow">ROUTINE</span><h3>{progress.currentStreak} Tage am Stück</h3></div><span className="streak-fire">🔥</span></div><div className="streak-number"><strong>{progress.currentStreak}</strong><span>aktueller Streak</span></div><p>Bestwert: {progress.longestStreak} Tage. Ein verpasster Tag löscht deinen Fortschritt nicht – entscheidend ist der Wiedereinstieg.</p></section>
 
     {fullEnglish&&!placement&&<section className="placement-side-card"><span className="eyebrow">NOCH UNSICHER?</span><h3>Finde deinen besten Einstieg.</h3><p>Der Einstufungstest hilft dir, nicht zu leicht und nicht zu schwer zu starten.</p><button onClick={openPlacement}>Niveau bestimmen</button></section>}
-  </aside></div>{readerOpen&&<PDFReader sourceLanguage={preferences.targetLanguage} targetLanguage={preferences.sourceLanguage} onClose={()=>setReaderOpen(false)}/>}</>;
+  </aside></div>{readerOpen&&<Suspense fallback={<div className="deferred-modal-loading"><div><i/><strong>PDF Reader wird geladen …</strong></div></div>}><PDFReader sourceLanguage={preferences.targetLanguage} targetLanguage={preferences.sourceLanguage} onClose={()=>setReaderOpen(false)}/></Suspense>}</>;
 }
