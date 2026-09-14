@@ -47,9 +47,18 @@ async function aiTranslate(text,source,target,env){
   return{translation,alternatives:Array.isArray(parsed?.alternatives)?parsed.alternatives.map(value=>clean(value,800)).filter(Boolean).slice(0,3):[],note:clean(parsed?.note,700)||'KI-Fallback wurde verwendet.',source,target,provider:'ai-fallback'};
 }
 
+async function runTranslation(text,source,target,env){
+  try{return await cloudflareTranslate(text,source,target,env);}catch(primary){console.warn('translation model failed',String(primary));}
+  try{return await memoryTranslate(text,source,target);}catch(second){console.warn('translation fallback failed',String(second));}
+  try{return await aiTranslate(text,source,target,env);}catch(third){console.error('all translation providers failed',String(third));}
+  throw new Error('translation-unavailable');
+}
 async function userFor(request,env,baseWorker){const url=new URL('/api/preview/me',request.url),probe=new Request(url,{method:'GET',headers:request.headers});const response=await baseWorker.fetch(probe,env),data=await response.json().catch(()=>null);return response.ok?data?.user||null:null;}
 
 export async function robustTranslateApi(request,env,baseWorker,{requirePro=false}={}){
+  if(request.method==='GET'&&new URL(request.url).searchParams.get('health')==='1'){
+    try{const result=await runTranslation('Guten Morgen, ich habe eine Reservierung.','de','en',env);return json({ok:true,provider:result.provider,engine:'translation',checkedAt:new Date().toISOString()});}catch{return json({ok:false,engine:'translation'},503);}
+  }
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});
   if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
   const user=await userFor(request,env,baseWorker);if(!user)return json({error:'Bitte zuerst anmelden.'},401);
@@ -57,8 +66,5 @@ export async function robustTranslateApi(request,env,baseWorker,{requirePro=fals
   const data=await request.json().catch(()=>({})),source=String(data.source||''),target=String(data.target||''),text=clean(data.text);
   if(!LANGUAGE_NAMES[source]||!LANGUAGE_NAMES[target]||source===target)return json({error:'Bitte wähle zwei unterschiedliche unterstützte Sprachen.'},400);
   if(!text)return json({error:'Bitte gib einen Text ein.'},400);
-  try{return json(await cloudflareTranslate(text,source,target,env));}catch(primary){console.warn('translation model failed',String(primary));}
-  try{return json(await memoryTranslate(text,source,target));}catch(second){console.warn('translation fallback failed',String(second));}
-  try{return json(await aiTranslate(text,source,target,env));}catch(third){console.error('all translation providers failed',String(third));}
-  return json({error:'Die Übersetzung ist gerade nicht erreichbar. Bitte versuche es in einem Moment erneut.'},503);
+  try{return json(await runTranslation(text,source,target,env));}catch{return json({error:'Die Übersetzung ist gerade nicht erreichbar. Bitte versuche es in einem Moment erneut.'},503);}
 }
