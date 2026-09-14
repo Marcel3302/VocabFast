@@ -9,7 +9,7 @@ type Props={onSaved?:(count:number)=>void};
 type PageText={page:number;text:string;wordCount:number};
 type TranslationResult={translation:string};
 
-const ocrCodes:Partial<Record<LanguageCode,string>>={en:'eng',de:'deu',it:'ita',es:'spa',fr:'fra',hr:'hrv',pt:'por',zh:'chi_sim',ja:'jpn',ko:'kor',ar:'ara'};
+const ocrCodes:Partial<Record<LanguageCode,string>>={en:'eng',de:'deu',hr:'hrv',sl:'slv',it:'ita',es:'spa',fr:'fra',pt:'por',nl:'nld',pl:'pol',cs:'ces',tr:'tur',el:'ell',ru:'rus',uk:'ukr',zh:'chi_sim',ja:'jpn',ko:'kor',ar:'ara'};
 const isWord=(value:string)=>/^\p{L}[\p{L}\p{M}'’\-]{1,}$/u.test(value);
 const normalize=(value:string)=>value.trim().toLocaleLowerCase();
 const wait=(ms:number)=>new Promise(resolve=>window.setTimeout(resolve,ms));
