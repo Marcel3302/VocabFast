@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { translationLanguages } from '../data/catalog';
 import { makeWord, mergeWords, readWords, saveWords } from '../learning/personal-words';
 import type { LanguageCode } from '../learning/preferences';
+import { speakLanguage, speechLocales } from '../learning/speech';
 import { queueSpeakDraft } from '../learning/study-flow';
 import './translator-view.css';
 import './translator-reliability.css';
@@ -15,7 +16,6 @@ type SpeechRecognizerCtor=new()=>SpeechRecognizer;
 
 const HISTORY_KEY='vocabfast-translate-history-v1';
 const DRAFT_KEY='vocabfast-translate-draft-v1';
-const localeMap:Partial<Record<LanguageCode,string>>={de:'de-DE',en:'en-US',it:'it-IT',es:'es-ES',fr:'fr-FR',hr:'hr-HR',pt:'pt-PT',zh:'zh-CN',ja:'ja-JP',ko:'ko-KR',ar:'ar-SA'};
 
 async function translate(text:string,source:string,target:string){
   const controller=new AbortController();
@@ -50,10 +50,7 @@ function speechCtor():SpeechRecognizerCtor|null{
   const speechWindow=window as unknown as {SpeechRecognition?:SpeechRecognizerCtor;webkitSpeechRecognition?:SpeechRecognizerCtor};
   return speechWindow.SpeechRecognition??speechWindow.webkitSpeechRecognition??null;
 }
-function speak(text:string,language:LanguageCode){
-  if(!('speechSynthesis' in window))return false;
-  window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=localeMap[language]||'en-US';utterance.rate=.92;window.speechSynthesis.speak(utterance);return true;
-}
+function speak(text:string,language:LanguageCode){return speakLanguage(text,language,.92);}
 function validLanguage(value:unknown):value is LanguageCode{return typeof value==='string'&&translationLanguages.some(language=>language.code===value);}
 
 export default function TranslatorView({sourceLanguage,targetLanguage,onOpenWords,onOpenSpeak}:Props){
@@ -109,7 +106,7 @@ export default function TranslatorView({sourceLanguage,targetLanguage,onOpenWord
   }
   function dictate(){
     const Ctor=speechCtor();if(!Ctor){setError('Spracherkennung wird von diesem Browser nicht unterstützt. Tippe den Text ein oder verwende einen Browser mit Web-Speech-Unterstützung.');return;}
-    recognitionRef.current?.stop();const recognition=new Ctor();recognition.lang=localeMap[source]||'en-US';recognition.interimResults=false;recognition.continuous=false;
+    recognitionRef.current?.stop();const recognition=new Ctor();recognition.lang=speechLocales[source]||source;recognition.interimResults=false;recognition.continuous=false;
     recognition.onresult=(event:unknown)=>{const speechEvent=event as {results?:ArrayLike<ArrayLike<{transcript?:string}>>};const transcript=speechEvent.results?.[0]?.[0]?.transcript?.trim()||'';if(transcript){setText(transcript);resetResult();void run(transcript,source,target);}};
     recognition.onerror=()=>setError('Das Mikrofon konnte deine Sprache nicht erkennen. Prüfe die Mikrofonfreigabe und versuche es erneut.');recognition.onend=()=>setListening(false);recognitionRef.current=recognition;setListening(true);setError('');recognition.start();
   }
@@ -118,7 +115,7 @@ export default function TranslatorView({sourceLanguage,targetLanguage,onOpenWord
   const canSavePair=(source===sourceLanguage&&target===targetLanguage)||(source===targetLanguage&&target===sourceLanguage);
   const canSpeakPractice=Boolean(onOpenSpeak&&result&&(source===targetLanguage||target===targetLanguage));
   const quickPhrases=source==='de'?['Wo befindet sich der Bahnhof?','Ich habe eine Reservierung.','Können Sie das bitte langsamer sagen?','Ich brauche Hilfe.']:[];
-  const providerLabel=result?.provider==='cloudflare-translation'?'VocabFast Translation':result?.provider==='mymemory'?'Translation Fallback':result?.provider==='google'?'Translation Fallback':result?.provider==='ai-fallback'?'KI-Fallback':result?.provider==='history'?'Aus Verlauf':'Übersetzung';
+  const providerLabel=result?.provider==='cloudflare-translation'?'VocabFast Translation':result?.provider==='standard-fallback'?'Translation Fallback':result?.provider==='ai-fallback'?'KI-Fallback':result?.provider==='history'?'Aus Verlauf':'Übersetzung';
 
   return <section className="platform-view translator-view">
     <div className="view-hero compact translator-hero"><div><span className="eyebrow">VOCABFAST TRANSLATE</span><h1>Verstehen, antworten und direkt weiterlernen.</h1><p>Text, Sprache und Reise-Schnellhilfe in einem Werkzeug. Übersetze natürlich, höre das Ergebnis an und übernimm wichtige Sätze direkt in Wortschatz und Sprechtraining.</p></div><div className="translator-hero-badge"><strong>{translationLanguages.length}</strong><span>Sprachen</span><small>Text · Voice · Lernen</small></div></div>
