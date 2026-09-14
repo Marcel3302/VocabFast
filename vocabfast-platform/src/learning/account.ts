@@ -149,6 +149,20 @@ export async function loginAccount(input:{email:string;password:string}):Promise
   return responseJson<AuthResult>(response);
 }
 
+export async function requestPasswordReset(email:string) {
+  const response=await fetch('/api/preview/auth/password-reset/request',{
+    method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})
+  });
+  return responseJson<{ok:boolean;message?:string}>(response);
+}
+
+export async function resetPasswordWithToken(token:string,newPassword:string) {
+  const response=await fetch('/api/preview/auth/password-reset/confirm',{
+    method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,newPassword})
+  });
+  return responseJson<{ok:boolean;message?:string}>(response);
+}
+
 export async function logoutAccount() {
   stopActivityTracking();
   stopEntitlementWatcher();
