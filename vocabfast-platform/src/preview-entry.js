@@ -90,25 +90,28 @@ async function deleteAccountWithAnalytics(request,env){
   return response;
 }
 
-async function resetHmacKey(env){
-  const secret=String(env?.PASSWORD_RESET_SECRET||'');
-  if(secret.length<32)throw new Error('reset-secret-missing');
-  return crypto.subtle.importKey('raw',encoder.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
+async function resetHmacKey(account){
+  const credential=String(account?.passwordHash||'');
+  if(credential.length<32)throw new Error('account-reset-key-missing');
+  const digest=await crypto.subtle.digest('SHA-256',encoder.encode(`vocabfast-password-reset:${credential}`));
+  return crypto.subtle.importKey('raw',digest,{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
 }
-async function makeResetToken(account,env){
-  const payload={uid:account.id,e:normalizeEmail(account.email),u:Number(account.updatedAt)||0,exp:Date.now()+RESET_TOKEN_TTL_MS};
-  const encoded=b64url(encoder.encode(JSON.stringify(payload))),key=await resetHmacKey(env),signature=new Uint8Array(await crypto.subtle.sign('HMAC',key,encoder.encode(encoded)));
-  return `${encoded}.${b64url(signature)}`;
-}
-async function readResetToken(token,env){
+function decodeResetPayload(token){
   const [encoded,signature,...rest]=String(token||'').split('.');
   if(!encoded||!signature||rest.length)return null;
+  try{return {encoded,signature,payload:JSON.parse(decoder.decode(fromB64url(encoded)))};}catch{return null;}
+}
+async function makeResetToken(account){
+  const payload={uid:account.id,e:normalizeEmail(account.email),exp:Date.now()+RESET_TOKEN_TTL_MS};
+  const encoded=b64url(encoder.encode(JSON.stringify(payload))),key=await resetHmacKey(account),signature=new Uint8Array(await crypto.subtle.sign('HMAC',key,encoder.encode(encoded)));
+  return `${encoded}.${b64url(signature)}`;
+}
+async function verifyResetToken(token,account){
+  const decoded=decodeResetPayload(token);if(!decoded)return null;
   try{
-    const key=await resetHmacKey(env),valid=await crypto.subtle.verify('HMAC',key,fromB64url(signature),encoder.encode(encoded));
-    if(!valid)return null;
-    const payload=JSON.parse(decoder.decode(fromB64url(encoded)));
-    if(!payload?.uid||!payload?.e||!Number.isFinite(Number(payload?.u))||Number(payload?.exp)<=Date.now())return null;
-    return payload;
+    const key=await resetHmacKey(account),valid=await crypto.subtle.verify('HMAC',key,fromB64url(decoded.signature),encoder.encode(decoded.encoded));
+    if(!valid||decoded.payload?.uid!==account.id||normalizeEmail(decoded.payload?.e)!==normalizeEmail(account.email)||Number(decoded.payload?.exp)<=Date.now())return null;
+    return decoded.payload;
   }catch{return null;}
 }
 async function internalAccounts(env){
@@ -136,26 +139,25 @@ async function requestPasswordReset(request,env){
   if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
   const data=await request.json().catch(()=>({})),email=normalizeEmail(data.email);
   if(!/^\S+@\S+\.\S+$/.test(email))return json({error:'Bitte gib eine gültige E-Mail-Adresse ein.'},400);
-  if(!env?.PASSWORD_RESET_SECRET||!env?.RESEND_API_KEY||!env?.PASSWORD_RESET_FROM)return json({error:'Der automatische Passwort-Reset wird gerade eingerichtet. Bitte nutze bis dahin den Kontakt im Impressum.'},503);
+  if(!env?.RESEND_API_KEY||!env?.PASSWORD_RESET_FROM)return json({error:'Der automatische Passwort-Reset wird gerade eingerichtet. Bitte nutze bis dahin den Kontakt im Impressum.'},503);
   const now=Date.now(),last=Number(resetThrottle.get(email)||0);
   if(now-last<RESET_MIN_INTERVAL_MS)return json({ok:true,message:'Wenn ein Konto existiert, wurde bereits eine Reset-E-Mail angefordert.'});
   resetThrottle.set(email,now);
   const account=(await internalAccounts(env)).find(item=>normalizeEmail(item?.email)===email&&!item?.disabled);
   if(account){
-    try{const token=await makeResetToken(account,env);await sendResetEmail(env,email,token);}catch(error){console.error('password reset request failed',error);}
+    try{const token=await makeResetToken(account);await sendResetEmail(env,email,token);}catch(error){console.error('password reset request failed',error);}
   }
   return json({ok:true,message:'Wenn für diese E-Mail ein Konto existiert, erhältst du gleich einen Reset-Link.'});
 }
 async function confirmPasswordReset(request,env){
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});
   if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
-  const data=await request.json().catch(()=>({})),newPassword=String(data.newPassword||'');
+  const data=await request.json().catch(()=>({})),newPassword=String(data.newPassword||''),decoded=decodeResetPayload(data.token);
   if(newPassword.length<12)return json({error:'Das neue Passwort muss mindestens 12 Zeichen lang sein.'},400);
   if(newPassword.length>256)return json({error:'Das neue Passwort ist zu lang.'},400);
-  const payload=await readResetToken(data.token,env);
-  if(!payload)return json({error:'Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.'},400);
-  const account=await internalAccount(env,payload.uid);
-  if(!account||account.disabled||normalizeEmail(account.email)!==payload.e||Number(account.updatedAt)!==Number(payload.u))return json({error:'Der Reset-Link ist nicht mehr gültig. Bitte fordere einen neuen an.'},400);
+  if(!decoded?.payload?.uid)return json({error:'Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.'},400);
+  const account=await internalAccount(env,decoded.payload.uid),payload=account?await verifyResetToken(data.token,account):null;
+  if(!account||account.disabled||!payload)return json({error:'Der Reset-Link ist nicht mehr gültig. Bitte fordere einen neuen an.'},400);
   const upstream=await accountStore(env).fetch(new Request(`https://accounts.internal/api/preview/admin/accounts/${encodeURIComponent(payload.uid)}/password`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({temporaryPassword:newPassword})}));
   if(!upstream.ok){const result=await upstream.json().catch(()=>({}));return json({error:result.error||'Das Passwort konnte nicht geändert werden.'},upstream.status);}
   return json({ok:true,message:'Passwort geändert. Du kannst dich jetzt anmelden.'});
