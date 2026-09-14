@@ -27,6 +27,12 @@ function readState(id:string):ReaderState{
   try{const raw=JSON.parse(localStorage.getItem(stateKey(id))||'{}') as Partial<ReaderState>;return{lastPage:Math.max(1,Number(raw.lastPage)||1),bookmarks:Array.isArray(raw.bookmarks)?raw.bookmarks.filter(value=>Number.isInteger(value)&&value>0):[]};}catch{return{lastPage:1,bookmarks:[]};}
 }
 function writeState(id:string,state:ReaderState){try{localStorage.setItem(stateKey(id),JSON.stringify(state));}catch{/* local reading progress is optional */}}
+function disposePdf(pdf:PDFDocumentProxy|null){
+  if(!pdf)return;
+  const disposable=pdf as unknown as {cleanup?:()=>void;destroy?:()=>void|Promise<void>};
+  try{disposable.cleanup?.();}catch{/* best effort */}
+  try{void disposable.destroy?.();}catch{/* best effort */}
+}
 function speak(text:string,language:LanguageCode){
   if(!('speechSynthesis' in window)||!text.trim())return false;
   window.speechSynthesis.cancel();
@@ -76,7 +82,7 @@ export default function PDFReader({sourceLanguage,targetLanguage,onClose}:Props)
     }).slice(0,30);
   },[pages,search]);
 
-  useEffect(()=>()=>{renderTaskRef.current?.cancel();window.speechSynthesis?.cancel();void pdfRef.current?.destroy();},[]);
+  useEffect(()=>()=>{renderTaskRef.current?.cancel();window.speechSynthesis?.cancel();disposePdf(pdfRef.current);pdfRef.current=null;},[]);
   useEffect(()=>{
     const pdf=pdfRef.current,canvas=canvasRef.current;if(!pdf||!canvas||!totalPages)return;
     let active=true;setRendering(true);setError('');renderTaskRef.current?.cancel();
@@ -98,7 +104,7 @@ export default function PDFReader({sourceLanguage,targetLanguage,onClose}:Props)
     if(file.size>MAX_FILE_SIZE){setError('Die PDF darf höchstens 40 MB groß sein.');return;}
     setLoading(true);setError('');setStatus('PDF wird geöffnet …');setTranslation(null);setSelectedText('');setSearch('');
     try{
-      await pdfRef.current?.destroy();const pdfjs=await import('pdfjs-dist');pdfjs.GlobalWorkerOptions.workerSrc=pdfWorker;
+      disposePdf(pdfRef.current);pdfRef.current=null;const pdfjs=await import('pdfjs-dist');pdfjs.GlobalWorkerOptions.workerSrc=pdfWorker;
       const pdf=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;pdfRef.current=pdf;
       const id=signature(file),saved=readState(id);readerIdRef.current=id;setFileName(file.name);setTotalPages(pdf.numPages);setBookmarks(saved.bookmarks.filter(value=>value<=pdf.numPages));setPage(Math.min(saved.lastPage,pdf.numPages));setDocumentVersion(value=>value+1);
       const pageCount=Math.min(pdf.numPages,TEXT_PAGE_LIMIT),extracted:PageText[]=[];
@@ -107,7 +113,7 @@ export default function PDFReader({sourceLanguage,targetLanguage,onClose}:Props)
       }
       setPages(extracted);const searchable=extracted.filter(item=>item.text.length>20).length;
       setStatus(`${pdf.numPages} Seiten geöffnet · ${searchable} Seiten mit durchsuchbarem Text${pdf.numPages>TEXT_PAGE_LIMIT?` · Suche auf die ersten ${TEXT_PAGE_LIMIT} Seiten begrenzt`:''}.`);
-    }catch(reason){setError(reason instanceof Error?reason.message:'Die PDF konnte nicht geöffnet werden.');pdfRef.current=null;setTotalPages(0);setPages([]);}
+    }catch(reason){setError(reason instanceof Error?reason.message:'Die PDF konnte nicht geöffnet werden.');disposePdf(pdfRef.current);pdfRef.current=null;setTotalPages(0);setPages([]);}
     finally{setLoading(false);}
   }
 
@@ -142,7 +148,7 @@ export default function PDFReader({sourceLanguage,targetLanguage,onClose}:Props)
 
       {!totalPages?<div className="pdf-reader-empty"><div className="pdf-reader-empty-icon">PDF</div><span className="eyebrow">READ · UNDERSTAND · LEARN</span><h1>Deine Unterlagen werden zum Lernwerkzeug.</h1><p>Öffne Skripten, Handbücher oder Lernunterlagen. VocabFast verbindet Lesen, Suche, Vorlesen, OCR, Übersetzung und deinen persönlichen Wortschatz in einem Reader.</p><label className={`pdf-reader-upload ${loading?'busy':''}`}><input type="file" accept="application/pdf,.pdf" disabled={loading} onChange={event=>{const file=event.target.files?.[0];if(file)void loadPdf(file);event.target.value='';}}/><strong>{loading?'PDF wird vorbereitet …':'PDF öffnen'}</strong><small>Bis 40 MB · Verarbeitung direkt im Browser</small></label><div className="pdf-reader-feature-grid"><article><span>⌕</span><strong>Im Dokument suchen</strong><small>Treffer führen dich direkt auf die richtige Seite.</small></article><article><span>🔊</span><strong>Vorlesen lassen</strong><small>Markierten Text oder ganze Seiten anhören.</small></article><article><span>⇄</span><strong>Direkt übersetzen</strong><small>Text markieren, verstehen und als Lernkarte speichern.</small></article><article><span>OCR</span><strong>Scans erkennen</strong><small>Auch Seiten ohne Textebene einzeln analysieren.</small></article></div></div>:
       <div className="pdf-reader-workspace">
-        <aside className="pdf-reader-sidebar"><div className="pdf-reader-file"><span>PDF</span><div><strong>{fileName}</strong><small>{totalPages} Seiten</small></div></div><label className="pdf-reader-search"><span>⌕</span><input type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Im PDF suchen …"/></label>{search.trim()?<div className="pdf-reader-results"><span>{searchResults.length} Treffer</span>{searchResults.length?searchResults.map(result=><button key={`${result.page}-${result.snippet}`} onClick={()=>jump(result.page)}><strong>Seite {result.page}</strong><small>{result.snippet}</small></button>):<p>Kein Treffer im Textindex.</p>}</div>:<div className="pdf-reader-nav"><span>LESEZEICHEN</span>{bookmarks.length?bookmarks.map(value=><button key={value} className={value===page?'active':''} onClick={()=>jump(value)}><strong>Seite {value}</strong><small>Gespeichert</small></button>):<p>Noch keine Lesezeichen. Markiere wichtige Seiten mit ☆.</p>}</div>}<div className="pdf-reader-sidebar-actions"><button onClick={()=>{setTotalPages(0);setPages([]);setFileName('');setSearch('');setSelectedText('');setTranslation(null);void pdfRef.current?.destroy();pdfRef.current=null;}}>Andere PDF öffnen</button></div></aside>
+        <aside className="pdf-reader-sidebar"><div className="pdf-reader-file"><span>PDF</span><div><strong>{fileName}</strong><small>{totalPages} Seiten</small></div></div><label className="pdf-reader-search"><span>⌕</span><input type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Im PDF suchen …"/></label>{search.trim()?<div className="pdf-reader-results"><span>{searchResults.length} Treffer</span>{searchResults.length?searchResults.map(result=><button key={`${result.page}-${result.snippet}`} onClick={()=>jump(result.page)}><strong>Seite {result.page}</strong><small>{result.snippet}</small></button>):<p>Kein Treffer im Textindex.</p>}</div>:<div className="pdf-reader-nav"><span>LESEZEICHEN</span>{bookmarks.length?bookmarks.map(value=><button key={value} className={value===page?'active':''} onClick={()=>jump(value)}><strong>Seite {value}</strong><small>Gespeichert</small></button>):<p>Noch keine Lesezeichen. Markiere wichtige Seiten mit ☆.</p>}</div>}<div className="pdf-reader-sidebar-actions"><button onClick={()=>{setTotalPages(0);setPages([]);setFileName('');setSearch('');setSelectedText('');setTranslation(null);disposePdf(pdfRef.current);pdfRef.current=null;}}>Andere PDF öffnen</button></div></aside>
 
         <main className="pdf-reader-document"><div className="pdf-reader-toolbar"><div className="pdf-page-controls"><button onClick={()=>jump(page-1)} disabled={page<=1}>←</button><label><input type="number" min={1} max={totalPages} value={page} onChange={event=>jump(Number(event.target.value)||1)}/><span>/ {totalPages}</span></label><button onClick={()=>jump(page+1)} disabled={page>=totalPages}>→</button></div><div className="pdf-zoom-controls"><button onClick={()=>setScale(value=>Math.max(.7,Number((value-.1).toFixed(2))))}>−</button><span>{Math.round(scale*100)}%</span><button onClick={()=>setScale(value=>Math.min(1.9,Number((value+.1).toFixed(2))))}>+</button></div><button className={bookmarks.includes(page)?'bookmarked':''} onClick={toggleBookmark}>{bookmarks.includes(page)?'★ Lesezeichen':'☆ Lesezeichen'}</button></div><div className="pdf-canvas-stage">{rendering&&<div className="pdf-rendering">Seite wird dargestellt …</div>}<canvas ref={canvasRef}/></div></main>
 
