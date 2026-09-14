@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vocabfast-language-preview",
-  "main": "./src/preview-entry.js",
+  "main": "./src/preview-entry-v2.js",
   "compatibility_date": "2026-09-04",
   "workers_dev": true,
   "routes": [
@@ -9,6 +9,7 @@
     { "pattern": "vocabfast.net/api/preview/*", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/platform/coach", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/platform/translate", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/api/platform/pdf-translate", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/admin/context", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/assets/*", "zone_name": "vocabfast.net" },
