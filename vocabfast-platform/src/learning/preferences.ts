@@ -1,7 +1,7 @@
 import { languages, learnableLanguages } from '../data/catalog';
 
 export type LearningReason = 'alltag' | 'reise' | 'beruf' | 'fachsprache';
-export type LanguageCode = 'en'|'hr'|'es'|'fr'|'de'|'it'|'pt'|'zh'|'ja'|'ko'|'ar';
+export type LanguageCode = 'en'|'hr'|'sl'|'es'|'fr'|'de'|'it'|'pt'|'nl'|'pl'|'cs'|'tr'|'el'|'ru'|'uk'|'zh'|'ja'|'ko'|'ar';
 export type LearningPair = {
   id:string;
   sourceLanguage:LanguageCode;
