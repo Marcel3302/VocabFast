@@ -28,68 +28,68 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
   const strengthLabel=passwordStrength>=5?'Sehr stark':passwordStrength>=4?'Stark':passwordStrength>=3?'Gut':passwordStrength>=2?'Ausreichend':'Schwach';
   return <div className="welcome-shell">
     <header className="welcome-topbar">
-      <a className="welcome-brand" href="/" aria-label="VocabFast Startseite"><span>V</span><div><strong>VocabFast</strong><small>Language Learning</small></div></a>
-      <div className="welcome-topbar-actions"><span className="welcome-preview-label">Mehrsprachig · Persönlich · Synchronisiert</span><button onClick={()=>focusAuth('login')}>Anmelden</button></div>
+      <a className="welcome-brand" href="/" aria-label="VocabFast Startseite"><span>V</span><div><strong>VocabFast</strong><small>Language Companion</small></div></a>
+      <div className="welcome-topbar-actions"><span className="welcome-preview-label">Learn · Speak · Travel · Translate</span><button onClick={()=>focusAuth('login')}>Anmelden</button></div>
     </header>
 
     <main className="welcome-main">
       <section className="welcome-story">
-        <span className="welcome-kicker">SPRACHEN LERNEN. SICHER ANWENDEN.</span>
-        <h1>Aus „ich verstehe es“ wird <em>„ich kann es sagen“.</em></h1>
-        <p>VocabFast verbindet strukturierte Lernpfade mit aktivem Sprechen, Hörtraining, intelligenten Wiederholungen, Übersetzer und persönlichem Wortschatz. Kurze, fokussierte Einheiten bringen dich vom Erkennen zum sicheren Anwenden.</p>
+        <span className="welcome-kicker">LERNE FÜR DAS ECHTE LEBEN</span>
+        <h1>Eine Sprache nicht nur lernen. <em>Sie wirklich benutzen.</em></h1>
+        <p>VocabFast verbindet deinen Lernpfad mit Sprechen, Reisen, Übersetzen und persönlicher Wiederholung. Statt fünf einzelner Tools bekommst du einen Sprachbegleiter, der dich vom ersten Satz bis zur echten Situation begleitet.</p>
 
         <div className="welcome-hero-actions">
-          <button className="welcome-hero-primary" onClick={()=>focusAuth('register')}>Kostenlos loslegen <span>→</span></button>
+          <button className="welcome-hero-primary" onClick={()=>focusAuth('register')}>Kostenlos starten <span>→</span></button>
           <button className="welcome-hero-secondary" onClick={()=>focusAuth('login')}>Ich habe schon ein Konto</button>
         </div>
-        <div className="welcome-trust-line"><span>✓ Kostenlos starten</span><span>✓ Kein Zahlungsmittel nötig</span><span>✓ Fortschritt geräteübergreifend</span><span>✓ Pro-Käufe aktuell nur Sandbox-Test</span></div>
+        <div className="welcome-trust-line"><span>✓ Kostenlos starten</span><span>✓ Kein Zahlungsmittel nötig</span><span>✓ Fortschritt synchronisiert</span><span>✓ Für Desktop & Mobil</span></div>
 
         <section className="welcome-product-preview" aria-label="Produktvorschau von VocabFast">
-          <div className="preview-window-bar"><span/><span/><span/><strong>VOCABFAST · PRODUKTVORSCHAU</strong></div>
+          <div className="preview-window-bar"><span/><span/><span/><strong>VOCABFAST · LANGUAGE COMPANION</strong></div>
           <div className="preview-app">
-            <aside className="preview-sidebar" aria-hidden="true"><b>V</b><i className="active">⌂</i><i>A2</i><i>Aa</i><i>AI</i><i>⇄</i><i>W</i></aside>
+            <aside className="preview-sidebar" aria-hidden="true"><b>V</b><i className="active">L</i><i>◉</i><i>✦</i><i>⇄</i><i>●</i></aside>
             <div className="preview-content">
-              <div className="preview-head"><div><small>DEIN LERNPFAD</small><strong>Heute ein Stück sicherer.</strong></div><span>EN · A2</span></div>
+              <div className="preview-head"><div><small>DEIN HEUTIGER FOKUS</small><strong>Was bringt dich heute am weitesten?</strong></div><span>EN · A2</span></div>
               <div className="preview-grid">
-                <article className="preview-next"><small>NÄCHSTER SCHRITT</small><h3>Everyday conversations</h3><p>Hören · Satzbau · Sprechen · 8 Minuten</p><div className="preview-progress"><span/></div><button type="button" tabIndex={-1}>Weiterlernen →</button></article>
-                <article className="preview-score"><small>HEUTE</small><strong>12</strong><span>Minuten gelernt</span><div><b>◆ 240 XP</b><b>🔥 6 Tage</b></div></article>
+                <article className="preview-next"><small>WEITERLERNEN</small><h3>Everyday conversations</h3><p>Hören · Satzbau · Sprechen · 8 Minuten</p><div className="preview-progress"><span/></div><button type="button" tabIndex={-1}>Einheit starten →</button></article>
+                <article className="preview-score"><small>REISEBEREITSCHAFT</small><strong>68%</strong><span>für deine nächste Reise</span><div><b>◆ 240 XP</b><b>🔥 6 Tage</b></div></article>
               </div>
-              <div className="preview-tools"><span><b>AI</b> Sprachcoach</span><span><b>⇄</b> Übersetzer</span><span><b>W</b> Wortschatz</span><span><b>✈</b> Fachsprache</span></div>
+              <div className="preview-tools"><span><b>L</b> Learn</span><span><b>◉</b> Speak</span><span><b>✦</b> Travel</span><span><b>⇄</b> Translate</span></div>
             </div>
           </div>
         </section>
 
         <div className="welcome-capability-band">
-          <article><strong>Englisch A1–C2</strong><span>strukturierter Lernpfad</span></article>
-          <article><strong>Kroatisch A1–A2</strong><span>eigener Kursfortschritt</span></article>
-          <article><strong>{translationLanguages.length} Sprachen</strong><span>im integrierten Übersetzer</span></article>
-          <article><strong>{learnableLanguages.length} Lernpfade</strong><span>mit getrenntem Fortschritt</span></article>
+          <article><strong>Learn</strong><span>klarer täglicher Lernweg</span></article>
+          <article><strong>Speak</strong><span>Voice Sprint & Gespräche</span></article>
+          <article><strong>Travel</strong><span>Vorbereitung & Schnellhilfe</span></article>
+          <article><strong>{translationLanguages.length} Sprachen</strong><span>übersetzen & vorlesen</span></article>
         </div>
 
         <div className="welcome-points">
-          <article><span>01</span><div><strong>Ein klarer nächster Schritt.</strong><p>Level, Lernpfad, Tagesziel und Wiederholung greifen ineinander. Du musst nicht überlegen, womit du heute anfangen sollst.</p></div></article>
-          <article><span>02</span><div><strong>Aktiv produzieren statt nur erkennen.</strong><p>Übersetzen, Satzbau, Hören, Diktat und Sprechen trainieren genau das, was im echten Gespräch zählt: Wörter und Strukturen selbst abrufen.</p></div></article>
-          <article><span>03</span><div><strong>Dein eigener Wortschatz wächst mit.</strong><p>Speichere Übersetzungen, nutze Level-Wortschatz und trainiere persönliche Karten mit Wiederholungslogik. Pro ergänzt den PDF-Wortscanner.</p></div></article>
-          <article><span>04</span><div><strong>Mehrere Sprachen. Ein Konto.</strong><p>Fortschritt, Level, XP und Wiederholungen bleiben für jede Sprachkombination getrennt erhalten und werden synchronisiert.</p></div></article>
+          <article><span>01</span><div><strong>Du weißt immer, was als Nächstes sinnvoll ist.</strong><p>Dein Start-Dashboard bündelt Weiterlernen, Smart Review, Tagesziel und schnelle Werkzeuge, ohne dich mit Menüs zu überladen.</p></div></article>
+          <article><span>02</span><div><strong>Sprich vom ersten Tag an.</strong><p>Voice Sprint bringt dich ohne Multiple Choice ins freie Sprechen. Längere KI-Gespräche bauen später auf deinem Niveau und deinen Schwächen auf.</p></div></article>
+          <article><span>03</span><div><strong>Reisen wird Teil deines Lernplans.</strong><p>Plane Reiseziel und Datum, trainiere Hotel, Restaurant, Orientierung und Notfälle und öffne wichtige Hilfe-Sätze direkt im Übersetzer.</p></div></article>
+          <article><span>04</span><div><strong>Übersetzen endet nicht beim Ergebnis.</strong><p>Sprich Text ein, höre die Übersetzung, nutze deinen Verlauf und speichere wichtige Formulierungen direkt als Lernstoff.</p></div></article>
         </div>
 
         <div className="welcome-level-block">
-          <div><span>STRUKTURIERTES LERNEN</span><strong>Vom Einstieg bis zur sicheren, differenzierten Anwendung.</strong></div>
+          <div><span>PERSÖNLICHER LERNWEG</span><strong>Kurze Einheiten, echte Anwendung und ein System, das deinen Fortschritt zusammenführt.</strong></div>
           <div className="welcome-level-rail" aria-label="CEFR Lernpfad"><span>A1</span><i/><span>A2</span><i/><span>B1</span><i/><span>B2</span><i/><span>C1</span><i/><span>C2</span></div>
         </div>
 
         <div className="welcome-value-strip">
-          <article><span>FREE</span><strong>Alles, was du für regelmäßiges Lernen brauchst.</strong><p>Lernpfade, Übersetzer, Wortschatz, Hör- und Sprechübungen, Wiederholung und Fortschritt.</p><em>0 €</em></article>
-          <article className="pro"><span>PRO · TEST</span><strong>Mehr Tiefe für ambitioniertes Training.</strong><p>KI-Coach, Fachsprache, PDF-Wortscanner und zusätzliche Analyse- und Trainingsfunktionen.</p><em>19,99 € / Monat · Stripe Sandbox</em></article>
+          <article><span>FREE</span><strong>Eine App, die schon kostenlos wirklich nutzbar ist.</strong><p>Lernpfad, Tagesplan, Voice Sprint, Übersetzer, Wortschatz, Wiederholung, Reiseplanung und Fortschritt.</p><em>0 €</em></article>
+          <article className="pro"><span>PRO · TEST</span><strong>Mehr Tiefe für intensives Sprachtraining.</strong><p>KI-Gespräche, Fachsprache, PDF-Wortscanner und zusätzliche Analysefunktionen.</p><em>Stripe aktuell im Testbetrieb</em></article>
         </div>
       </section>
 
       <aside className="welcome-side">
         <section className="welcome-auth-card" ref={authRef}>
-          <div className="welcome-auth-head"><span className="welcome-auth-mark">V</span><div><small>DEIN VOCABFAST KONTO</small><h2>{mode==='login'?'Willkommen zurück.':'In wenigen Schritten startklar.'}</h2></div></div>
+          <div className="welcome-auth-head"><span className="welcome-auth-mark">V</span><div><small>DEIN VOCABFAST KONTO</small><h2>{mode==='login'?'Willkommen zurück.':'Dein Sprachbegleiter ist gleich startklar.'}</h2></div></div>
           <div className="welcome-auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>selectMode('login')}>Anmelden</button><button className={mode==='register'?'active':''} onClick={()=>selectMode('register')}>Registrieren</button></div>
           {notice&&<div className="welcome-notice" role="status" aria-live="polite">{notice}</div>}
-          {mode==='register'&&<div className="welcome-register-promise"><strong>Dein Start dauert nur wenige Minuten.</strong><span>Sprachen wählen → Ziel festlegen → Level bestimmen → erste Einheit starten.</span></div>}
+          {mode==='register'&&<div className="welcome-register-promise"><strong>Ein Konto, alle Bereiche.</strong><span>Sprachen wählen → Ziel festlegen → Level bestimmen → direkt loslegen.</span></div>}
           <form onSubmit={submit}>
             {mode==='register'&&<label><span>Name</span><input ref={nameRef} autoComplete="name" value={name} onChange={event=>setName(event.target.value)} placeholder="Wie dürfen wir dich nennen?" required minLength={2}/></label>}
             <label><span>E-Mail</span><input ref={emailRef} type="email" inputMode="email" autoCapitalize="none" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@beispiel.at" required/></label>
@@ -102,12 +102,8 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
           <div className="welcome-security"><span>✓</span><p><strong>Sicherer Kontozugang.</strong> Dein Passwort wird nicht im Klartext gespeichert. Lernstand und Einstellungen werden deinem Konto zugeordnet.</p></div>
         </section>
 
-        <section className="welcome-side-note" aria-label="VocabFast Vorteile">
-          <span>WARUM VOCABFAST?</span>
-          <strong>Ein ruhiger Lernbereich, der sich auf Fortschritt statt Ablenkung konzentriert.</strong>
-          <div><em>Mehrere Lernsprachen</em><em>Übersetzer integriert</em><em>Wortschatz mit Wiederholung</em><em>Mobil & Desktop</em></div>
-        </section>
-        <section className="welcome-test-note"><span>TESTBETRIEB</span><p>VocabFast befindet sich aktuell in Entwicklung. Pro-Zahlungen laufen ausschließlich über Stripe Sandbox und belasten kein echtes Geld.</p></section>
+        <section className="welcome-side-note" aria-label="VocabFast Vorteile"><span>WARUM VOCABFAST?</span><strong>Ein zusammenhängender Sprachbegleiter statt einer Sammlung einzelner Tools.</strong><div><em>{learnableLanguages.length} aktive Lernpfade</em><em>Voice Training</em><em>Travel Companion</em><em>Übersetzer mit Verlauf</em></div></section>
+        <section className="welcome-test-note"><span>TESTBETRIEB</span><p>VocabFast befindet sich aktuell in Entwicklung. Pro-Zahlungen laufen derzeit über Stripe Sandbox und belasten kein echtes Geld.</p></section>
       </aside>
     </main>
 
