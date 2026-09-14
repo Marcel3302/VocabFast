@@ -28,21 +28,21 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
   const strengthLabel=passwordStrength>=5?'Sehr stark':passwordStrength>=4?'Stark':passwordStrength>=3?'Gut':passwordStrength>=2?'Ausreichend':'Schwach';
   return <div className="welcome-shell">
     <header className="welcome-topbar">
-      <a className="welcome-brand" href="/" aria-label="VocabFast Startseite"><span>V</span><div><strong>VocabFast</strong><small>Language Companion</small></div></a>
+      <a className="welcome-brand" href="/" aria-label="VocabFast Startseite"><span>V</span><div><strong>VocabFast</strong><small>Language Companion · Beta</small></div></a>
       <div className="welcome-topbar-actions"><span className="welcome-preview-label">Learn · Speak · Travel · Translate</span><button onClick={()=>focusAuth('login')}>Anmelden</button></div>
     </header>
 
     <main className="welcome-main">
       <section className="welcome-story">
-        <span className="welcome-kicker">LERNE FÜR DAS ECHTE LEBEN</span>
+        <span className="welcome-kicker">ÖFFENTLICHE BETA · LERNE FÜR DAS ECHTE LEBEN</span>
         <h1>Eine Sprache nicht nur lernen. <em>Sie wirklich benutzen.</em></h1>
-        <p>VocabFast verbindet deinen Lernpfad mit Sprechen, Reisen, Übersetzen und persönlicher Wiederholung. Statt fünf einzelner Tools bekommst du einen Sprachbegleiter, der dich vom ersten Satz bis zur echten Situation begleitet.</p>
+        <p>VocabFast verbindet deinen Lernpfad mit Sprechen, Reisen, Übersetzen, PDFs und persönlicher Wiederholung. Statt fünf einzelner Tools bekommst du einen Sprachbegleiter, der dich vom ersten Satz bis zur echten Situation begleitet.</p>
 
         <div className="welcome-hero-actions">
           <button className="welcome-hero-primary" onClick={()=>focusAuth('register')}>Kostenlos starten <span>→</span></button>
           <button className="welcome-hero-secondary" onClick={()=>focusAuth('login')}>Ich habe schon ein Konto</button>
         </div>
-        <div className="welcome-trust-line"><span>✓ Kostenlos starten</span><span>✓ Kein Zahlungsmittel nötig</span><span>✓ Fortschritt synchronisiert</span><span>✓ Für Desktop & Mobil</span></div>
+        <div className="welcome-trust-line"><span>✓ Kostenlos starten</span><span>✓ Kein Zahlungsmittel nötig</span><span>✓ Fortschritt synchronisiert</span><span>✓ Desktop & Mobil</span></div>
 
         <section className="welcome-product-preview" aria-label="Produktvorschau von VocabFast">
           <div className="preview-window-bar"><span/><span/><span/><strong>VOCABFAST · LANGUAGE COMPANION</strong></div>
@@ -63,14 +63,14 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
           <article><strong>Learn</strong><span>klarer täglicher Lernweg</span></article>
           <article><strong>Speak</strong><span>Voice Sprint & Gespräche</span></article>
           <article><strong>Travel</strong><span>Vorbereitung & Schnellhilfe</span></article>
-          <article><strong>{translationLanguages.length} Sprachen</strong><span>übersetzen & vorlesen</span></article>
+          <article><strong>{translationLanguages.length} Sprachen</strong><span>übersetzen, vorlesen & PDF</span></article>
         </div>
 
         <div className="welcome-points">
           <article><span>01</span><div><strong>Du weißt immer, was als Nächstes sinnvoll ist.</strong><p>Dein Start-Dashboard bündelt Weiterlernen, Smart Review, Tagesziel und schnelle Werkzeuge, ohne dich mit Menüs zu überladen.</p></div></article>
-          <article><span>02</span><div><strong>Sprich vom ersten Tag an.</strong><p>Voice Sprint bringt dich ohne Multiple Choice ins freie Sprechen. Längere KI-Gespräche bauen später auf deinem Niveau und deinen Schwächen auf.</p></div></article>
+          <article><span>02</span><div><strong>Sprich vom ersten Tag an.</strong><p>Voice Sprint bringt dich ohne Multiple Choice ins freie Sprechen. Eigene Sätze aus Translate können direkt ins Sprechtraining übernommen werden.</p></div></article>
           <article><span>03</span><div><strong>Reisen wird Teil deines Lernplans.</strong><p>Plane Reiseziel und Datum, trainiere Hotel, Restaurant, Orientierung und Notfälle und öffne wichtige Hilfe-Sätze direkt im Übersetzer.</p></div></article>
-          <article><span>04</span><div><strong>Übersetzen endet nicht beim Ergebnis.</strong><p>Sprich Text ein, höre die Übersetzung, nutze deinen Verlauf und speichere wichtige Formulierungen direkt als Lernstoff.</p></div></article>
+          <article><span>04</span><div><strong>Eigene Unterlagen werden Lernstoff.</strong><p>Öffne PDFs, suche, nutze OCR, übersetze Textstellen, höre sie an und speichere wichtige Formulierungen direkt als Lernkarten.</p></div></article>
         </div>
 
         <div className="welcome-level-block">
@@ -79,8 +79,8 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
         </div>
 
         <div className="welcome-value-strip">
-          <article><span>FREE</span><strong>Eine App, die schon kostenlos wirklich nutzbar ist.</strong><p>Lernpfad, Tagesplan, Voice Sprint, Übersetzer, Wortschatz, Wiederholung, Reiseplanung und Fortschritt.</p><em>0 €</em></article>
-          <article className="pro"><span>PRO · TEST</span><strong>Mehr Tiefe für intensives Sprachtraining.</strong><p>KI-Gespräche, Fachsprache, PDF-Wortscanner und zusätzliche Analysefunktionen.</p><em>Stripe aktuell im Testbetrieb</em></article>
+          <article><span>FREE · BETA</span><strong>Schon kostenlos wirklich nutzbar.</strong><p>Lernpfade, Tagesplan, Voice Sprint, Übersetzer, Wortschatz, Wiederholung, Reiseplanung, PDF Reader und Fortschritt.</p><em>0 €</em></article>
+          <article className="pro"><span>PRO · KOMMT SPÄTER</span><strong>Mehr Tiefe für intensives Sprachtraining.</strong><p>KI-Gespräche, Fachsprache, PDF-Wortscanner und zusätzliche Analysefunktionen.</p><em>Während der Beta nicht regulär buchbar</em></article>
         </div>
       </section>
 
@@ -98,15 +98,16 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
             {error&&<div className="welcome-error" role="alert" aria-live="assertive">{error}</div>}
             <button className="welcome-submit" disabled={busy||!email||!password||(mode==='register'&&(!name.trim()||password.length<12||password!==confirmPassword))}>{busy?'Bitte warten …':mode==='login'?'Sicher anmelden →':'Kostenloses Konto erstellen →'}</button>
           </form>
+          {mode==='login'&&<div className="welcome-card-note">Passwort vergessen? Ein automatischer Reset ist in der Beta noch nicht freigeschaltet. Nutze bitte den Kontakt im <a href={`${legalBase}/impressum.html`}>Impressum</a>, damit der Zugang sicher geklärt werden kann.</div>}
           <div className="welcome-card-note">{mode==='register'?<>Mit der Registrierung akzeptierst du unsere <a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a> und bestätigst, die <a href={`${legalBase}/datenschutz.html`}>Datenschutzhinweise</a> gelesen zu haben.</>:<>Nach der Anmeldung wird dein gespeicherter Lernstand automatisch geladen.</>}</div>
           <div className="welcome-security"><span>✓</span><p><strong>Sicherer Kontozugang.</strong> Dein Passwort wird nicht im Klartext gespeichert. Lernstand und Einstellungen werden deinem Konto zugeordnet.</p></div>
         </section>
 
-        <section className="welcome-side-note" aria-label="VocabFast Vorteile"><span>WARUM VOCABFAST?</span><strong>Ein zusammenhängender Sprachbegleiter statt einer Sammlung einzelner Tools.</strong><div><em>{learnableLanguages.length} aktive Lernpfade</em><em>Voice Training</em><em>Travel Companion</em><em>Übersetzer mit Verlauf</em></div></section>
-        <section className="welcome-test-note"><span>TESTBETRIEB</span><p>VocabFast befindet sich aktuell in Entwicklung. Pro-Zahlungen laufen derzeit über Stripe Sandbox und belasten kein echtes Geld.</p></section>
+        <section className="welcome-side-note" aria-label="VocabFast Vorteile"><span>WARUM VOCABFAST?</span><strong>Ein zusammenhängender Sprachbegleiter statt einer Sammlung einzelner Tools.</strong><div><em>{learnableLanguages.length} aktive Lernpfade</em><em>Voice Training</em><em>Travel Companion</em><em>{translationLanguages.length} Translate-Sprachen</em></div></section>
+        <section className="welcome-test-note"><span>ÖFFENTLICHE BETA</span><p>VocabFast kann bereits kostenlos verwendet werden. Funktionen werden weiterhin aktiv verbessert. Pro ist während der Beta noch nicht regulär kaufbar; es werden keine Testkäufe von Nutzern verlangt.</p></section>
       </aside>
     </main>
 
-    <footer className="welcome-footer"><span>© {new Date().getFullYear()} VocabFast · Entwicklungs- und Testbetrieb</span><nav aria-label="Rechtliche Informationen"><a href={`${legalBase}/impressum.html`}>Impressum</a><a href={`${legalBase}/datenschutz.html`}>Datenschutz</a><a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a><a href={`${legalBase}/widerruf.html`}>Widerruf</a></nav></footer>
+    <footer className="welcome-footer"><span>© {new Date().getFullYear()} VocabFast · Öffentliche Beta</span><nav aria-label="Rechtliche Informationen"><a href={`${legalBase}/impressum.html`}>Impressum</a><a href={`${legalBase}/datenschutz.html`}>Datenschutz</a><a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a><a href={`${legalBase}/widerruf.html`}>Pro & Widerruf</a></nav></footer>
   </div>;
 }
