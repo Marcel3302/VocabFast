@@ -13,7 +13,7 @@ type SpeechRecognizerCtor=new()=>SpeechRecognizer;
 
 const HISTORY_KEY='vocabfast-translate-history-v1';
 const DRAFT_KEY='vocabfast-translate-draft-v1';
-const localeMap:Partial<Record<LanguageCode,string>>={de:'de-DE',en:'en-US',it:'it-IT',es:'es-ES',fr:'fr-FR',sl:'sl-SI',hr:'hr-HR',la:'it-IT'};
+const localeMap:Partial<Record<LanguageCode,string>>={de:'de-DE',en:'en-US',it:'it-IT',es:'es-ES',fr:'fr-FR',hr:'hr-HR',pt:'pt-PT',zh:'zh-CN',ja:'ja-JP',ko:'ko-KR',ar:'ar-SA'};
 
 async function translate(text:string,source:string,target:string){
   const response=await fetch('/api/platform/translate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source,target})});
