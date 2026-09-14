@@ -8,15 +8,20 @@ export { PlatformAnalyticsStore } from './platform-analytics.js';
 const PRODUCTION_ORIGIN='https://vocabfast.net';
 const PRODUCTION_WORKER_ORIGIN=PRODUCTION_ORIGIN;
 const ADMIN_AUTH_PATHS=new Set(['/api/admin/login','/api/admin/logout','/api/admin/me']);
-const LANGUAGE_NAMES={en:'English',hr:'Croatian',es:'Spanish',fr:'French',de:'German',it:'Italian',pt:'Portuguese',zh:'Chinese',ja:'Japanese',ko:'Korean',ar:'Arabic'};
-const MEMORY_CODES={en:'en',hr:'hr',es:'es',fr:'fr',de:'de',it:'it',pt:'pt',zh:'zh-CN',ja:'ja',ko:'ko',ar:'ar'};
-const GOOGLE_CODES={en:'en',hr:'hr',es:'es',fr:'fr',de:'de',it:'it',pt:'pt',zh:'zh-CN',ja:'ja',ko:'ko',ar:'ar'};
+const RESET_TOKEN_TTL_MS=20*60*1000;
+const RESET_MIN_INTERVAL_MS=60*1000;
+const resetThrottle=new Map();
+const encoder=new TextEncoder();
+const decoder=new TextDecoder();
 
 function json(data,status=200,headers={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow, noarchive',...headers}})}
 function sameOrigin(request){const origin=request.headers.get('Origin');return !origin||origin===new URL(request.url).origin;}
 function accountStore(env){if(!env?.PREVIEW_ACCOUNTS)throw new Error('Account storage is not configured.');const id=env.PREVIEW_ACCOUNTS.idFromName('global');return env.PREVIEW_ACCOUNTS.get(id);}
 function analyticsStore(env){if(!env?.PLATFORM_ANALYTICS)throw new Error('Analytics storage is not configured.');const id=env.PLATFORM_ANALYTICS.idFromName('global');return env.PLATFORM_ANALYTICS.get(id);}
 function syntheticAccount(account){return /^ci-\d+-\d+@example\.invalid$/i.test(String(account?.email||''));}
+function normalizeEmail(value){return String(value??'').replace(/\0/g,'').trim().toLowerCase().slice(0,180);}
+function b64url(bytes){let value='';for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');}
+function fromB64url(value){const normalized=String(value||'').replaceAll('-','+').replaceAll('_','/');const padded=normalized+'='.repeat((4-normalized.length%4)%4);return Uint8Array.from(atob(padded),char=>char.charCodeAt(0));}
 
 async function productionRequest(env,request,path){
   const sourceUrl=new URL(request.url),targetUrl=new URL(path||`${sourceUrl.pathname}${sourceUrl.search}`,PRODUCTION_WORKER_ORIGIN),headers=new Headers(request.headers);
@@ -84,44 +89,94 @@ async function deleteAccountWithAnalytics(request,env){
   if(response.ok&&user?.id)await removeAnalytics(env,user.id);
   return response;
 }
-function cleanText(value,max=3000){return String(value??'').replace(/\0/g,'').trim().slice(0,max);}
-function splitTranslationText(text,max=440){
-  const chunks=[];let rest=text.trim();
-  while(rest.length>max){let cut=rest.lastIndexOf(' ',max);if(cut<Math.floor(max*.55))cut=max;chunks.push(rest.slice(0,cut).trim());rest=rest.slice(cut).trim();}
-  if(rest)chunks.push(rest);return chunks;
+
+async function resetHmacKey(env){
+  const secret=String(env?.PASSWORD_RESET_SECRET||'');
+  if(secret.length<32)throw new Error('reset-secret-missing');
+  return crypto.subtle.importKey('raw',encoder.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign','verify']);
 }
-async function memoryTranslate(text,source,target){
-  const sourceCode=MEMORY_CODES[source],targetCode=MEMORY_CODES[target];
-  if(!sourceCode||!targetCode)throw new Error('fallback-language');
-  const chunks=splitTranslationText(text),translated=[];let alternatives=[];
-  for(const chunk of chunks){
-    const endpoint=new URL('https://api.mymemory.translated.net/get');endpoint.searchParams.set('q',chunk);endpoint.searchParams.set('langpair',`${sourceCode}|${targetCode}`);
-    const response=await fetch(endpoint,{headers:{Accept:'application/json','User-Agent':'VocabFast/1.0'}});if(!response.ok)throw new Error(`fallback-${response.status}`);
-    const data=await response.json().catch(()=>null),value=cleanText(data?.responseData?.translatedText,3000);if(!value)throw new Error('fallback-empty');translated.push(value);
-    if(chunks.length===1&&Array.isArray(data?.matches))alternatives=data.matches.map(item=>cleanText(item?.translation,1000)).filter(item=>item&&item.toLocaleLowerCase()!==value.toLocaleLowerCase()).filter((item,index,list)=>list.findIndex(entry=>entry.toLocaleLowerCase()===item.toLocaleLowerCase())===index).slice(0,3);
+async function makeResetToken(account,env){
+  const payload={uid:account.id,e:normalizeEmail(account.email),u:Number(account.updatedAt)||0,exp:Date.now()+RESET_TOKEN_TTL_MS};
+  const encoded=b64url(encoder.encode(JSON.stringify(payload))),key=await resetHmacKey(env),signature=new Uint8Array(await crypto.subtle.sign('HMAC',key,encoder.encode(encoded)));
+  return `${encoded}.${b64url(signature)}`;
+}
+async function readResetToken(token,env){
+  const [encoded,signature,...rest]=String(token||'').split('.');
+  if(!encoded||!signature||rest.length)return null;
+  try{
+    const key=await resetHmacKey(env),valid=await crypto.subtle.verify('HMAC',key,fromB64url(signature),encoder.encode(encoded));
+    if(!valid)return null;
+    const payload=JSON.parse(decoder.decode(fromB64url(encoded)));
+    if(!payload?.uid||!payload?.e||!Number.isFinite(Number(payload?.u))||Number(payload?.exp)<=Date.now())return null;
+    return payload;
+  }catch{return null;}
+}
+async function internalAccounts(env){
+  const response=await accountStore(env).fetch(new Request('https://accounts.internal/api/preview/admin/accounts',{method:'GET'}));
+  if(!response.ok)return [];
+  const data=await response.json().catch(()=>({}));
+  return Array.isArray(data.accounts)?data.accounts:[];
+}
+async function internalAccount(env,userId){
+  const response=await accountStore(env).fetch(new Request(`https://accounts.internal/api/preview/admin/accounts/${encodeURIComponent(userId)}`,{method:'GET'}));
+  if(!response.ok)return null;
+  const data=await response.json().catch(()=>({}));
+  return data.account||null;
+}
+async function sendResetEmail(env,email,token){
+  const apiKey=String(env?.RESEND_API_KEY||''),from=String(env?.PASSWORD_RESET_FROM||'');
+  if(!apiKey||!from)return false;
+  const resetUrl=`${PRODUCTION_ORIGIN}/?reset=${encodeURIComponent(token)}`;
+  const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({from,to:[email],subject:'VocabFast Passwort zurücksetzen',text:`Du hast angefordert, dein VocabFast-Passwort zurückzusetzen. Öffne innerhalb von 20 Minuten diesen Link:\n\n${resetUrl}\n\nFalls du das nicht warst, kannst du diese E-Mail ignorieren.`,html:`<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto;padding:24px;color:#17243a"><h1 style="font-size:24px">VocabFast Passwort zurücksetzen</h1><p>Du hast angefordert, dein Passwort zurückzusetzen.</p><p><a href="${resetUrl}" style="display:inline-block;padding:12px 18px;border-radius:10px;background:#3569e5;color:#fff;text-decoration:none;font-weight:700">Neues Passwort festlegen</a></p><p style="color:#66758a">Der Link ist 20 Minuten gültig. Falls du das nicht warst, kannst du diese E-Mail ignorieren.</p></div>`})});
+  if(!response.ok)console.error('password reset email failed',response.status,await response.text().catch(()=>''));
+  return response.ok;
+}
+async function requestPasswordReset(request,env){
+  if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});
+  if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
+  const data=await request.json().catch(()=>({})),email=normalizeEmail(data.email);
+  if(!/^\S+@\S+\.\S+$/.test(email))return json({error:'Bitte gib eine gültige E-Mail-Adresse ein.'},400);
+  if(!env?.PASSWORD_RESET_SECRET||!env?.RESEND_API_KEY||!env?.PASSWORD_RESET_FROM)return json({error:'Der automatische Passwort-Reset wird gerade eingerichtet. Bitte nutze bis dahin den Kontakt im Impressum.'},503);
+  const now=Date.now(),last=Number(resetThrottle.get(email)||0);
+  if(now-last<RESET_MIN_INTERVAL_MS)return json({ok:true,message:'Wenn ein Konto existiert, wurde bereits eine Reset-E-Mail angefordert.'});
+  resetThrottle.set(email,now);
+  const account=(await internalAccounts(env)).find(item=>normalizeEmail(item?.email)===email&&!item?.disabled);
+  if(account){
+    try{const token=await makeResetToken(account,env);await sendResetEmail(env,email,token);}catch(error){console.error('password reset request failed',error);}
   }
-  return{translation:translated.join(' '),alternatives,note:'Automatische Übersetzung. Prüfe bei Fachbegriffen den Kontext.',source,target};
+  return json({ok:true,message:'Wenn für diese E-Mail ein Konto existiert, erhältst du gleich einen Reset-Link.'});
 }
-async function googleTranslate(text,source,target){
-  const sourceCode=GOOGLE_CODES[source],targetCode=GOOGLE_CODES[target];
-  if(!sourceCode||!targetCode)throw new Error('google-language');
-  const chunks=splitTranslationText(text,650),translated=[];
-  for(const chunk of chunks){
-    const endpoint=new URL('https://translate.googleapis.com/translate_a/single');endpoint.searchParams.set('client','gtx');endpoint.searchParams.set('sl',sourceCode);endpoint.searchParams.set('tl',targetCode);endpoint.searchParams.set('dt','t');endpoint.searchParams.set('q',chunk);
-    const response=await fetch(endpoint,{headers:{Accept:'application/json','User-Agent':'VocabFast/1.0'}});if(!response.ok)throw new Error(`google-${response.status}`);
-    const data=await response.json().catch(()=>null),value=Array.isArray(data?.[0])?data[0].map(part=>String(part?.[0]||'')).join(''):'';if(!value.trim())throw new Error('google-empty');translated.push(cleanText(value,3000));
-  }
-  return{translation:translated.join(' '),alternatives:[],note:'Automatische Übersetzung. Prüfe Fachbegriffe im Kontext.',source,target};
+async function confirmPasswordReset(request,env){
+  if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});
+  if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
+  const data=await request.json().catch(()=>({})),newPassword=String(data.newPassword||'');
+  if(newPassword.length<12)return json({error:'Das neue Passwort muss mindestens 12 Zeichen lang sein.'},400);
+  if(newPassword.length>256)return json({error:'Das neue Passwort ist zu lang.'},400);
+  const payload=await readResetToken(data.token,env);
+  if(!payload)return json({error:'Der Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.'},400);
+  const account=await internalAccount(env,payload.uid);
+  if(!account||account.disabled||normalizeEmail(account.email)!==payload.e||Number(account.updatedAt)!==Number(payload.u))return json({error:'Der Reset-Link ist nicht mehr gültig. Bitte fordere einen neuen an.'},400);
+  const upstream=await accountStore(env).fetch(new Request(`https://accounts.internal/api/preview/admin/accounts/${encodeURIComponent(payload.uid)}/password`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({temporaryPassword:newPassword})}));
+  if(!upstream.ok){const result=await upstream.json().catch(()=>({}));return json({error:result.error||'Das Passwort konnte nicht geändert werden.'},upstream.status);}
+  return json({ok:true,message:'Passwort geändert. Du kannst dich jetzt anmelden.'});
 }
-async function aiTranslate(text,source,target,env){
-  if(!env?.AI?.run)throw new Error('ai-unavailable');
-  const system=`You are VocabFast Translate. Translate from ${LANGUAGE_NAMES[source]} to ${LANGUAGE_NAMES[target]}. Return only valid JSON with keys translation, alternatives, note. alternatives must contain at most 3 natural alternatives. note should be a short helpful learner note in ${LANGUAGE_NAMES[source]}. Preserve meaning, register, names and numbers. Never add facts.`;
-  const result=await env.AI.run(env.AI_CHAT_MODEL||'@cf/meta/llama-3.1-8b-instruct',{messages:[{role:'system',content:system},{role:'user',content:text}],max_tokens:500,temperature:.15});let raw=String(result?.response||result?.result?.response||'').trim(),parsed=null;raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');try{parsed=JSON.parse(raw)}catch{parsed={translation:raw,alternatives:[],note:''}}const translation=cleanText(parsed?.translation,3000);if(!translation)throw new Error('ai-empty');return{translation,alternatives:Array.isArray(parsed?.alternatives)?parsed.alternatives.map(value=>cleanText(value,1000)).filter(Boolean).slice(0,3):[],note:cleanText(parsed?.note,800),source,target};
-}
-async function translateApi(request,env,{requirePro=false}={}){
-  if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);const user=await authenticatedPlatformUser(request,env);if(!user)return json({error:'Bitte zuerst anmelden.'},401);if(requirePro&&user.plan!=='pro')return json({error:'Der PDF-Wortscanner ist in VocabFast Pro enthalten.'},403);
-  const data=await request.json().catch(()=>({})),source=String(data.source||''),target=String(data.target||''),text=cleanText(data.text);if(!LANGUAGE_NAMES[source]||!LANGUAGE_NAMES[target]||source===target)return json({error:'Bitte wähle zwei unterschiedliche unterstützte Sprachen.'},400);if(!text)return json({error:'Bitte gib einen Text ein.'},400);
-  try{return json(await aiTranslate(text,source,target,env));}catch(aiError){console.warn('translation ai unavailable, using fallback',String(aiError));try{return json(await memoryTranslate(text,source,target));}catch(memoryError){console.warn('translation memory fallback unavailable, using google fallback',String(memoryError));try{return json(await googleTranslate(text,source,target));}catch(googleError){console.error('translation fallbacks failed',googleError);return json({error:'Die Übersetzung ist vorübergehend nicht verfügbar. Bitte versuche es gleich erneut.'},503);}}}
+function publicSurfaceResponse(response,url){
+  if(url.pathname.startsWith('/api/')||url.pathname.startsWith('/admin'))return response;
+  const headers=new Headers(response.headers);headers.delete('X-Robots-Tag');
+  return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
 }
 
-export default{async fetch(request,env,ctx){const url=new URL(request.url);if(url.pathname.startsWith('/api/preview/billing/'))return platformBilling(request,env);if(url.pathname==='/api/admin/context'&&request.method==='GET'){try{const context=await verifyAdminSession(request,env);return context?json({context}):json({error:'Admin-Anmeldung erforderlich.'},401)}catch(error){console.error('admin context bridge error',error);return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503)}}if(ADMIN_AUTH_PATHS.has(url.pathname)){try{return await proxyAdminAuth(request,env)}catch(error){console.error('admin auth proxy error',error);return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503)}}if(url.pathname.startsWith('/api/preview/admin/')){try{return await platformAdmin(request,env)}catch(error){console.error('platform admin gateway error',error);return json({error:'Der Adminbereich ist gerade nicht erreichbar.'},503)}}if(url.pathname==='/api/preview/activity')return activityApi(request,env);if(url.pathname==='/api/preview/account'&&request.method==='DELETE')return deleteAccountWithAnalytics(request,env);if(url.pathname==='/api/platform/translate')return robustTranslateApi(request,env,previewWorker);if(url.pathname==='/api/platform/pdf-translate')return robustTranslateApi(request,env,previewWorker,{requirePro:true});return previewWorker.fetch(request,env,ctx)}};
+export default{async fetch(request,env,ctx){
+  const url=new URL(request.url);
+  if(url.pathname.startsWith('/api/preview/billing/'))return platformBilling(request,env);
+  if(url.pathname==='/api/preview/auth/password-reset/request')return requestPasswordReset(request,env);
+  if(url.pathname==='/api/preview/auth/password-reset/confirm')return confirmPasswordReset(request,env);
+  if(url.pathname==='/api/admin/context'&&request.method==='GET'){try{const context=await verifyAdminSession(request,env);return context?json({context}):json({error:'Admin-Anmeldung erforderlich.'},401)}catch(error){console.error('admin context bridge error',error);return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503)}}
+  if(ADMIN_AUTH_PATHS.has(url.pathname)){try{return await proxyAdminAuth(request,env)}catch(error){console.error('admin auth proxy error',error);return json({error:'Der geschützte Adminzugang ist gerade nicht erreichbar.'},503)}}
+  if(url.pathname.startsWith('/api/preview/admin/')){try{return await platformAdmin(request,env)}catch(error){console.error('platform admin gateway error',error);return json({error:'Der Adminbereich ist gerade nicht erreichbar.'},503)}}
+  if(url.pathname==='/api/preview/activity')return activityApi(request,env);
+  if(url.pathname==='/api/preview/account'&&request.method==='DELETE')return deleteAccountWithAnalytics(request,env);
+  if(url.pathname==='/api/platform/translate')return robustTranslateApi(request,env,previewWorker);
+  if(url.pathname==='/api/platform/pdf-translate')return robustTranslateApi(request,env,previewWorker,{requirePro:true});
+  return publicSurfaceResponse(await previewWorker.fetch(request,env,ctx),url);
+}};
