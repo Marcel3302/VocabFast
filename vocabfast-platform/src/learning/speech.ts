@@ -4,7 +4,9 @@ type RecognitionEventLike = { results: ArrayLike<RecognitionResult> };
 type RecognitionLike = {lang:string;continuous:boolean;interimResults:boolean;maxAlternatives:number;onresult:((event:RecognitionEventLike)=>void)|null;onerror:(()=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void};
 type RecognitionCtor = new () => RecognitionLike;
 
-const speechLocales:Record<string,string>={en:'en-US',hr:'hr-HR',es:'es-ES',fr:'fr-FR',de:'de-DE',it:'it-IT',pt:'pt-PT',zh:'zh-CN',ja:'ja-JP',ko:'ko-KR',ar:'ar-SA'};
+export const speechLocales:Record<string,string>={
+  en:'en-US',hr:'hr-HR',sl:'sl-SI',es:'es-ES',fr:'fr-FR',de:'de-DE',it:'it-IT',pt:'pt-PT',nl:'nl-NL',pl:'pl-PL',cs:'cs-CZ',tr:'tr-TR',el:'el-GR',ru:'ru-RU',uk:'uk-UA',zh:'zh-CN',ja:'ja-JP',ko:'ko-KR',ar:'ar-SA'
+};
 function recognitionCtor():RecognitionCtor|null { const scope=window as typeof window&{SpeechRecognition?:RecognitionCtor;webkitSpeechRecognition?:RecognitionCtor};return scope.SpeechRecognition??scope.webkitSpeechRecognition??null; }
 function voiceScore(voice:SpeechSynthesisVoice,language:string) {
   const name=voice.name.toLowerCase(),locale=speechLocales[language]||language,base=locale.split('-')[0];let score=0;
