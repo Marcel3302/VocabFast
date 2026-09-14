@@ -1,11 +1,11 @@
 import { activePairKey } from './preferences';
 import { queueAccountSync } from './account';
 
-export type PersonalWord = { id:string; word:string; translation:string; tag:string; stage:0|1|2|3; hits:number; dueAt:number };
+export type PersonalWord = { id:string; word:string; translation:string; tag:string; stage:0|1|2|3; hits:number; dueAt:number; createdAt?:number };
 const key=()=>`vocabfast.platform.personal-words.v1:${activePairKey()}`;
 export function readWords():PersonalWord[]{try{return JSON.parse(localStorage.getItem(key())||'[]');}catch{return [];}}
 export function saveWords(words:PersonalWord[]){localStorage.setItem(key(),JSON.stringify(words));queueAccountSync();return words;}
-export function makeWord(word:string,translation:string,tag='Eigene Wörter'):PersonalWord{return{id:crypto.randomUUID(),word:word.trim(),translation:translation.trim(),tag:tag.trim()||'Eigene Wörter',stage:3,hits:0,dueAt:0};}
+export function makeWord(word:string,translation:string,tag='Eigene Wörter'):PersonalWord{return{id:crypto.randomUUID(),word:word.trim(),translation:translation.trim(),tag:tag.trim()||'Eigene Wörter',stage:3,hits:0,dueAt:0,createdAt:Date.now()};}
 export function rateWord(word:PersonalWord,correct:boolean,now=Date.now()):PersonalWord{
   let stage=word.stage,hits=correct?word.hits+1:0;
   if(!correct)stage=stage===1?2:3;
