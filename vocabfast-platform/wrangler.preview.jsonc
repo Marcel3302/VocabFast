@@ -16,6 +16,13 @@
     { "pattern": "vocabfast.net/manifest.webmanifest", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/icon.svg", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/sw.js", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/robots.txt", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/sitemap.xml", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/impressum.html", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/datenschutz.html", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/nutzungsbedingungen.html", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/widerruf.html", "zone_name": "vocabfast.net" },
+    { "pattern": "vocabfast.net/legal.css", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/admin/login", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/admin/logout", "zone_name": "vocabfast.net" },
     { "pattern": "vocabfast.net/api/admin/me", "zone_name": "vocabfast.net" }
