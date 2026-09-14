@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { AppErrorBoundary, ConnectivityGuard } from './components/AppGuard';
 import { registerPwa } from './pwa';
 import './data/level-vocabulary-extra';
 import './styles.css';
@@ -19,6 +20,9 @@ function LoadingShell(){return <div className="platform-loading"><div><i/><stron
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    {adminRoute?<Suspense fallback={<LoadingShell/>}><AdminPortal/></Suspense>:<App/>}
+    <AppErrorBoundary>
+      {!adminRoute&&<ConnectivityGuard/>}
+      {adminRoute?<Suspense fallback={<LoadingShell/>}><AdminPortal/></Suspense>:<App/>}
+    </AppErrorBoundary>
   </React.StrictMode>
 );
