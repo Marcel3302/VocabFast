@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CefrLevel } from '../learning/curriculum';
+import { consumeSpeakDraft, queueTranslateDraft } from '../learning/study-flow';
 import './companion-views.css';
 
 type SpeakProps={
@@ -51,7 +52,6 @@ type SpeechRecognizer={
 type SpeechRecognizerCtor=new()=>SpeechRecognizer;
 
 const TRIP_KEY='vocabfast-trip-plan-v1';
-const TRANSLATE_DRAFT_KEY='vocabfast-translate-draft-v1';
 
 const voicePrompts=[
   {label:'Smalltalk',icon:'☕',prompt:'Hi! How are you doing today?',hint:'Antworte in einem ganzen Satz und stelle danach eine Frage zurück.'},
@@ -60,12 +60,19 @@ const voicePrompts=[
   {label:'Reise',icon:'✈',prompt:'Excuse me, where are you trying to go?',hint:'Erkläre dein Ziel und frage nach dem schnellsten Weg.'},
 ];
 
+const travelPhrases=[
+  {label:'Hotel',icon:'🏨',text:'Ich habe eine Reservierung auf meinen Namen. Können Sie mir bitte beim Einchecken helfen?'},
+  {label:'Restaurant',icon:'🍽',text:'Können Sie mir etwas Typisches empfehlen? Ich möchte gerne bestellen.'},
+  {label:'Taxi',icon:'🚕',text:'Können Sie mich bitte zu dieser Adresse bringen? Wie lange dauert die Fahrt ungefähr?'},
+  {label:'Orientierung',icon:'🧭',text:'Entschuldigung, wie komme ich am schnellsten zum Stadtzentrum?'},
+];
+
 const emergencyPhrases=[
   {label:'Medizin',icon:'🩺',text:'Ich brauche medizinische Hilfe. Bitte rufen Sie einen Arzt oder einen Rettungswagen.'},
   {label:'Polizei',icon:'👮',text:'Ich brauche Hilfe von der Polizei. Können Sie mir bitte helfen?'},
   {label:'Unfall',icon:'⚠',text:'Es gab einen Unfall. Wir brauchen Hilfe. Niemand soll sich bewegen, bis Hilfe da ist.'},
   {label:'Dokumente',icon:'🪪',text:'Ich habe meine Dokumente verloren. Wo kann ich den Verlust melden?'},
-  {label:'Hotel',icon:'🏨',text:'Ich habe ein Problem mit meiner Buchung oder meinem Zimmer. Können Sie mir bitte helfen?'},
+  {label:'Hotelproblem',icon:'🏨',text:'Ich habe ein Problem mit meiner Buchung oder meinem Zimmer. Können Sie mir bitte helfen?'},
   {label:'Karte',icon:'💳',text:'Meine Bankkarte funktioniert nicht. Gibt es eine andere Möglichkeit zu bezahlen?'},
 ];
 
@@ -86,6 +93,11 @@ function daysUntil(date:string){
 
 function clamp(value:number,min=0,max=100){return Math.max(min,Math.min(max,Math.round(value)));}
 function normalized(value:string){return value.toLowerCase().replace(/[^a-z0-9' ]/g,' ').replace(/\s+/g,' ').trim();}
+function phraseScore(expected:string,heard:string){
+  const wanted=normalized(expected).split(' ').filter(Boolean),spoken=normalized(heard).split(' ').filter(Boolean);if(!wanted.length||!spoken.length)return 0;
+  const spokenSet=new Set(spoken),hits=wanted.filter(word=>spokenSet.has(word)).length;
+  return clamp((hits/wanted.length)*100);
+}
 function recognizerCtor():SpeechRecognizerCtor|null{
   const speechWindow=window as unknown as {SpeechRecognition?:SpeechRecognizerCtor;webkitSpeechRecognition?:SpeechRecognizerCtor};
   return speechWindow.SpeechRecognition??speechWindow.webkitSpeechRecognition??null;
@@ -101,6 +113,10 @@ export function SpeakView({level,isPro,onOpenCoach,onOpenPractice,onOpenWords,on
   const [listening,setListening]=useState(false);
   const [heard,setHeard]=useState('');
   const [feedback,setFeedback]=useState('');
+  const [translateDraft,setTranslateDraft]=useState(()=>consumeSpeakDraft());
+  const [phraseListening,setPhraseListening]=useState(false);
+  const [phraseHeard,setPhraseHeard]=useState('');
+  const [phraseFeedback,setPhraseFeedback]=useState('');
   const recognitionRef=useRef<SpeechRecognizer|null>(null);
   const current=voicePrompts[selected];
   const startCoach=()=>isPro?onOpenCoach():onOpenPro();
@@ -124,12 +140,25 @@ export function SpeakView({level,isPro,onOpenCoach,onOpenPractice,onOpenWords,on
     recognition.onend=()=>setListening(false);
     recognitionRef.current=recognition;setListening(true);setHeard('');setFeedback('');recognition.start();
   }
+  function listenPracticePhrase(){
+    if(!translateDraft)return;
+    const Ctor=recognizerCtor();if(!Ctor){setPhraseFeedback('Spracherkennung ist in diesem Browser nicht verfügbar. Höre den Satz an und sprich ihn trotzdem laut nach.');return;}
+    recognitionRef.current?.stop();const recognition=new Ctor();recognition.lang='en-US';recognition.interimResults=false;recognition.continuous=false;
+    recognition.onresult=(event:unknown)=>{
+      const result=event as {results?:ArrayLike<ArrayLike<{transcript?:string}>>};const transcript=result.results?.[0]?.[0]?.transcript?.trim()||'';setPhraseHeard(transcript);
+      const score=phraseScore(translateDraft.targetText,transcript);
+      setPhraseFeedback(score>=85?`Sehr stark · ${score}% der Kernwörter erkannt. Sprich den Satz noch einmal flüssiger, ohne abzulesen.`:score>=60?`Guter Versuch · ${score}% erkannt. Höre den Satz noch einmal an und wiederhole die fehlenden Teile.`:`${score}% erkannt. Teile den Satz in zwei Stücke, höre ihn erneut an und sprich langsam nach.`);
+    };
+    recognition.onerror=()=>setPhraseFeedback('Das Mikrofon konnte den Satz nicht zuverlässig erkennen. Prüfe die Freigabe und versuche es erneut.');recognition.onend=()=>setPhraseListening(false);recognitionRef.current=recognition;setPhraseListening(true);setPhraseHeard('');setPhraseFeedback('');recognition.start();
+  }
 
   return <section className="platform-view companion-view speak-view">
     <div className="companion-hero companion-hero-speak">
-      <div><span className="eyebrow">SPEAK · REAL LIFE</span><h1>Sprich. Reagiere. Werde sicher.</h1><p>Kein endloses Multiple Choice: Trainiere echte Situationen auf deinem Niveau {level}. Der kostenlose Voice Sprint funktioniert direkt im Browser, der KI-Coach führt längere Gespräche.</p><div className="companion-hero-actions"><button className="view-primary" onClick={()=>document.getElementById('voice-sprint')?.scrollIntoView({behavior:'smooth'})}>🎙 Voice Sprint starten</button><button onClick={startCoach}>{isPro?'KI-Gespräch öffnen':'KI Real Life · Pro'}</button></div></div>
+      <div><span className="eyebrow">SPEAK · REAL LIFE</span><h1>Sprich. Reagiere. Werde sicher.</h1><p>Kein endloses Multiple Choice: Trainiere echte Situationen auf deinem Niveau {level}. Der kostenlose Voice Sprint funktioniert direkt im Browser, der KI-Coach führt längere Gespräche.</p><div className="companion-hero-actions"><button className="view-primary" onClick={()=>document.getElementById(translateDraft?'translate-speak-practice':'voice-sprint')?.scrollIntoView({behavior:'smooth'})}>🎙 {translateDraft?'Meinen Satz trainieren':'Voice Sprint starten'}</button><button onClick={startCoach}>{isPro?'KI-Gespräch öffnen':'KI Real Life · Pro'}</button></div></div>
       <div className="companion-orb"><span>LIVE</span><strong>{level}</strong><small>sprechen statt tippen</small></div>
     </div>
+
+    {translateDraft&&<section className="translate-speak-card" id="translate-speak-practice"><div className="translate-speak-head"><div><span className="companion-kicker">AUS DEINER ÜBERSETZUNG</span><h2>Mach aus dem Satz aktive Sprache.</h2><p>Höre ihn an, sprich ihn ohne Ablesen nach und vergleiche, was die Spracherkennung verstanden hat.</p></div><button onClick={()=>{setTranslateDraft(null);setPhraseHeard('');setPhraseFeedback('');}}>Fertig</button></div><div className="translate-speak-phrase"><small>ZIELSATZ</small><strong>{translateDraft.targetText}</strong><span>{translateDraft.supportText}</span></div><div className="translate-speak-actions"><button onClick={()=>speak(translateDraft.targetText)}>🔊 Anhören</button><button className={phraseListening?'listening':''} onClick={listenPracticePhrase} disabled={phraseListening}>🎙 {phraseListening?'Ich höre zu …':'Jetzt sprechen'}</button><button onClick={onOpenWords}>Zu meinen Karten</button></div><div className="translate-speak-result"><span>ERKANNT</span><strong>{phraseHeard||'Noch kein Versuch.'}</strong><p>{phraseFeedback||'Tipp: Höre einmal zu, schaue dann weg und sprich den Satz frei.'}</p></div></section>}
 
     <section className="voice-sprint-card" id="voice-sprint">
       <div className="voice-sprint-head"><div><span className="companion-kicker">2-MINUTEN VOICE SPRINT</span><h2>Eine Situation. Eine echte Antwort.</h2><p>Höre den Satz, antworte frei und lass VocabFast prüfen, ob du wirklich ins Sprechen kommst.</p></div><div className="voice-step">{selected+1}<span>/ {voicePrompts.length}</span></div></div>
@@ -162,10 +191,7 @@ export function TravelView({languageName,languageSymbol,level,completedLessons,t
     ['Notfälle',clamp(readiness-14),'Schnell Hilfe bekommen und Wichtiges erklären'],
   ];
   function save(){localStorage.setItem(TRIP_KEY,JSON.stringify({destination:destination.trim(),date}));setSaved(true);window.setTimeout(()=>setSaved(false),1800);}
-  function openHelp(text:string){
-    localStorage.setItem(TRANSLATE_DRAFT_KEY,JSON.stringify({text,source:'de'}));
-    onOpenTranslator();
-  }
+  function openHelp(text:string){queueTranslateDraft(text,'de');onOpenTranslator();}
   return <section className="platform-view companion-view travel-view">
     <div className="companion-hero companion-hero-travel">
       <div><span className="eyebrow">TRAVEL COMPANION</span><h1>Vorbereiten. Reisen. Weiterlernen.</h1><p>VocabFast baut vor deiner Reise die wichtigen Situationen auf und wird unterwegs zum schnellen Sprachhelfer – ohne dass du zwischen fünf Apps wechseln musst.</p></div>
@@ -181,6 +207,8 @@ export function TravelView({languageName,languageSymbol,level,completedLessons,t
 
     <div className="companion-section-head"><div><span>REISEBEREITSCHAFT · {level}</span><h2>Was vor der Abreise wirklich sitzen sollte.</h2></div><button onClick={onOpenPractice}>Alle Übungen →</button></div>
     <div className="travel-module-grid">{modules.map(([title,value,text])=><article key={String(title)}><div className="travel-module-top"><strong>{title}</strong><b>{value}%</b></div><div className="travel-module-track"><i style={{width:`${value}%`}}/></div><p>{text}</p></article>)}</div>
+
+    <section className="travel-phrase-kit"><div><span className="companion-kicker">REISESATZ-KIT</span><h2>Ein Klick bis zum nutzbaren Satz.</h2><p>Öffne typische Reisesituationen direkt in Translate. Dort kannst du übersetzen, anhören, speichern und – bei Englisch – sofort ins Sprechtraining wechseln.</p></div><div>{travelPhrases.map(item=><button key={item.label} onClick={()=>openHelp(item.text)}><span>{item.icon}</span><strong>{item.label}</strong><small>Öffnen →</small></button>)}</div></section>
 
     <div className="help-card">
       <div><span className="companion-kicker">HELP ME · SCHNELLHILFE</span><h2>Wenn du jetzt sofort verstanden werden musst.</h2><p>Wähle die Situation. VocabFast bereitet einen klaren Satz vor und öffnet ihn direkt im Übersetzer. Dort kannst du ihn übersetzen, vorlesen und kopieren.</p></div>
