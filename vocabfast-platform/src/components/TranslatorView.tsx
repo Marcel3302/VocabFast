@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { translationLanguages } from '../data/catalog';
 import { makeWord, mergeWords, readWords, saveWords } from '../learning/personal-words';
 import type { LanguageCode } from '../learning/preferences';
@@ -6,6 +6,14 @@ import './translator-view.css';
 
 type Props={sourceLanguage:LanguageCode;targetLanguage:LanguageCode;onSwap:(source:LanguageCode,target:LanguageCode)=>void};
 type TranslationResult={translation:string;alternatives:string[];note:string;source:string;target:string};
+type HistoryItem={id:string;text:string;translation:string;source:LanguageCode;target:LanguageCode;createdAt:number};
+type Draft={text:string;source?:LanguageCode};
+type SpeechRecognizer={lang:string;interimResults:boolean;continuous:boolean;start:()=>void;stop:()=>void;onresult:((event:unknown)=>void)|null;onerror:((event:unknown)=>void)|null;onend:(()=>void)|null};
+type SpeechRecognizerCtor=new()=>SpeechRecognizer;
+
+const HISTORY_KEY='vocabfast-translate-history-v1';
+const DRAFT_KEY='vocabfast-translate-draft-v1';
+const localeMap:Partial<Record<LanguageCode,string>>={de:'de-DE',en:'en-US',it:'it-IT',es:'es-ES',fr:'fr-FR',sl:'sl-SI',hr:'hr-HR',la:'it-IT'};
 
 async function translate(text:string,source:string,target:string){
   const response=await fetch('/api/platform/translate',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source,target})});
@@ -14,15 +22,53 @@ async function translate(text:string,source:string,target:string){
   return data as TranslationResult;
 }
 
+function readHistory():HistoryItem[]{
+  try{
+    const parsed=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]') as HistoryItem[];
+    return Array.isArray(parsed)?parsed.filter(item=>item&&typeof item.text==='string'&&typeof item.translation==='string').slice(0,20):[];
+  }catch{return [];}
+}
+function writeHistory(items:HistoryItem[]){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(items.slice(0,20)));}catch{/* Verlauf ist Komfortfunktion. */}}
+function readDraft():Draft|null{
+  try{
+    const raw=localStorage.getItem(DRAFT_KEY);if(!raw)return null;localStorage.removeItem(DRAFT_KEY);
+    const parsed=JSON.parse(raw) as Partial<Draft>;return typeof parsed.text==='string'?{text:parsed.text,source:parsed.source}:null;
+  }catch{return null;}
+}
+function speechCtor():SpeechRecognizerCtor|null{
+  const speechWindow=window as unknown as {SpeechRecognition?:SpeechRecognizerCtor;webkitSpeechRecognition?:SpeechRecognizerCtor};
+  return speechWindow.SpeechRecognition??speechWindow.webkitSpeechRecognition??null;
+}
+function speak(text:string,language:LanguageCode){
+  if(!('speechSynthesis' in window))return false;
+  window.speechSynthesis.cancel();const utterance=new SpeechSynthesisUtterance(text);utterance.lang=localeMap[language]||'en-US';utterance.rate=.92;window.speechSynthesis.speak(utterance);return true;
+}
+function validLanguage(value:unknown):value is LanguageCode{return typeof value==='string'&&translationLanguages.some(language=>language.code===value);}
+
 export default function TranslatorView({sourceLanguage,targetLanguage,onSwap}:Props){
-  const [source,setSource]=useState<LanguageCode>(sourceLanguage),[target,setTarget]=useState<LanguageCode>(targetLanguage);
-  const [text,setText]=useState('');const [result,setResult]=useState<TranslationResult|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [saved,setSaved]=useState('');const [copied,setCopied]=useState('');
+  const draftRef=useRef<Draft|null>(null);if(draftRef.current===null)draftRef.current=readDraft()??{text:''};
+  const draft=draftRef.current;
+  const initialSource=validLanguage(draft.source)?draft.source:sourceLanguage;
+  const initialTarget:LanguageCode=initialSource===targetLanguage?(targetLanguage==='en'?'de':'en'):targetLanguage;
+  const [source,setSource]=useState<LanguageCode>(initialSource),[target,setTarget]=useState<LanguageCode>(initialTarget);
+  const [text,setText]=useState(draft.text||'');const [result,setResult]=useState<TranslationResult|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [saved,setSaved]=useState('');const [copied,setCopied]=useState('');
+  const [history,setHistory]=useState<HistoryItem[]>(()=>readHistory());const [listening,setListening]=useState(false);const recognitionRef=useRef<SpeechRecognizer|null>(null);
   const sourceMeta=useMemo(()=>translationLanguages.find(item=>item.code===source),[source]);
   const targetMeta=useMemo(()=>translationLanguages.find(item=>item.code===target),[target]);
   const activeSourceMeta=useMemo(()=>translationLanguages.find(item=>item.code===sourceLanguage),[sourceLanguage]);
   const activeTargetMeta=useMemo(()=>translationLanguages.find(item=>item.code===targetLanguage),[targetLanguage]);
+  useEffect(()=>()=>{recognitionRef.current?.stop();window.speechSynthesis?.cancel();},[]);
+
   function resetResult(){setResult(null);setError('');setSaved('');setCopied('');}
-  async function run(){if(!text.trim()||source===target||busy)return;setBusy(true);setError('');setSaved('');setCopied('');try{setResult(await translate(text,source,target));}catch(reason){setError(reason instanceof Error?reason.message:'Übersetzung fehlgeschlagen.');}finally{setBusy(false);}}
+  function remember(input:string,output:string,from:LanguageCode,to:LanguageCode){
+    const item:HistoryItem={id:`${Date.now()}-${Math.random().toString(36).slice(2,7)}`,text:input,translation:output,source:from,target:to,createdAt:Date.now()};
+    setHistory(current=>{const next=[item,...current.filter(entry=>!(entry.text===input&&entry.translation===output))].slice(0,20);writeHistory(next);return next;});
+  }
+  async function run(value=text,from=source,to=target){
+    const input=value.trim();if(!input||from===to||busy)return;
+    setBusy(true);setError('');setSaved('');setCopied('');
+    try{const next=await translate(input,from,to);setResult(next);remember(input,next.translation,from,to);}catch(reason){setError(reason instanceof Error?reason.message:'Übersetzung fehlgeschlagen.');}finally{setBusy(false);}
+  }
   function swap(){const nextSource=target,nextTarget=source;setSource(nextSource);setTarget(nextTarget);if(result)setText(result.translation);resetResult();onSwap(nextSource,nextTarget);}
   async function copy(value:string,label='Kopiert'){try{await navigator.clipboard?.writeText(value);setCopied(`✓ ${label}`);window.setTimeout(()=>setCopied(''),1800);}catch{setCopied('');setError('Kopieren ist in diesem Browser nicht verfügbar.');}}
   function saveResult(){
@@ -38,12 +84,26 @@ export default function TranslatorView({sourceLanguage,targetLanguage,onSwap}:Pr
     if(next.length===current.length){setSaved('Bereits in deinem Wortschatz.');setError('');return;}
     try{saveWords(next);setSaved(`✓ „${learningWord}“ als Karteikarte gespeichert.`);setError('');}catch{setSaved('');setError('Die Karteikarte konnte nicht gespeichert werden.');}
   }
+  function dictate(){
+    const Ctor=speechCtor();if(!Ctor){setError('Spracherkennung wird von diesem Browser nicht unterstützt. Tippe den Text ein oder verwende einen Browser mit Web-Speech-Unterstützung.');return;}
+    recognitionRef.current?.stop();const recognition=new Ctor();recognition.lang=localeMap[source]||'en-US';recognition.interimResults=false;recognition.continuous=false;
+    recognition.onresult=(event:unknown)=>{const speechEvent=event as {results?:ArrayLike<ArrayLike<{transcript?:string}>>};const transcript=speechEvent.results?.[0]?.[0]?.transcript?.trim()||'';if(transcript){setText(transcript);resetResult();void run(transcript,source,target);}};
+    recognition.onerror=()=>setError('Das Mikrofon konnte deine Sprache nicht erkennen. Prüfe die Mikrofonfreigabe und versuche es erneut.');recognition.onend=()=>setListening(false);recognitionRef.current=recognition;setListening(true);setError('');recognition.start();
+  }
+  function restore(item:HistoryItem){setSource(item.source);setTarget(item.target);setText(item.text);setResult({translation:item.translation,alternatives:[],note:'Aus deinem Übersetzungsverlauf wiederhergestellt.',source:item.source,target:item.target});setError('');window.scrollTo({top:0,behavior:'smooth'});}
+  function clearHistory(){setHistory([]);writeHistory([]);}
   const canSavePair=(source===sourceLanguage&&target===targetLanguage)||(source===targetLanguage&&target===sourceLanguage);
+  const quickPhrases=source==='de'?['Wo befindet sich der Bahnhof?','Ich habe eine Reservierung.','Können Sie das bitte langsamer sagen?','Ich brauche Hilfe.']:[];
+
   return <section className="platform-view translator-view">
-    <div className="view-hero compact"><div><span className="eyebrow">VOCABFAST TRANSLATE</span><h1>Übersetzen und dabei wirklich lernen.</h1><p>Übersetze zwischen allen VocabFast-Sprachen. Du bekommst eine natürliche Hauptübersetzung, Varianten und einen kurzen Lernhinweis – und kannst passende Ergebnisse direkt in deinen Wortschatz übernehmen.</p></div></div>
+    <div className="view-hero compact translator-hero"><div><span className="eyebrow">VOCABFAST TRANSLATE</span><h1>Verstehen, antworten und direkt weiterlernen.</h1><p>Text, Sprache und Reise-Schnellhilfe in einem Werkzeug. Übersetze natürlich, höre das Ergebnis an und übernimm wichtige Wörter direkt in dein Lernen.</p></div><div className="translator-hero-badge"><strong>{translationLanguages.length}</strong><span>Sprachen</span><small>Text · Voice · Lernen</small></div></div>
+
     <div className="translator-card">
       <div className="translator-language-row"><label><span>Von</span><select value={source} onChange={event=>{setSource(event.target.value as LanguageCode);resetResult();}}>{translationLanguages.map(language=><option key={language.code} value={language.code} disabled={language.code===target}>{language.name} · {language.nativeName}</option>)}</select></label><button className="translator-swap" onClick={swap} aria-label="Sprachen tauschen">⇄</button><label><span>Nach</span><select value={target} onChange={event=>{setTarget(event.target.value as LanguageCode);resetResult();}}>{translationLanguages.map(language=><option key={language.code} value={language.code} disabled={language.code===source}>{language.name} · {language.nativeName}</option>)}</select></label></div>
-      <div className="translator-grid"><div className="translator-input"><div className="translator-pane-head"><strong>{sourceMeta?.name}</strong><small>{text.length}/3000</small></div><textarea maxLength={3000} value={text} onChange={event=>{setText(event.target.value);setSaved('');setCopied('');}} onKeyDown={event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();void run();}}} placeholder="Text eingeben …"/><div className="translator-actions"><small>Strg/⌘ + Enter</small><button onClick={()=>{setText('');resetResult();}} disabled={!text}>Leeren</button><button className="view-primary" onClick={()=>void run()} disabled={busy||!text.trim()||source===target}>{busy?'Übersetze …':'Übersetzen →'}</button></div></div><div className="translator-output"><div className="translator-pane-head"><strong>{targetMeta?.name}</strong><small>{result?'Übersetzung':'Bereit'}</small></div>{error?<div className="translator-error" role="alert">{error}</div>:result?<div className="translator-result"><h2>{result.translation}</h2>{result.alternatives.length>0&&<div className="translator-alternatives"><span>Natürliche Varianten</span>{result.alternatives.map(value=><button key={value} onClick={()=>void copy(value,'Variante kopiert')}>{value}</button>)}</div>}{result.note&&<div className="translator-note"><span>LERNHINWEIS</span><p>{result.note}</p></div>}<div className="translator-result-actions"><button className="translator-copy" onClick={()=>void copy(result.translation,'Übersetzung kopiert')}>Übersetzung kopieren</button><button className="translator-save" onClick={saveResult} disabled={text.trim().length>200||result.translation.length>500}>+ Als Karteikarte speichern</button></div>{!canSavePair&&<div className="translator-pair-hint">Karteikarten gehören zum aktiven Lernpfad {activeSourceMeta?.symbol} → {activeTargetMeta?.symbol}. Übersetzen bleibt trotzdem in allen {translationLanguages.length} Sprachen möglich.</div>}{copied&&<div className="translator-saved" role="status">{copied}</div>}{saved&&<div className="translator-saved" role="status">{saved}</div>}</div>:<div className="translator-empty"><strong>{sourceMeta?.symbol} → {targetMeta?.symbol}</strong><span>Deine Übersetzung erscheint hier.</span></div>}</div></div>
+      {quickPhrases.length>0&&<div className="translator-quick-phrases"><span>SCHNELLSTART</span>{quickPhrases.map(phrase=><button key={phrase} onClick={()=>{setText(phrase);resetResult();}}>{phrase}</button>)}</div>}
+      <div className="translator-grid"><div className="translator-input"><div className="translator-pane-head"><strong>{sourceMeta?.name}</strong><small>{text.length}/3000</small></div><textarea maxLength={3000} value={text} onChange={event=>{setText(event.target.value);setSaved('');setCopied('');}} onKeyDown={event=>{if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){event.preventDefault();void run();}}} placeholder="Schreibe oder sprich deinen Text …"/><div className="translator-actions"><button className={`translator-mic ${listening?'listening':''}`} onClick={dictate} disabled={listening} title="Text sprechen">{listening?'◉ Höre zu …':'🎙 Sprechen'}</button><small>Strg/⌘ + Enter</small><button onClick={()=>{setText('');resetResult();}} disabled={!text}>Leeren</button><button className="view-primary" onClick={()=>void run()} disabled={busy||!text.trim()||source===target}>{busy?'Übersetze …':'Übersetzen →'}</button></div></div><div className="translator-output"><div className="translator-pane-head"><strong>{targetMeta?.name}</strong><small>{result?'Übersetzung':'Bereit'}</small></div>{error?<div className="translator-error" role="alert">{error}</div>:result?<div className="translator-result"><div className="translator-result-title"><h2>{result.translation}</h2><button onClick={()=>{if(!speak(result.translation,target))setError('Vorlesen wird von diesem Browser nicht unterstützt.');}} aria-label="Übersetzung vorlesen">🔊</button></div>{result.alternatives.length>0&&<div className="translator-alternatives"><span>Natürliche Varianten</span>{result.alternatives.map(value=><button key={value} onClick={()=>void copy(value,'Variante kopiert')}>{value}</button>)}</div>}{result.note&&<div className="translator-note"><span>LERNHINWEIS</span><p>{result.note}</p></div>}<div className="translator-result-actions"><button className="translator-copy" onClick={()=>void copy(result.translation,'Übersetzung kopiert')}>Kopieren</button><button className="translator-save" onClick={saveResult} disabled={text.trim().length>200||result.translation.length>500}>+ Als Karteikarte speichern</button></div>{!canSavePair&&<div className="translator-pair-hint">Karteikarten gehören zum aktiven Lernpfad {activeSourceMeta?.symbol} → {activeTargetMeta?.symbol}. Übersetzen bleibt trotzdem in allen {translationLanguages.length} Sprachen möglich.</div>}{copied&&<div className="translator-saved" role="status">{copied}</div>}{saved&&<div className="translator-saved" role="status">{saved}</div>}</div>:<div className="translator-empty"><strong>{sourceMeta?.symbol} → {targetMeta?.symbol}</strong><span>Deine Übersetzung erscheint hier.</span><small>Du kannst auch direkt ins Mikrofon sprechen.</small></div>}</div></div>
     </div>
+
+    <section className="translator-history-section"><div className="translator-history-head"><div><span>VERLAUF</span><h2>Die letzten Übersetzungen bleiben griffbereit.</h2><p>Öffne frühere Sätze erneut und verwandle nützliche Formulierungen später in Lernstoff.</p></div>{history.length>0&&<button onClick={clearHistory}>Verlauf löschen</button>}</div>{history.length?<div className="translator-history-grid">{history.slice(0,8).map(item=><button key={item.id} onClick={()=>restore(item)}><span>{translationLanguages.find(language=>language.code===item.source)?.symbol} → {translationLanguages.find(language=>language.code===item.target)?.symbol}</span><strong>{item.text}</strong><small>{item.translation}</small></button>)}</div>:<div className="translator-history-empty">Deine ersten Übersetzungen erscheinen automatisch hier.</div>}</section>
   </section>;
 }
