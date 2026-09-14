@@ -1,24 +1,42 @@
 import { useMemo, useRef, useState } from 'react';
-import { loginAccount, registerAccount, type AccountUser } from '../learning/account';
+import { loginAccount, registerAccount, requestPasswordReset, resetPasswordWithToken, type AccountUser } from '../learning/account';
 import { learnableLanguages, translationLanguages } from '../data/catalog';
 import './welcome-gate.css';
 import './welcome-auth-polish.css';
 
 type Props={onAuthenticated:(user:AccountUser,isNew:boolean)=>void|Promise<void>;notice?:string};
-type Mode='login'|'register';
+type Mode='login'|'register'|'forgot'|'reset';
 const legalBase='https://vocabfast.net';
 
 export default function WelcomeGate({onAuthenticated,notice}:Props){
-  const [mode,setMode]=useState<Mode>('login'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+  const initialResetToken=typeof window!=='undefined'?new URLSearchParams(window.location.search).get('reset')||'':'';
+  const [mode,setMode]=useState<Mode>(initialResetToken?'reset':'login'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false),[resetToken]=useState(initialResetToken);
   const authRef=useRef<HTMLElement|null>(null),nameRef=useRef<HTMLInputElement|null>(null),emailRef=useRef<HTMLInputElement|null>(null);
   const passwordStrength=useMemo(()=>{
     if(!password)return 0;
     return [password.length>=12,password.length>=16,/[a-z]/.test(password)&&/[A-Z]/.test(password),/\d/.test(password),/[^A-Za-z0-9]/.test(password)].filter(Boolean).length;
   },[password]);
-  function selectMode(nextMode:Mode){setMode(nextMode);setError('');setConfirmPassword('');}
-  function focusAuth(nextMode:Mode){selectMode(nextMode);requestAnimationFrame(()=>{authRef.current?.scrollIntoView({behavior:'smooth',block:'center'});window.setTimeout(()=>nextMode==='register'?nameRef.current?.focus():emailRef.current?.focus(),260);});}
+  function selectMode(nextMode:Mode){setMode(nextMode);setError('');setStatus('');setPassword('');setConfirmPassword('');}
+  function focusAuth(nextMode:'login'|'register'){selectMode(nextMode);requestAnimationFrame(()=>{authRef.current?.scrollIntoView({behavior:'smooth',block:'center'});window.setTimeout(()=>nextMode==='register'?nameRef.current?.focus():emailRef.current?.focus(),260);});}
+  function clearResetQuery(){if(typeof window==='undefined')return;const url=new URL(window.location.href);url.searchParams.delete('reset');window.history.replaceState({},'',`${url.pathname}${url.search}${url.hash}`);}
   async function submit(event:React.FormEvent){
-    event.preventDefault();if(busy)return;setError('');
+    event.preventDefault();if(busy)return;setError('');setStatus('');
+    if(mode==='forgot'){
+      setBusy(true);
+      try{const result=await requestPasswordReset(email.trim());setStatus(result.message||'Wenn für diese E-Mail ein Konto existiert, erhältst du gleich einen Reset-Link.');}
+      catch(reason){setError(reason instanceof Error?reason.message:'Der Reset-Link konnte gerade nicht angefordert werden.');}
+      finally{setBusy(false);}
+      return;
+    }
+    if(mode==='reset'){
+      if(password.length<12){setError('Dein neues Passwort muss mindestens 12 Zeichen lang sein.');return;}
+      if(password!==confirmPassword){setError('Die beiden Passwörter stimmen nicht überein.');return;}
+      setBusy(true);
+      try{const result=await resetPasswordWithToken(resetToken,password);clearResetQuery();setPassword('');setConfirmPassword('');setMode('login');setStatus(result.message||'Passwort geändert. Du kannst dich jetzt anmelden.');}
+      catch(reason){setError(reason instanceof Error?reason.message:'Das Passwort konnte nicht geändert werden.');}
+      finally{setBusy(false);}
+      return;
+    }
     if(mode==='register'&&password.length<12){setError('Dein Passwort muss mindestens 12 Zeichen lang sein.');return;}
     if(mode==='register'&&password!==confirmPassword){setError('Die beiden Passwörter stimmen nicht überein.');return;}
     setBusy(true);
@@ -26,6 +44,10 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
   }
   const passwordsMatch=Boolean(confirmPassword)&&password===confirmPassword;
   const strengthLabel=passwordStrength>=5?'Sehr stark':passwordStrength>=4?'Stark':passwordStrength>=3?'Gut':passwordStrength>=2?'Ausreichend':'Schwach';
+  const needsNewPassword=mode==='register'||mode==='reset';
+  const canSubmit=mode==='forgot'?Boolean(email):mode==='reset'?Boolean(resetToken&&password.length>=12&&password===confirmPassword):Boolean(email&&password&&(mode!=='register'||(name.trim()&&password.length>=12&&password===confirmPassword)));
+  const heading=mode==='login'?'Willkommen zurück.':mode==='register'?'Dein Sprachbegleiter ist gleich startklar.':mode==='forgot'?'Passwort zurücksetzen.':'Neues Passwort festlegen.';
+  const submitLabel=busy?'Bitte warten …':mode==='login'?'Sicher anmelden →':mode==='register'?'Kostenloses Konto erstellen →':mode==='forgot'?'Reset-Link senden →':'Passwort speichern →';
   return <div className="welcome-shell">
     <header className="welcome-topbar">
       <a className="welcome-brand" href="/" aria-label="VocabFast Startseite"><span>V</span><div><strong>VocabFast</strong><small>Language Companion · Beta</small></div></a>
@@ -86,20 +108,23 @@ export default function WelcomeGate({onAuthenticated,notice}:Props){
 
       <aside className="welcome-side">
         <section className="welcome-auth-card" ref={authRef}>
-          <div className="welcome-auth-head"><span className="welcome-auth-mark">V</span><div><small>DEIN VOCABFAST KONTO</small><h2>{mode==='login'?'Willkommen zurück.':'Dein Sprachbegleiter ist gleich startklar.'}</h2></div></div>
-          <div className="welcome-auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>selectMode('login')}>Anmelden</button><button className={mode==='register'?'active':''} onClick={()=>selectMode('register')}>Registrieren</button></div>
+          <div className="welcome-auth-head"><span className="welcome-auth-mark">V</span><div><small>DEIN VOCABFAST KONTO</small><h2>{heading}</h2></div></div>
+          {(mode==='login'||mode==='register')?<div className="welcome-auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>selectMode('login')}>Anmelden</button><button className={mode==='register'?'active':''} onClick={()=>selectMode('register')}>Registrieren</button></div>:<button type="button" className="welcome-reset-back" onClick={()=>selectMode('login')}>← Zurück zur Anmeldung</button>}
           {notice&&<div className="welcome-notice" role="status" aria-live="polite">{notice}</div>}
+          {status&&<div className="welcome-notice" role="status" aria-live="polite">{status}</div>}
           {mode==='register'&&<div className="welcome-register-promise"><strong>Ein Konto, alle Bereiche.</strong><span>Sprachen wählen → Ziel festlegen → Level bestimmen → direkt loslegen.</span></div>}
+          {mode==='forgot'&&<div className="welcome-register-promise"><strong>Sicherer Reset-Link.</strong><span>Wenn ein Konto zu deiner E-Mail existiert, senden wir einen zeitlich begrenzten Link. Die Antwort verrät nicht, ob eine Adresse registriert ist.</span></div>}
+          {mode==='reset'&&<div className="welcome-register-promise"><strong>Link bestätigt.</strong><span>Lege jetzt ein neues Passwort mit mindestens 12 Zeichen fest. Danach werden bestehende Sitzungen beendet.</span></div>}
           <form onSubmit={submit}>
             {mode==='register'&&<label><span>Name</span><input ref={nameRef} autoComplete="name" value={name} onChange={event=>setName(event.target.value)} placeholder="Wie dürfen wir dich nennen?" required minLength={2}/></label>}
-            <label><span>E-Mail</span><input ref={emailRef} type="email" inputMode="email" autoCapitalize="none" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@beispiel.at" required/></label>
-            <div className="welcome-field"><label htmlFor="vf-password">Passwort</label><div className="welcome-password-row"><input id="vf-password" type={showPassword?'text':'password'} autoComplete={mode==='register'?'new-password':'current-password'} value={password} onChange={event=>setPassword(event.target.value)} placeholder={mode==='register'?'Mindestens 12 Zeichen':'Dein Passwort'} required minLength={mode==='register'?12:1}/><button type="button" className="welcome-password-toggle" onClick={()=>setShowPassword(value=>!value)}>{showPassword?'Verbergen':'Anzeigen'}</button></div></div>
-            {mode==='register'&&<><div className="welcome-strength" aria-label={`Passwortstärke: ${strengthLabel}`}><div>{[1,2,3,4,5].map(value=><i key={value} className={passwordStrength>=value?'active':''}/>)}</div><span>{password?strengthLabel:'Passwortstärke'}</span></div><div className="welcome-field"><label htmlFor="vf-password-confirm">Passwort wiederholen</label><div className="welcome-password-row"><input id="vf-password-confirm" type={showPassword?'text':'password'} autoComplete="new-password" value={confirmPassword} onChange={event=>setConfirmPassword(event.target.value)} placeholder="Passwort erneut eingeben" required minLength={12}/></div></div><div className="welcome-password-hint"><span>Mindestens 12 Zeichen. Ein längeres, einzigartiges Passwort ist besser.</span>{confirmPassword&&<strong className={passwordsMatch?'match':'mismatch'}>{passwordsMatch?'✓ Passwörter stimmen überein':'Passwörter stimmen noch nicht überein'}</strong>}</div></>}
+            {mode!=='reset'&&<label><span>E-Mail</span><input ref={emailRef} type="email" inputMode="email" autoCapitalize="none" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@beispiel.at" required/></label>}
+            {mode!=='forgot'&&<div className="welcome-field"><label htmlFor="vf-password">{mode==='reset'?'Neues Passwort':'Passwort'}</label><div className="welcome-password-row"><input id="vf-password" type={showPassword?'text':'password'} autoComplete={needsNewPassword?'new-password':'current-password'} value={password} onChange={event=>setPassword(event.target.value)} placeholder={needsNewPassword?'Mindestens 12 Zeichen':'Dein Passwort'} required minLength={needsNewPassword?12:1}/><button type="button" className="welcome-password-toggle" onClick={()=>setShowPassword(value=>!value)}>{showPassword?'Verbergen':'Anzeigen'}</button></div></div>}
+            {needsNewPassword&&<><div className="welcome-strength" aria-label={`Passwortstärke: ${strengthLabel}`}><div>{[1,2,3,4,5].map(value=><i key={value} className={passwordStrength>=value?'active':''}/>)}</div><span>{password?strengthLabel:'Passwortstärke'}</span></div><div className="welcome-field"><label htmlFor="vf-password-confirm">Passwort wiederholen</label><div className="welcome-password-row"><input id="vf-password-confirm" type={showPassword?'text':'password'} autoComplete="new-password" value={confirmPassword} onChange={event=>setConfirmPassword(event.target.value)} placeholder="Passwort erneut eingeben" required minLength={12}/></div></div><div className="welcome-password-hint"><span>Mindestens 12 Zeichen. Ein längeres, einzigartiges Passwort ist besser.</span>{confirmPassword&&<strong className={passwordsMatch?'match':'mismatch'}>{passwordsMatch?'✓ Passwörter stimmen überein':'Passwörter stimmen noch nicht überein'}</strong>}</div></>}
             {error&&<div className="welcome-error" role="alert" aria-live="assertive">{error}</div>}
-            <button className="welcome-submit" disabled={busy||!email||!password||(mode==='register'&&(!name.trim()||password.length<12||password!==confirmPassword))}>{busy?'Bitte warten …':mode==='login'?'Sicher anmelden →':'Kostenloses Konto erstellen →'}</button>
+            <button className="welcome-submit" disabled={busy||!canSubmit}>{submitLabel}</button>
           </form>
-          {mode==='login'&&<div className="welcome-card-note">Passwort vergessen? Ein automatischer Reset ist in der Beta noch nicht freigeschaltet. Nutze bitte den Kontakt im <a href={`${legalBase}/impressum.html`}>Impressum</a>, damit der Zugang sicher geklärt werden kann.</div>}
-          <div className="welcome-card-note">{mode==='register'?<>Mit der Registrierung akzeptierst du unsere <a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a> und bestätigst, die <a href={`${legalBase}/datenschutz.html`}>Datenschutzhinweise</a> gelesen zu haben.</>:<>Nach der Anmeldung wird dein gespeicherter Lernstand automatisch geladen.</>}</div>
+          {mode==='login'&&<button type="button" className="welcome-forgot-link" onClick={()=>selectMode('forgot')}>Passwort vergessen?</button>}
+          <div className="welcome-card-note">{mode==='register'?<>Mit der Registrierung akzeptierst du unsere <a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a> und bestätigst, die <a href={`${legalBase}/datenschutz.html`}>Datenschutzhinweise</a> gelesen zu haben.</>:mode==='login'?<>Nach der Anmeldung wird dein gespeicherter Lernstand automatisch geladen.</>:<>Probleme mit dem Reset? Nutze den Kontakt im <a href={`${legalBase}/impressum.html`}>Impressum</a>.</>}</div>
           <div className="welcome-security"><span>✓</span><p><strong>Sicherer Kontozugang.</strong> Dein Passwort wird nicht im Klartext gespeichert. Lernstand und Einstellungen werden deinem Konto zugeordnet.</p></div>
         </section>
 
