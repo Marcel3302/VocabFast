@@ -1,9 +1,12 @@
-const CACHE = 'vocabfast-platform-shell-v2';
+const CACHE = 'vocabfast-platform-shell-v3';
 const CACHE_PREFIX = 'vocabfast-platform-shell-';
+const PRECACHE = ['/', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
-  event.waitUntil(caches.open(CACHE));
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(PRECACHE)).catch(() => undefined)
+  );
 });
 
 self.addEventListener('activate', event => {
@@ -20,8 +23,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Authentication, account state and all other APIs must always reach the network.
-  // Never put authenticated API responses into the shared PWA cache.
+  // Authentication, account state, translation and all other APIs must always reach the network.
+  // Never store authenticated or generated API responses in the shared PWA cache.
   if (url.pathname.startsWith('/api/')) return;
 
   if (request.mode === 'navigate') {
@@ -30,11 +33,16 @@ self.addEventListener('fetch', event => {
         .then(response => {
           if (response.ok) {
             const copy = response.clone();
-            caches.open(CACHE).then(cache => cache.put('./', copy));
+            caches.open(CACHE).then(cache => cache.put(request, copy));
           }
           return response;
         })
-        .catch(() => caches.match('./').then(response => response || Response.error()))
+        .catch(async () => {
+          const exact = await caches.match(request);
+          if (exact) return exact;
+          const shell = await caches.match('/');
+          return shell || Response.error();
+        })
     );
     return;
   }
