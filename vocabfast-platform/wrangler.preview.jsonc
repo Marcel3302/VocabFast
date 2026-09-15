@@ -36,6 +36,7 @@
   },
   "ai": { "binding": "AI" },
   "vars": {
+    "AI_CHAT_MODEL": "@cf/meta/llama-3.1-8b-instruct-fast",
     "PLATFORM_STRIPE_MODE": "test",
     "PLATFORM_STRIPE_PRICE_TEST": "price_1UEYLfE7p7RMnz3LrZmAFkvO",
     "PASSWORD_RESET_FROM": "VocabFast <noreply@vocabfast.net>"
