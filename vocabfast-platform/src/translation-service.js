@@ -1,5 +1,6 @@
 const LANGUAGE_NAMES={en:'English',hr:'Croatian',sl:'Slovenian',es:'Spanish',fr:'French',de:'German',it:'Italian',pt:'Portuguese',nl:'Dutch',pl:'Polish',cs:'Czech',tr:'Turkish',el:'Greek',ru:'Russian',uk:'Ukrainian',zh:'Chinese',ja:'Japanese',ko:'Korean',ar:'Arabic'};
 const MEMORY_CODES={en:'en',hr:'hr',sl:'sl',es:'es',fr:'fr',de:'de',it:'it',pt:'pt',nl:'nl',pl:'pl',cs:'cs',tr:'tr',el:'el',ru:'ru',uk:'uk',zh:'zh-CN',ja:'ja',ko:'ko',ar:'ar'};
+const AI_TRANSLATION_MAX_CHARS=1200;
 
 function json(data,status=200,headers={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Robots-Tag':'noindex, nofollow, noarchive',...headers}})}
 function sameOrigin(request){const origin=request.headers.get('Origin');return !origin||origin===new URL(request.url).origin;}
@@ -12,6 +13,7 @@ function translatedValue(result){
   if(typeof result==='string')return clean(result);
   return clean(result?.translated_text??result?.translatedText??result?.translation??result?.result?.translated_text??result?.result?.translation??result?.response);
 }
+function uniqueAlternatives(values,translation){return (Array.isArray(values)?values:[]).map(value=>clean(value,800)).filter(Boolean).filter(value=>key(value)!==key(translation)).filter((value,index,list)=>list.findIndex(item=>key(item)===key(value))===index).slice(0,3);}
 
 async function cloudflareTranslate(text,source,target,env){
   if(!env?.AI?.run)throw new Error('translation-model-unavailable');
@@ -21,7 +23,16 @@ async function cloudflareTranslate(text,source,target,env){
     const translated=translatedValue(result);if(!translated)throw new Error('translation-model-empty');parts.push(translated);
   }
   const translation=parts.join(' ');if(!useful(text,translation))throw new Error('translation-model-unchanged');
-  return{translation,alternatives:[],note:'Übersetzt mit der VocabFast Translation Engine. Fachbegriffe und idiomatische Wendungen können je nach Kontext mehrere richtige Varianten haben.',source,target,provider:'cloudflare-translation'};
+  return{translation,alternatives:[],note:'Übersetzt mit der spezialisierten VocabFast Translation Engine. Bei Fachbegriffen können mehrere Varianten richtig sein.',source,target,provider:'cloudflare-translation'};
+}
+
+async function aiTranslate(text,source,target,env){
+  if(!env?.AI?.run)throw new Error('ai-unavailable');
+  const system=`You are the high-quality translation engine inside VocabFast. Translate from ${LANGUAGE_NAMES[source]} to ${LANGUAGE_NAMES[target]} using the meaning and context of the complete input. Never answer or continue the user's message: only translate it. Preserve names, numbers, units, technical terms, register, tone and formatting. Prefer the natural expression a native speaker would actually use, while staying faithful to the source. For ambiguous words choose the meaning best supported by context. Return ONLY valid JSON: {"translation":"...","alternatives":["..."],"note":"..."}. Give at most 3 genuinely useful alternatives. The note must be one short learner hint in German when useful, otherwise empty.`;
+  const result=await env.AI.run(env.AI_CHAT_MODEL||'@cf/meta/llama-3.1-8b-instruct-fast',{messages:[{role:'system',content:system},{role:'user',content:text}],max_tokens:1100,temperature:.1});
+  let raw=String(result?.response||result?.result?.response||'').trim();raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');let parsed;try{parsed=JSON.parse(raw);}catch{parsed={translation:raw,alternatives:[],note:''};}
+  const translation=clean(parsed?.translation);if(!useful(text,translation))throw new Error('ai-invalid');
+  return{translation,alternatives:uniqueAlternatives(parsed?.alternatives,translation),note:clean(parsed?.note,700)||'Kontextbezogen mit VocabFast AI übersetzt.',source,target,provider:'cloudflare-ai-translation'};
 }
 
 async function memoryTranslate(text,source,target){
@@ -34,30 +45,25 @@ async function memoryTranslate(text,source,target){
     if(chunks.length===1&&Array.isArray(data?.matches))alternatives=data.matches.map(item=>clean(entities(item?.translation),800)).filter(Boolean);
   }
   const translation=parts.join(' ');if(!useful(text,translation))throw new Error('unchanged');
-  alternatives=alternatives.filter(item=>key(item)!==key(translation)).filter((item,index,list)=>list.findIndex(value=>key(value)===key(item))===index).slice(0,3);
-  return{translation,alternatives,note:'Fallback-Übersetzung. Bei Fachbegriffen kann der richtige Ausdruck vom Satzkontext abhängen.',source,target,provider:'standard-fallback'};
+  return{translation,alternatives:uniqueAlternatives(alternatives,translation),note:'Fallback-Übersetzung. Bei Fachbegriffen kann der richtige Ausdruck vom Satzkontext abhängen.',source,target,provider:'standard-fallback'};
 }
 
-async function aiTranslate(text,source,target,env){
-  if(!env?.AI?.run)throw new Error('ai-unavailable');
-  const system=`You are a translation engine. Translate faithfully from ${LANGUAGE_NAMES[source]} to ${LANGUAGE_NAMES[target]}. Never answer the message, only translate it. Preserve names, numbers and tone. Return ONLY JSON with keys translation, alternatives, note. alternatives is an array with at most 3 natural variants. note is one short learner hint.`;
-  const result=await env.AI.run(env.AI_CHAT_MODEL||'@cf/meta/llama-3.1-8b-instruct-fast',{messages:[{role:'system',content:system},{role:'user',content:text}],max_tokens:650,temperature:0});
-  let raw=String(result?.response||result?.result?.response||'').trim();raw=raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');let parsed;try{parsed=JSON.parse(raw);}catch{parsed={translation:raw,alternatives:[],note:''};}
-  const translation=clean(parsed?.translation);if(!useful(text,translation))throw new Error('ai-invalid');
-  return{translation,alternatives:Array.isArray(parsed?.alternatives)?parsed.alternatives.map(value=>clean(value,800)).filter(Boolean).slice(0,3):[],note:clean(parsed?.note,700)||'KI-Fallback wurde verwendet.',source,target,provider:'ai-fallback'};
-}
-
-async function runTranslation(text,source,target,env){
-  try{return await cloudflareTranslate(text,source,target,env);}catch(primary){console.warn('translation model failed',String(primary));}
-  try{return await memoryTranslate(text,source,target);}catch(second){console.warn('translation fallback failed',String(second));}
-  try{return await aiTranslate(text,source,target,env);}catch(third){console.error('all translation providers failed',String(third));}
+async function runTranslation(text,source,target,env,{aiFirst=true}={}){
+  if(aiFirst&&text.length<=AI_TRANSLATION_MAX_CHARS){
+    try{return await aiTranslate(text,source,target,env);}catch(primary){console.warn('ai translation failed',String(primary));}
+  }
+  try{return await cloudflareTranslate(text,source,target,env);}catch(second){console.warn('translation model failed',String(second));}
+  if(!aiFirst&&text.length<=AI_TRANSLATION_MAX_CHARS){
+    try{return await aiTranslate(text,source,target,env);}catch(third){console.warn('ai translation fallback failed',String(third));}
+  }
+  try{return await memoryTranslate(text,source,target);}catch(last){console.error('all translation providers failed',String(last));}
   throw new Error('translation-unavailable');
 }
 async function userFor(request,env,baseWorker){const url=new URL('/api/preview/me',request.url),probe=new Request(url,{method:'GET',headers:request.headers});const response=await baseWorker.fetch(probe,env),data=await response.json().catch(()=>null);return response.ok?data?.user||null:null;}
 
 export async function robustTranslateApi(request,env,baseWorker,{requirePro=false}={}){
   if(request.method==='GET'&&new URL(request.url).searchParams.get('health')==='1'){
-    try{const result=await runTranslation('Guten Morgen, ich habe eine Reservierung.','de','en',env);return json({ok:true,provider:result.provider,engine:'translation',languages:Object.keys(LANGUAGE_NAMES).length,checkedAt:new Date().toISOString()});}catch{return json({ok:false,engine:'translation'},503);}
+    try{const result=await runTranslation('Guten Morgen, ich habe eine Reservierung.','de','en',env,{aiFirst:true});return json({ok:true,provider:result.provider,engine:'translation',languages:Object.keys(LANGUAGE_NAMES).length,checkedAt:new Date().toISOString()});}catch{return json({ok:false,engine:'translation'},503);}
   }
   if(request.method!=='POST')return json({error:'Methode nicht erlaubt.'},405,{Allow:'POST'});
   if(!sameOrigin(request))return json({error:'Ungültiger Ursprung.'},403);
@@ -66,5 +72,5 @@ export async function robustTranslateApi(request,env,baseWorker,{requirePro=fals
   const data=await request.json().catch(()=>({})),source=String(data.source||''),target=String(data.target||''),text=clean(data.text);
   if(!LANGUAGE_NAMES[source]||!LANGUAGE_NAMES[target]||source===target)return json({error:'Bitte wähle zwei unterschiedliche unterstützte Sprachen.'},400);
   if(!text)return json({error:'Bitte gib einen Text ein.'},400);
-  try{return json(await runTranslation(text,source,target,env));}catch{return json({error:'Die Übersetzung ist gerade nicht erreichbar. Bitte versuche es in einem Moment erneut.'},503);}
+  try{return json(await runTranslation(text,source,target,env,{aiFirst:!requirePro}));}catch{return json({error:'Die Übersetzung ist gerade nicht erreichbar. Bitte versuche es in einem Moment erneut.'},503);}
 }
