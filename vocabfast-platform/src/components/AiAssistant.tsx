@@ -10,10 +10,17 @@ function currentContext(){
   const learningPair=document.querySelector('.language-switch-copy small')?.textContent?.trim()||'';
   const language=document.querySelector('.language-switch-copy strong')?.textContent?.trim()||'';
   const level=(learningPair.match(/\b(A1|A2|B1|B2|C1|C2)\b/)?.[1]||'');
-  return{page:active,heading,learningPair,language,level};
+  const translationInput=(document.querySelector('.translator-input textarea') as HTMLTextAreaElement|null)?.value?.trim().slice(0,1200)||'';
+  const translationOutput=(document.querySelector('.translator-result-edit textarea') as HTMLTextAreaElement|null)?.value?.trim().slice(0,1200)||'';
+  return{page:active,heading,learningPair,language,level,translationInput,translationOutput};
 }
 
-const quickPrompts=['Was kann ich hier am besten machen?','Was soll ich als Nächstes lernen?','Erkläre mir etwas kurz und einfach.','Gib mir 5 passende Übungssätze.'];
+function promptsFor(page:string){
+  if(page.toLocaleLowerCase().includes('translate'))return['Warum wurde das so übersetzt?','Mach die Übersetzung natürlicher.','Erkläre mir die wichtigsten Wörter.','Gib mir 3 passende Beispielsätze.'];
+  if(page.toLocaleLowerCase().includes('speak'))return['Gib mir eine kurze Sprechübung.','Korrigiere einen typischen Satz für mein Level.','Gib mir 5 Smalltalk-Sätze.','Wie kann ich flüssiger antworten?'];
+  if(page.toLocaleLowerCase().includes('travel'))return['Welche Sätze brauche ich hier wirklich?','Mach eine kurze Reisesimulation mit mir.','Gib mir 5 Notfall-Sätze.','Was soll ich vor der Reise lernen?'];
+  return['Was kann ich hier am besten machen?','Was soll ich als Nächstes lernen?','Erkläre mir etwas kurz und einfach.','Gib mir 5 passende Übungssätze.'];
+}
 
 export default function AiAssistant(){
   const [available,setAvailable]=useState(()=>Boolean(document.querySelector('.app-shell')));
@@ -22,6 +29,7 @@ export default function AiAssistant(){
   useEffect(()=>{const root=document.getElementById('root');if(!root)return;const update=()=>setAvailable(Boolean(document.querySelector('.app-shell')));update();const observer=new MutationObserver(update);observer.observe(root,{childList:true,subtree:true});return()=>observer.disconnect();},[]);
   useEffect(()=>{if(open)endRef.current?.scrollIntoView({behavior:'smooth',block:'end'});},[messages,open,busy]);
   const context=useMemo(()=>open?currentContext():null,[open,messages.length]);
+  const quickPrompts=promptsFor(context?.page||'');
   if(!available)return null;
 
   async function ask(value=input){
@@ -41,7 +49,7 @@ export default function AiAssistant(){
     {open&&<section className="vf-ai-panel" role="dialog" aria-modal="false" aria-label="VocabFast AI">
       <header><div><span>✦</span><div><strong>VocabFast AI</strong><small>{context?.page||'Lernassistent'} · {context?.language||'dein Lernpfad'}</small></div></div><button onClick={()=>setOpen(false)} aria-label="VocabFast AI schließen">×</button></header>
       <div className="vf-ai-body">
-        {!messages.length&&<div className="vf-ai-intro"><strong>Wobei soll ich dir helfen?</strong><p>Ich kenne die Seite, auf der du gerade bist, und passe meine Hilfe an deinen Lernpfad an.</p><div>{quickPrompts.map(prompt=><button key={prompt} onClick={()=>void ask(prompt)}>{prompt}</button>)}</div></div>}
+        {!messages.length&&<div className="vf-ai-intro"><strong>Wobei soll ich dir helfen?</strong><p>Ich kenne die sichtbare VocabFast-Seite und passe meine Hilfe an deinen Lernpfad an. Auf Translate kann ich auch die aktuell sichtbare Eingabe und Übersetzung erklären.</p><div>{quickPrompts.map(prompt=><button key={prompt} onClick={()=>void ask(prompt)}>{prompt}</button>)}</div></div>}
         {messages.map((message,index)=><div key={`${message.role}-${index}`} className={`vf-ai-message ${message.role}`}><span>{message.text}</span></div>)}
         {busy&&<div className="vf-ai-thinking"><i/><span>VocabFast AI denkt …</span></div>}
         {error&&<div className="vf-ai-error" role="alert">{error}</div>}
