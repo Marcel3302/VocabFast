@@ -1,0 +1,138 @@
+import { useMemo, useRef, useState } from 'react';
+import { loginAccount, registerAccount, requestPasswordReset, resetPasswordWithToken, type AccountUser } from '../learning/account';
+import { learnableLanguages, translationLanguages } from '../data/catalog';
+import './welcome-gate.css';
+import './welcome-auth-polish.css';
+
+type Props={onAuthenticated:(user:AccountUser,isNew:boolean)=>void|Promise<void>;notice?:string};
+type Mode='login'|'register'|'forgot'|'reset';
+const legalBase='https://vocabfast.net';
+
+export default function WelcomeGate({onAuthenticated,notice}:Props){
+  const initialResetToken=typeof window!=='undefined'?new URLSearchParams(window.location.search).get('reset')||'':'';
+  const [mode,setMode]=useState<Mode>(initialResetToken?'reset':'login'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[confirmPassword,setConfirmPassword]=useState(''),[showPassword,setShowPassword]=useState(false),[error,setError]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false),[resetToken]=useState(initialResetToken);
+  const authRef=useRef<HTMLElement|null>(null),nameRef=useRef<HTMLInputElement|null>(null),emailRef=useRef<HTMLInputElement|null>(null);
+  const passwordStrength=useMemo(()=>{
+    if(!password)return 0;
+    return [password.length>=12,password.length>=16,/[a-z]/.test(password)&&/[A-Z]/.test(password),/\d/.test(password),/[^A-Za-z0-9]/.test(password)].filter(Boolean).length;
+  },[password]);
+  function selectMode(nextMode:Mode){setMode(nextMode);setError('');setStatus('');setPassword('');setConfirmPassword('');}
+  function focusAuth(nextMode:'login'|'register'){selectMode(nextMode);requestAnimationFrame(()=>{authRef.current?.scrollIntoView({behavior:'smooth',block:'center'});window.setTimeout(()=>nextMode==='register'?nameRef.current?.focus():emailRef.current?.focus(),260);});}
+  function clearResetQuery(){if(typeof window==='undefined')return;const url=new URL(window.location.href);url.searchParams.delete('reset');window.history.replaceState({},'',`${url.pathname}${url.search}${url.hash}`);}
+  async function submit(event:React.FormEvent){
+    event.preventDefault();if(busy)return;setError('');setStatus('');
+    if(mode==='forgot'){
+      setBusy(true);
+      try{const result=await requestPasswordReset(email.trim());setStatus(result.message||'Wenn für diese E-Mail ein Konto existiert, erhältst du gleich einen Reset-Link.');}
+      catch(reason){setError(reason instanceof Error?reason.message:'Der Reset-Link konnte gerade nicht angefordert werden.');}
+      finally{setBusy(false);}
+      return;
+    }
+    if(mode==='reset'){
+      if(password.length<12){setError('Dein neues Passwort muss mindestens 12 Zeichen lang sein.');return;}
+      if(password!==confirmPassword){setError('Die beiden Passwörter stimmen nicht überein.');return;}
+      setBusy(true);
+      try{const result=await resetPasswordWithToken(resetToken,password);clearResetQuery();setPassword('');setConfirmPassword('');setMode('login');setStatus(result.message||'Passwort geändert. Du kannst dich jetzt anmelden.');}
+      catch(reason){setError(reason instanceof Error?reason.message:'Das Passwort konnte nicht geändert werden.');}
+      finally{setBusy(false);}
+      return;
+    }
+    if(mode==='register'&&password.length<12){setError('Dein Passwort muss mindestens 12 Zeichen lang sein.');return;}
+    if(mode==='register'&&password!==confirmPassword){setError('Die beiden Passwörter stimmen nicht überein.');return;}
+    setBusy(true);
+    try{const result=mode==='register'?await registerAccount({name:name.trim(),email:email.trim(),password}):await loginAccount({email:email.trim(),password});setPassword('');setConfirmPassword('');await onAuthenticated(result.user,result.isNew);}catch(reason){setError(reason instanceof Error?reason.message:'Die Anmeldung ist fehlgeschlagen.');}finally{setBusy(false);}
+  }
+  const passwordsMatch=Boolean(confirmPassword)&&password===confirmPassword;
+  const strengthLabel=passwordStrength>=5?'Sehr stark':passwordStrength>=4?'Stark':passwordStrength>=3?'Gut':passwordStrength>=2?'Ausreichend':'Schwach';
+  const needsNewPassword=mode==='register'||mode==='reset';
+  const canSubmit=mode==='forgot'?Boolean(email):mode==='reset'?Boolean(resetToken&&password.length>=12&&password===confirmPassword):Boolean(email&&password&&(mode!=='register'||(name.trim()&&password.length>=12&&password===confirmPassword)));
+  const heading=mode==='login'?'Willkommen zurück.':mode==='register'?'Dein Sprachbegleiter ist gleich startklar.':mode==='forgot'?'Passwort zurücksetzen.':'Neues Passwort festlegen.';
+  const submitLabel=busy?'Bitte warten …':mode==='login'?'Sicher anmelden →':mode==='register'?'Kostenloses Konto erstellen →':mode==='forgot'?'Reset-Link senden →':'Passwort speichern →';
+  return <div className="welcome-shell">
+    <header className="welcome-topbar">
+      <a className="welcome-brand" href="/" aria-label="VocabFast Startseite"><span>V</span><div><strong>VocabFast</strong><small>Language Companion · Beta</small></div></a>
+      <div className="welcome-topbar-actions"><span className="welcome-preview-label">Learn · Speak · Travel · Translate</span><button onClick={()=>focusAuth('login')}>Anmelden</button></div>
+    </header>
+
+    <main className="welcome-main">
+      <section className="welcome-story">
+        <span className="welcome-kicker">ÖFFENTLICHE BETA · LERNE FÜR DAS ECHTE LEBEN</span>
+        <h1>Eine Sprache nicht nur lernen. <em>Sie wirklich benutzen.</em></h1>
+        <p>VocabFast verbindet deinen Lernpfad mit Sprechen, Reisen, Übersetzen, PDFs und persönlicher Wiederholung. Statt fünf einzelner Tools bekommst du einen Sprachbegleiter, der dich vom ersten Satz bis zur echten Situation begleitet.</p>
+
+        <div className="welcome-hero-actions">
+          <button className="welcome-hero-primary" onClick={()=>focusAuth('register')}>Kostenlos starten <span>→</span></button>
+          <button className="welcome-hero-secondary" onClick={()=>focusAuth('login')}>Ich habe schon ein Konto</button>
+        </div>
+        <div className="welcome-trust-line"><span>✓ Kostenlos starten</span><span>✓ Kein Zahlungsmittel nötig</span><span>✓ Fortschritt synchronisiert</span><span>✓ Desktop & Mobil</span></div>
+
+        <section className="welcome-product-preview" aria-label="Produktvorschau von VocabFast">
+          <div className="preview-window-bar"><span/><span/><span/><strong>VOCABFAST · LANGUAGE COMPANION</strong></div>
+          <div className="preview-app">
+            <aside className="preview-sidebar" aria-hidden="true"><b>V</b><i className="active">L</i><i>◉</i><i>✦</i><i>⇄</i><i>●</i></aside>
+            <div className="preview-content">
+              <div className="preview-head"><div><small>DEIN HEUTIGER FOKUS</small><strong>Was bringt dich heute am weitesten?</strong></div><span>EN · A2</span></div>
+              <div className="preview-grid">
+                <article className="preview-next"><small>WEITERLERNEN</small><h3>Everyday conversations</h3><p>Hören · Satzbau · Sprechen · 8 Minuten</p><div className="preview-progress"><span/></div><button type="button" tabIndex={-1}>Einheit starten →</button></article>
+                <article className="preview-score"><small>REISEBEREITSCHAFT</small><strong>68%</strong><span>für deine nächste Reise</span><div><b>◆ 240 XP</b><b>🔥 6 Tage</b></div></article>
+              </div>
+              <div className="preview-tools"><span><b>L</b> Learn</span><span><b>◉</b> Speak</span><span><b>✦</b> Travel</span><span><b>⇄</b> Translate</span></div>
+            </div>
+          </div>
+        </section>
+
+        <div className="welcome-capability-band">
+          <article><strong>Learn</strong><span>klarer täglicher Lernweg</span></article>
+          <article><strong>Speak</strong><span>Voice Sprint & Gespräche</span></article>
+          <article><strong>Travel</strong><span>Vorbereitung & Schnellhilfe</span></article>
+          <article><strong>{translationLanguages.length} Sprachen</strong><span>übersetzen, vorlesen & PDF</span></article>
+        </div>
+
+        <div className="welcome-points">
+          <article><span>01</span><div><strong>Du weißt immer, was als Nächstes sinnvoll ist.</strong><p>Dein Start-Dashboard bündelt Weiterlernen, Smart Review, Tagesziel und schnelle Werkzeuge, ohne dich mit Menüs zu überladen.</p></div></article>
+          <article><span>02</span><div><strong>Sprich vom ersten Tag an.</strong><p>Voice Sprint bringt dich ohne Multiple Choice ins freie Sprechen. Eigene Sätze aus Translate können direkt ins Sprechtraining übernommen werden.</p></div></article>
+          <article><span>03</span><div><strong>Reisen wird Teil deines Lernplans.</strong><p>Plane Reiseziel und Datum, trainiere Hotel, Restaurant, Orientierung und Notfälle und öffne wichtige Hilfe-Sätze direkt im Übersetzer.</p></div></article>
+          <article><span>04</span><div><strong>Eigene Unterlagen werden Lernstoff.</strong><p>Öffne PDFs, suche, nutze OCR, übersetze Textstellen, höre sie an und speichere wichtige Formulierungen direkt als Lernkarten.</p></div></article>
+        </div>
+
+        <div className="welcome-level-block">
+          <div><span>PERSÖNLICHER LERNWEG</span><strong>Kurze Einheiten, echte Anwendung und ein System, das deinen Fortschritt zusammenführt.</strong></div>
+          <div className="welcome-level-rail" aria-label="CEFR Lernpfad"><span>A1</span><i/><span>A2</span><i/><span>B1</span><i/><span>B2</span><i/><span>C1</span><i/><span>C2</span></div>
+        </div>
+
+        <div className="welcome-value-strip">
+          <article><span>FREE · BETA</span><strong>Schon kostenlos wirklich nutzbar.</strong><p>Lernpfade, Tagesplan, Voice Sprint, Übersetzer, Wortschatz, Wiederholung, Reiseplanung, PDF Reader und Fortschritt.</p><em>0 €</em></article>
+          <article className="pro"><span>PRO · KOMMT SPÄTER</span><strong>Mehr Tiefe für intensives Sprachtraining.</strong><p>KI-Gespräche, Fachsprache, PDF-Wortscanner und zusätzliche Analysefunktionen.</p><em>Während der Beta nicht regulär buchbar</em></article>
+        </div>
+      </section>
+
+      <aside className="welcome-side">
+        <section className="welcome-auth-card" ref={authRef}>
+          <div className="welcome-auth-head"><span className="welcome-auth-mark">V</span><div><small>DEIN VOCABFAST KONTO</small><h2>{heading}</h2></div></div>
+          {(mode==='login'||mode==='register')?<div className="welcome-auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>selectMode('login')}>Anmelden</button><button className={mode==='register'?'active':''} onClick={()=>selectMode('register')}>Registrieren</button></div>:<button type="button" className="welcome-reset-back" onClick={()=>selectMode('login')}>← Zurück zur Anmeldung</button>}
+          {notice&&<div className="welcome-notice" role="status" aria-live="polite">{notice}</div>}
+          {status&&<div className="welcome-notice" role="status" aria-live="polite">{status}</div>}
+          {mode==='register'&&<div className="welcome-register-promise"><strong>Ein Konto, alle Bereiche.</strong><span>Sprachen wählen → Ziel festlegen → Level bestimmen → direkt loslegen.</span></div>}
+          {mode==='forgot'&&<div className="welcome-register-promise"><strong>Sicherer Reset-Link.</strong><span>Wenn ein Konto zu deiner E-Mail existiert, senden wir einen zeitlich begrenzten Link. Die Antwort verrät nicht, ob eine Adresse registriert ist.</span></div>}
+          {mode==='reset'&&<div className="welcome-register-promise"><strong>Link bestätigt.</strong><span>Lege jetzt ein neues Passwort mit mindestens 12 Zeichen fest. Danach werden bestehende Sitzungen beendet.</span></div>}
+          <form onSubmit={submit}>
+            {mode==='register'&&<label><span>Name</span><input ref={nameRef} autoComplete="name" value={name} onChange={event=>setName(event.target.value)} placeholder="Wie dürfen wir dich nennen?" required minLength={2}/></label>}
+            {mode!=='reset'&&<label><span>E-Mail</span><input ref={emailRef} type="email" inputMode="email" autoCapitalize="none" autoComplete="email" value={email} onChange={event=>setEmail(event.target.value)} placeholder="name@beispiel.at" required/></label>}
+            {mode!=='forgot'&&<div className="welcome-field"><label htmlFor="vf-password">{mode==='reset'?'Neues Passwort':'Passwort'}</label><div className="welcome-password-row"><input id="vf-password" type={showPassword?'text':'password'} autoComplete={needsNewPassword?'new-password':'current-password'} value={password} onChange={event=>setPassword(event.target.value)} placeholder={needsNewPassword?'Mindestens 12 Zeichen':'Dein Passwort'} required minLength={needsNewPassword?12:1}/><button type="button" className="welcome-password-toggle" onClick={()=>setShowPassword(value=>!value)}>{showPassword?'Verbergen':'Anzeigen'}</button></div></div>}
+            {needsNewPassword&&<><div className="welcome-strength" aria-label={`Passwortstärke: ${strengthLabel}`}><div>{[1,2,3,4,5].map(value=><i key={value} className={passwordStrength>=value?'active':''}/>)}</div><span>{password?strengthLabel:'Passwortstärke'}</span></div><div className="welcome-field"><label htmlFor="vf-password-confirm">Passwort wiederholen</label><div className="welcome-password-row"><input id="vf-password-confirm" type={showPassword?'text':'password'} autoComplete="new-password" value={confirmPassword} onChange={event=>setConfirmPassword(event.target.value)} placeholder="Passwort erneut eingeben" required minLength={12}/></div></div><div className="welcome-password-hint"><span>Mindestens 12 Zeichen. Ein längeres, einzigartiges Passwort ist besser.</span>{confirmPassword&&<strong className={passwordsMatch?'match':'mismatch'}>{passwordsMatch?'✓ Passwörter stimmen überein':'Passwörter stimmen noch nicht überein'}</strong>}</div></>}
+            {error&&<div className="welcome-error" role="alert" aria-live="assertive">{error}</div>}
+            <button className="welcome-submit" disabled={busy||!canSubmit}>{submitLabel}</button>
+          </form>
+          {mode==='login'&&<button type="button" className="welcome-forgot-link" onClick={()=>selectMode('forgot')}>Passwort vergessen?</button>}
+          <div className="welcome-card-note">{mode==='register'?<>Mit der Registrierung akzeptierst du unsere <a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a> und bestätigst, die <a href={`${legalBase}/datenschutz.html`}>Datenschutzhinweise</a> gelesen zu haben.</>:mode==='login'?<>Nach der Anmeldung wird dein gespeicherter Lernstand automatisch geladen.</>:<>Probleme mit dem Reset? Nutze den Kontakt im <a href={`${legalBase}/impressum.html`}>Impressum</a>.</>}</div>
+          <div className="welcome-security"><span>✓</span><p><strong>Sicherer Kontozugang.</strong> Dein Passwort wird nicht im Klartext gespeichert. Lernstand und Einstellungen werden deinem Konto zugeordnet.</p></div>
+        </section>
+
+        <section className="welcome-side-note" aria-label="VocabFast Vorteile"><span>WARUM VOCABFAST?</span><strong>Ein zusammenhängender Sprachbegleiter statt einer Sammlung einzelner Tools.</strong><div><em>{learnableLanguages.length} aktive Lernpfade</em><em>Voice Training</em><em>Travel Companion</em><em>{translationLanguages.length} Translate-Sprachen</em></div></section>
+        <section className="welcome-test-note"><span>ÖFFENTLICHE BETA</span><p>VocabFast kann bereits kostenlos verwendet werden. Funktionen werden weiterhin aktiv verbessert. Pro ist während der Beta noch nicht regulär kaufbar; es werden keine Testkäufe von Nutzern verlangt.</p></section>
+      </aside>
+    </main>
+
+    <footer className="welcome-footer"><span>© {new Date().getFullYear()} VocabFast · Öffentliche Beta</span><nav aria-label="Rechtliche Informationen"><a href={`${legalBase}/impressum.html`}>Impressum</a><a href={`${legalBase}/datenschutz.html`}>Datenschutz</a><a href={`${legalBase}/nutzungsbedingungen.html`}>Nutzungsbedingungen</a><a href={`${legalBase}/widerruf.html`}>Pro & Widerruf</a></nav></footer>
+  </div>;
+}
