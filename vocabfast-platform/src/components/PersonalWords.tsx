@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import { levelVocabulary } from '../data/level-vocabulary';
 import type { CefrLevel } from '../learning/curriculum';
-import { makeWord, mergeWords, parseWordImport, rateWord, readWords, saveWords, type PersonalWord } from '../learning/personal-words';
+import { findDuplicateWord, makeWord, mergeWords, normalizeWordIdentity, parseWordImport, rateWord, readWords, saveWords, type PersonalWord } from '../learning/personal-words';
 import { readPreferences } from '../learning/preferences';
 import { speakLanguage } from '../learning/speech';
 import './personal-words.css';
@@ -10,8 +10,7 @@ const PDFWordScanner=lazy(()=>import('./PDFWordScanner'));
 type TrainingMode='due'|'all';
 type Props={isPro:boolean;openPro:()=>void;showLevelPacks?:boolean;languageName?:string};
 const cefrLevels:CefrLevel[]=['A1','A2','B1','B2','C1','C2'];
-const normalize=(value:string)=>value.trim().toLocaleLowerCase();
-const pairKey=(word:string,translation:string)=>`${normalize(word)}|${normalize(translation)}`;
+const pairKey=(word:string,_translation:string)=>normalizeWordIdentity(word);
 const fromStudyTool=(item:PersonalWord)=>item.tag==='Übersetzer'||item.tag.startsWith('PDF Reader')||item.tag.startsWith('PDF-')||item.tag.startsWith('PDF ');
 
 export default function PersonalWords({isPro,openPro,showLevelPacks=true,languageName='deine Lernsprache'}:Props){
@@ -26,8 +25,15 @@ export default function PersonalWords({isPro,openPro,showLevelPacks=true,languag
  const savedKeys=useMemo(()=>new Set(words.map(item=>pairKey(item.word,item.translation))),[words]);
  const toolWords=useMemo(()=>words.filter(fromStudyTool).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,20),[words]);
  const toolSources=useMemo(()=>[...new Set(toolWords.map(item=>item.tag.startsWith('PDF')?'PDF':'Translate'))],[toolWords]);
- function persist(next:PersonalWord[]){try{saveWords(next);setWords(next);const remaining=new Set(next.map(item=>item.id));setSelectedIds(currentSelection=>new Set([...currentSelection].filter(id=>remaining.has(id))));setError('');return true;}catch{setError('Die Wörter konnten nicht gespeichert werden. Bitte sichere sie per Export und versuche es erneut.');return false;}}
- function submit(event:React.FormEvent){event.preventDefault();const next=editing?words.map(w=>w.id===editing?{...w,word:word.trim(),translation:translation.trim(),tag:tag.trim()||'Eigene Wörter',stage:3 as const,hits:0,dueAt:0}:w):mergeWords(words,[makeWord(word,translation,tag)]);if(!editing&&next.length===words.length){setError('Dieses Wort mit dieser Übersetzung ist bereits vorhanden.');return;}if(persist(next)){setWord('');setTranslation('');setTag('');setEditing(null);setNotice(editing?'Wort aktualisiert.':'Wort hinzugefügt und für dein Training gespeichert.');}}
+ function persist(next:PersonalWord[]){try{const savedWords=saveWords(next);setWords(savedWords);const remaining=new Set(savedWords.map(item=>item.id));setSelectedIds(currentSelection=>new Set([...currentSelection].filter(id=>remaining.has(id))));setError('');return true;}catch{setError('Die Wörter konnten nicht gespeichert werden. Bitte sichere sie per Export und versuche es erneut.');return false;}}
+ function submit(event:React.FormEvent){
+   event.preventDefault();
+   const duplicate=findDuplicateWord(words,word,editing??undefined);
+   if(duplicate){setNotice('');setError(`„${word.trim()}“ ist bereits in deinen Wörtern gespeichert. Doppelte Wörter werden nicht angelegt.`);return;}
+   const next=editing?words.map(w=>w.id===editing?{...w,word:word.trim(),translation:translation.trim(),tag:tag.trim()||'Eigene Wörter',stage:3 as const,hits:0,dueAt:0}:w):mergeWords(words,[makeWord(word,translation,tag)]);
+   if(!editing&&next.length===words.length){setNotice('');setError(`„${word.trim()}“ ist bereits in deinen Wörtern gespeichert. Doppelte Wörter werden nicht angelegt.`);return;}
+   if(persist(next)){setWord('');setTranslation('');setTag('');setEditing(null);setNotice(editing?'Wort aktualisiert.':'Wort hinzugefügt und für dein Training gespeichert.');}
+ }
  function startQueue(source:PersonalWord[],label:string,mode:TrainingMode='all'){
    const batch=[...source].sort(()=>Math.random()-.5).slice(0,30).map(w=>({id:w.id,reverse:(mode==='all'||w.stage<=2)&&Math.random()<.5}));
    if(!batch.length)return;
@@ -45,7 +51,7 @@ export default function PersonalWords({isPro,openPro,showLevelPacks=true,languag
  }
  function practiceLevel(level:CefrLevel){const available=levelWordsFrom(words,level);if(available.length)startQueue(available,`LEVEL ${level}`,'all');}
  function rate(correct:boolean){if(!current)return;if(!persist(words.map(w=>w.id===current.id?rateWord(w,correct):w)))return;setScore(score+(correct?1:0));setIndex(index+1);setRevealed(false);}
- function importWords(text=importText){try{const next=mergeWords(words,parseWordImport(text));if(persist(next)){setNotice(`${next.length-words.length} neue Wörter importiert. Doppelte Einträge wurden übersprungen.`);setImportText('');setImportOpen(false);}}catch(reason){setError(reason instanceof Error?reason.message:'Import fehlgeschlagen.');}}
+ function importWords(text=importText){try{const incoming=parseWordImport(text),next=mergeWords(words,incoming),added=next.length-words.length,skipped=incoming.length-added;if(persist(next)){setNotice(skipped?`${added} neue Wörter importiert. ${skipped} ${skipped===1?'Duplikat wurde':'Duplikate wurden'} nicht gespeichert.`:`${added} neue Wörter importiert.`);setImportText('');setImportOpen(false);}}catch(reason){setError(reason instanceof Error?reason.message:'Import fehlgeschlagen.');}}
  function exportWords(){const url=URL.createObjectURL(new Blob([JSON.stringify(words.map(({word,translation,tag})=>({word,translation,tag})),null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='vocabfast-woerter.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setNotice('Wortliste exportiert. Beim Import beginnt das Training neu.');}
  function toggleWordSelection(id:string){setSelectedIds(currentSelection=>{const next=new Set(currentSelection);if(next.has(id))next.delete(id);else next.add(id);return next;});}
  function toggleVisibleSelection(){setSelectedIds(currentSelection=>{const next=new Set(currentSelection);if(allVisibleSelected)visibleIds.forEach(id=>next.delete(id));else visibleIds.forEach(id=>next.add(id));return next;});}
