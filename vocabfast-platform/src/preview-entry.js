@@ -2,6 +2,7 @@ import { platformBilling } from './platform-billing.js';
 import previewWorker from './preview-worker.js';
 import { PlatformAnalyticsStore } from './platform-analytics.js';
 import { robustTranslateApi } from './translation-service.js';
+import { aiAssistantApi } from './ai-assistant-service.js';
 export { PreviewAccountStore } from './preview-worker.js';
 export { PlatformAnalyticsStore } from './platform-analytics.js';
 
@@ -178,6 +179,7 @@ export default{async fetch(request,env,ctx){
   if(url.pathname.startsWith('/api/preview/admin/')){try{return await platformAdmin(request,env)}catch(error){console.error('platform admin gateway error',error);return json({error:'Der Adminbereich ist gerade nicht erreichbar.'},503)}}
   if(url.pathname==='/api/preview/activity')return activityApi(request,env);
   if(url.pathname==='/api/preview/account'&&request.method==='DELETE')return deleteAccountWithAnalytics(request,env);
+  if(url.pathname==='/api/platform/assistant')return aiAssistantApi(request,env);
   if(url.pathname==='/api/platform/translate')return robustTranslateApi(request,env,previewWorker);
   if(url.pathname==='/api/platform/pdf-translate')return robustTranslateApi(request,env,previewWorker,{requirePro:true});
   return publicSurfaceResponse(await previewWorker.fetch(request,env,ctx),url);
