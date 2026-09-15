@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "check:preview-worker": "node --check src/preview-worker.js && node --check src/preview-entry.js && node --check src/platform-entry.js && node --check src/ai-assistant-service.js && node --check src/translation-service.js && node --check src/platform-analytics.js",
+    "check:preview-worker": "node --check src/preview-worker.js && node --check src/preview-entry.js && node --check src/ai-assistant-service.js && node --check src/translation-service.js && node --check src/platform-analytics.js",
     "audit:release": "node scripts/release-audit.mjs && node scripts/beta-readiness-audit.mjs",
     "deploy:preview": "npm run build && npm run audit:release && wrangler deploy --config wrangler.preview.jsonc",
     "dry-run:preview": "npm run build && npm run audit:release && wrangler deploy --config wrangler.preview.jsonc --dry-run --outdir .wrangler-preview-dry"
