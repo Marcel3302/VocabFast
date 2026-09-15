@@ -3,8 +3,12 @@ import { queueAccountSync } from './account';
 
 export type PersonalWord = { id:string; word:string; translation:string; tag:string; stage:0|1|2|3; hits:number; dueAt:number; createdAt?:number };
 const key=()=>`vocabfast.platform.personal-words.v1:${activePairKey()}`;
-export function readWords():PersonalWord[]{try{return JSON.parse(localStorage.getItem(key())||'[]');}catch{return [];}}
-export function saveWords(words:PersonalWord[]){localStorage.setItem(key(),JSON.stringify(words));queueAccountSync();return words;}
+
+export function normalizeWordIdentity(value:string){return value.trim().replace(/\s+/g,' ').toLocaleLowerCase();}
+export function findDuplicateWord(current:PersonalWord[],word:string,ignoreId?:string){const identity=normalizeWordIdentity(word);return current.find(item=>item.id!==ignoreId&&normalizeWordIdentity(item.word)===identity)??null;}
+export function dedupeWords(words:PersonalWord[]){const seen=new Set<string>();return words.filter(item=>{const identity=normalizeWordIdentity(item.word);if(!identity||seen.has(identity))return false;seen.add(identity);return true;});}
+export function readWords():PersonalWord[]{try{const parsed=JSON.parse(localStorage.getItem(key())||'[]');return Array.isArray(parsed)?dedupeWords(parsed):[];}catch{return [];}}
+export function saveWords(words:PersonalWord[]){const unique=dedupeWords(words);localStorage.setItem(key(),JSON.stringify(unique));queueAccountSync();return unique;}
 export function makeWord(word:string,translation:string,tag='Eigene Wörter'):PersonalWord{return{id:crypto.randomUUID(),word:word.trim(),translation:translation.trim(),tag:tag.trim()||'Eigene Wörter',stage:3,hits:0,dueAt:0,createdAt:Date.now()};}
 export function rateWord(word:PersonalWord,correct:boolean,now=Date.now()):PersonalWord{
   let stage=word.stage,hits=correct?word.hits+1:0;
@@ -13,7 +17,7 @@ export function rateWord(word:PersonalWord,correct:boolean,now=Date.now()):Perso
   const delay=correct?({0:3650,1:7,2:1,3:0}[stage]*86400000):0;
   return{...word,stage,hits,dueAt:now+delay};
 }
-export function mergeWords(current:PersonalWord[],incoming:PersonalWord[]){const seen=new Set(current.map(w=>`${w.word.toLocaleLowerCase()}\u0000${w.translation.toLocaleLowerCase()}`));return[...current,...incoming.filter(w=>{const id=`${w.word.toLocaleLowerCase()}\u0000${w.translation.toLocaleLowerCase()}`;if(seen.has(id))return false;seen.add(id);return true;})];}
+export function mergeWords(current:PersonalWord[],incoming:PersonalWord[]){const base=dedupeWords(current),seen=new Set(base.map(item=>normalizeWordIdentity(item.word)));return[...base,...incoming.filter(item=>{const identity=normalizeWordIdentity(item.word);if(!identity||seen.has(identity))return false;seen.add(identity);return true;})];}
 export function parseWordImport(text:string):PersonalWord[]{
   let rows:unknown;
   if(text.trim().startsWith('[')){try{rows=JSON.parse(text);}catch{throw new Error('Die JSON-Datei ist ungültig.');}}
