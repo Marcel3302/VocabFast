@@ -18,6 +18,8 @@ type SpeechRecognizerCtor=new()=>SpeechRecognizer;
 const HISTORY_KEY='vocabfast-translate-history-v1';
 const DRAFT_KEY='vocabfast-translate-draft-v1';
 const AUTO_TRANSLATE_DELAY_MS=550;
+const invalidTranslation=new Set(['[object object]','object object','undefined','null']);
+function usableTranslation(value:unknown):value is string{return typeof value==='string'&&Boolean(value.trim())&&!invalidTranslation.has(value.trim().toLocaleLowerCase());}
 
 async function translate(text:string,source:string,target:string){
   const controller=new AbortController();
@@ -26,9 +28,9 @@ async function translate(text:string,source:string,target:string){
     const response=await fetch('/api/platform/translate',{method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({text,source,target})});
     const data=await response.json().catch(()=>({})) as Partial<TranslationResult>&{error?:string};
     if(!response.ok)throw new Error(data.error||'Übersetzung fehlgeschlagen.');
-    const translation=typeof data.translation==='string'?data.translation.trim():'';
+    const translation=usableTranslation(data.translation)?data.translation.trim():'';
     if(!translation)throw new Error('Der Übersetzungsdienst hat keine brauchbare Antwort geliefert. Bitte versuche es erneut.');
-    return {translation,alternatives:Array.isArray(data.alternatives)?data.alternatives.filter(item=>typeof item==='string'&&item.trim()).slice(0,3):[],note:typeof data.note==='string'?data.note:'',source:typeof data.source==='string'?data.source:source,target:typeof data.target==='string'?data.target:target,provider:typeof data.provider==='string'?data.provider:undefined};
+    return {translation,alternatives:Array.isArray(data.alternatives)?data.alternatives.filter(item=>usableTranslation(item)).slice(0,3):[],note:typeof data.note==='string'?data.note:'',source:typeof data.source==='string'?data.source:source,target:typeof data.target==='string'?data.target:target,provider:typeof data.provider==='string'?data.provider:undefined};
   }catch(reason){
     if(reason instanceof DOMException&&reason.name==='AbortError')throw new Error('Die Übersetzung dauert zu lange. Bitte versuche es noch einmal.');
     throw reason;
@@ -38,7 +40,7 @@ async function translate(text:string,source:string,target:string){
 function readHistory():HistoryItem[]{
   try{
     const parsed=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]') as HistoryItem[];
-    return Array.isArray(parsed)?parsed.filter(item=>item&&typeof item.text==='string'&&typeof item.translation==='string').slice(0,20):[];
+    return Array.isArray(parsed)?parsed.filter(item=>item&&typeof item.text==='string'&&usableTranslation(item.translation)).slice(0,20):[];
   }catch{return [];}
 }
 function writeHistory(items:HistoryItem[]){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(items.slice(0,20)));}catch{/* Verlauf ist Komfortfunktion. */}}
@@ -139,7 +141,7 @@ export default function TranslatorView({sourceLanguage,targetLanguage,onOpenWord
   const canSavePair=(source===sourceLanguage&&target===targetLanguage)||(source===targetLanguage&&target===sourceLanguage);
   const canSpeakPractice=Boolean(onOpenSpeak&&result&&(source===targetLanguage||target===targetLanguage));
   const quickPhrases=source==='de'?['Wo befindet sich der Bahnhof?','Ich habe eine Reservierung.','Können Sie das bitte langsamer sagen?','Ich brauche Hilfe.']:[];
-  const providerLabel=result?.provider==='cloudflare-translation'?'VocabFast Translation':result?.provider==='standard-fallback'?'Translation Fallback':result?.provider==='ai-fallback'?'KI-Fallback':result?.provider==='history'?'Aus Verlauf':'Übersetzung';
+  const providerLabel=result?.provider==='cloudflare-ai-translation'?'VocabFast AI':result?.provider==='cloudflare-translation'?'VocabFast Translation':result?.provider==='standard-fallback'?'Translation Fallback':result?.provider==='ai-fallback'?'KI-Fallback':result?.provider==='history'?'Aus Verlauf':'Übersetzung';
 
   return <section className="platform-view translator-view">
     <div className="view-hero compact translator-hero"><div><span className="eyebrow">VOCABFAST TRANSLATE</span><h1>Verstehen, antworten und direkt weiterlernen.</h1><p>Text, Sprache und Reise-Schnellhilfe in einem Werkzeug. Übersetze natürlich, höre das Ergebnis an und übernimm wichtige Sätze direkt in Wortschatz und Sprechtraining.</p></div><div className="translator-hero-badge"><strong>{translationLanguages.length}</strong><span>Sprachen</span><small>Text · Voice · Lernen</small></div></div>
