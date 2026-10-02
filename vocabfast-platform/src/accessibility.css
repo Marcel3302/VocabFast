@@ -1,0 +1,7 @@
+*:focus-visible{outline:3px solid rgba(53,109,243,.42);outline-offset:3px}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline-color:#356df3}button:disabled{cursor:not-allowed}.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+@media(pointer:coarse){button,a,input,select{min-height:44px}.answer-grid button,.setting-pills button,.lesson-primary,.welcome-submit,.welcome-hero-primary,.welcome-hero-secondary{min-height:48px}}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}.platform-loading i{animation:none!important}.record-button.recording .record-orb{animation:none!important}}
+
+@media(forced-colors:active){button,.unit-card,.profile-panel,.welcome-auth-card,.pro-modal,.lesson-shell{border:1px solid CanvasText}.progress-track span,.lesson-progress span{background:Highlight}.brand-mark{background:Highlight;color:HighlightText}}

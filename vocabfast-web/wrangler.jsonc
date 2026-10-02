@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vocabfast",
-  "main": "./src/worker-v11.js",
+  "main": "./src/worker-v12.js",
   "compatibility_date": "2026-09-02",
   "workers_dev": true,
   "routes": [
