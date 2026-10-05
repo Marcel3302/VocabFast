@@ -12,6 +12,7 @@ import { readProgress, readProgressForPair, resetLocalProgress, saveLessonResult
 import { bootstrapAccount, clearPlatformStorage, currentAccount, flushAccountSync, logoutAccount, queueAccountSync, type AccountUser } from './learning/account';
 import type { Lesson, LessonResult } from './learning/types';
 import { recordStudySeconds } from './learning/study-time';
+import { createLessonSession } from './learning/lesson-session';
 import './course.css';
 import './enhancements.css';
 import './layout-polish.css';
@@ -110,7 +111,7 @@ export default function App(){
   async function handleAuthenticated(){await hydrateAccount();}
   function navigateTo(id:NavId){setActiveNav(id);setMobileMoreOpen(false);window.scrollTo({top:0,behavior:'smooth'});}
   function openNavigation(id:NavId){if(englishMode&&!isPro&&(id==='coach'||id==='specialty')){setMobileMoreOpen(false);setProOpen(true);return;}navigateTo(id);}
-  function openLesson(lesson:Lesson){learningSeconds.current=0;setSelectedLesson(lesson);setLessonOpen(true);}
+  function openLesson(lesson:Lesson){learningSeconds.current=0;setSelectedLesson(createLessonSession(lesson));setLessonOpen(true);}
   function handleComplete(result:LessonResult){recordStudySeconds(learningSeconds.current);learningSeconds.current=0;setLastResult(result);setProgress(saveLessonResult(result));queueAccountSync();}
   function saveLearnerPreferences(next:LearnerPreferences){const saved=savePreferences(next);setPreferences(saved);queueAccountSync();}
 
