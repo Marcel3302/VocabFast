@@ -1,0 +1,74 @@
+name: VocabFast translation smoke
+
+on:
+  workflow_run:
+    workflows: ["VocabFast platform checks"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  live-translation:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'vocabfast-language-platform'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify live translation routes
+        run: |
+          set -euo pipefail
+          BASE='https://vocabfast.net'
+          COOKIE_JAR="$(mktemp)"
+          TEST_EMAIL="ci-${{ github.event.workflow_run.id }}-1@example.invalid"
+          TEST_PASSWORD='VocabFast-CI-Only-2026!'
+
+          curl --fail-with-body --silent --show-error \
+            -c "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/preview/auth/register" \
+            --data "{\"name\":\"Translation Smoke\",\"email\":\"$TEST_EMAIL\",\"password\":\"$TEST_PASSWORD\"}" >/tmp/vf-register.json
+
+          curl --fail-with-body --silent --show-error \
+            -b "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/platform/translate" \
+            --data '{"text":"Guten Morgen, ich habe eine Reservierung.","source":"de","target":"en"}' >/tmp/vf-translate-de-en.json
+          cat /tmp/vf-translate-de-en.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const data=JSON.parse(fs.readFileSync('/tmp/vf-translate-de-en.json','utf8'));
+          const out=String(data.translation||'').trim().toLowerCase();
+          if(!out || out==='guten morgen, ich habe eine reservierung.') process.exit(1);
+          NODE
+
+          curl --fail-with-body --silent --show-error \
+            -b "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/platform/translate" \
+            --data '{"text":"Where is the nearest train station?","source":"en","target":"de"}' >/tmp/vf-translate-en-de.json
+          cat /tmp/vf-translate-en-de.json
+          node - <<'NODE'
+          const fs=require('fs');
+          const data=JSON.parse(fs.readFileSync('/tmp/vf-translate-en-de.json','utf8'));
+          const out=String(data.translation||'').trim().toLowerCase();
+          if(!out || out==='where is the nearest train station?') process.exit(1);
+          NODE
+
+          PDF_STATUS=$(curl --silent --show-error -o /tmp/vf-pdf-translate.json -w '%{http_code}' \
+            -b "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -H 'Content-Type: application/json' \
+            -X POST "$BASE/api/platform/pdf-translate" \
+            --data '{"text":"hello","source":"en","target":"de"}')
+          cat /tmp/vf-pdf-translate.json
+          if [ "$PDF_STATUS" != '403' ]; then
+            echo "Expected the free CI account to reach the PDF translation route and receive 403, got $PDF_STATUS"
+            exit 1
+          fi
+
+          curl --silent --show-error \
+            -b "$COOKIE_JAR" \
+            -H 'Origin: https://vocabfast.net' \
+            -X DELETE "$BASE/api/preview/account" >/dev/null || true

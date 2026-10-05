@@ -1,0 +1,90 @@
+import { englishA1Lessons as englishA1Unit1Lessons } from './en-a1';
+import { englishA1Unit2Lessons } from './en-a1-unit2';
+import { englishA1ReleaseUnits } from './release-a1-units';
+import { englishA2Units as englishA2UnitsRaw, englishB1Units as englishB1UnitsRaw, englishB2Units as englishB2UnitsRaw, englishC1Units as englishC1UnitsRaw } from './advanced';
+import { englishC2Units as englishC2UnitsRaw } from './c2';
+import { englishA2ReleaseUnits, englishB1ReleaseUnits } from './release-units';
+import { englishB2ReleaseUnits, englishC1ReleaseUnits, englishC2ReleaseUnits } from './release-advanced-units';
+import { englishExtensionUnits } from './en-extension-units';
+import { croatianA1Units as croatianA1UnitsRaw } from './hr-a1';
+import { croatianA2Units as croatianA2UnitsRaw } from './hr-a2';
+import { croatianA1ExtraLessonsByUnit, croatianA2ExtraLessonsByUnit } from './hr-release-extras';
+import { starterCourseLanguages, starterCourseLevels } from './starter-languages';
+import { multilingualCefrLanguages, multilingualCefrLevels } from './multilingual-cefr';
+import { expandLesson } from '../lesson-expansion';
+import type { Lesson } from '../types';
+
+export type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+export type CourseUnit = {id:string;number:number;title:string;subtitle:string;lessons:Lesson[]};
+export type CourseLevel = {id:CefrLevel;title:string;descriptor:string;goal:string;units:CourseUnit[];productionTargetUnits:number};
+
+function expandUnits(units:CourseUnit[]):CourseUnit[] { return units.map(unit=>({...unit,lessons:unit.lessons.map(expandLesson)})); }
+function appendLessons(units:CourseUnit[],extras:Record<string,Lesson[]>):CourseUnit[]{return units.map(unit=>({...unit,lessons:[...unit.lessons,...(extras[unit.id]??[])]}));}
+function appendUnits(base:CourseUnit[],extra:CourseUnit[]):CourseUnit[]{const offset=base.length;return[...base,...extra.map((unit,index)=>({...unit,number:offset+index+1}))];}
+
+export const englishA1Units: CourseUnit[] = expandUnits([
+  {id:'en-a1-u1',number:1,title:'Erste Gespräche',subtitle:'Begrüßen, vorstellen, bestellen und erste Fragen stellen.',lessons:englishA1Unit1Lessons},
+  {id:'en-a1-u2',number:2,title:'Im Alltag',subtitle:'Familie, Tagesablauf, Uhrzeit, Einkaufen, Zuhause und unterwegs.',lessons:englishA1Unit2Lessons},
+  ...englishA1ReleaseUnits,
+  ...englishExtensionUnits.A1
+]);
+export const englishA2Units=expandUnits([...englishA2UnitsRaw,...englishA2ReleaseUnits,...englishExtensionUnits.A2]);
+export const englishB1Units=expandUnits([...englishB1UnitsRaw,...englishB1ReleaseUnits,...englishExtensionUnits.B1]);
+export const englishB2Units=expandUnits([...englishB2UnitsRaw,...englishB2ReleaseUnits,...englishExtensionUnits.B2]);
+export const englishC1Units=expandUnits([...englishC1UnitsRaw,...englishC1ReleaseUnits,...englishExtensionUnits.C1]);
+export const englishC2Units=expandUnits([...englishC2UnitsRaw,...englishC2ReleaseUnits,...englishExtensionUnits.C2]);
+
+export const englishCourseLevels: CourseLevel[] = [
+  {id:'A1',title:'Grundlagen',descriptor:'Ankommen & erste Gespräche',goal:'Einfache Alltagssituationen verstehen, kurze Sätze bilden und grundlegende Bedürfnisse ausdrücken.',units:englishA1Units,productionTargetUnits:5},
+  {id:'A2',title:'Alltag',descriptor:'Selbstständig in bekannten Situationen',goal:'Über Erfahrungen, Pläne und Probleme sprechen und typische Reise- und Servicesituationen bewältigen.',units:englishA2Units,productionTargetUnits:7},
+  {id:'B1',title:'Selbstständig',descriptor:'Zusammenhängend kommunizieren',goal:'Meinungen begründen, Erlebnisse strukturiert erzählen und im Beruf oder auf Reisen sicher reagieren.',units:englishB1Units,productionTargetUnits:9},
+  {id:'B2',title:'Sicher & präzise',descriptor:'Komplexe Themen professionell behandeln',goal:'Argumentieren, verhandeln, Texte zusammenfassen und auch anspruchsvollere Situationen differenziert bewältigen.',units:englishB2Units,productionTargetUnits:11},
+  {id:'C1',title:'Fortgeschritten',descriptor:'Nuance, Register & professionelle Wirkung',goal:'Komplexe Inhalte präzise, spontan und adressatengerecht ausdrücken und implizite Bedeutungen sicher erfassen.',units:englishC1Units,productionTargetUnits:13},
+  {id:'C2',title:'Feinschliff',descriptor:'Nahezu muttersprachliche Kontrolle',goal:'Subtile Bedeutungsunterschiede, Register, Synthese und anspruchsvolle professionelle Kommunikation sehr präzise steuern.',units:englishC2Units,productionTargetUnits:9}
+];
+
+export const croatianA1Units:CourseUnit[]=expandUnits(appendLessons(croatianA1UnitsRaw,croatianA1ExtraLessonsByUnit));
+export const croatianA2Units:CourseUnit[]=expandUnits(appendLessons(croatianA2UnitsRaw,croatianA2ExtraLessonsByUnit));
+const croatianDynamic=multilingualCefrLevels('hr');
+const croatianDynamicByLevel=Object.fromEntries(croatianDynamic.map(level=>[level.id,level])) as Partial<Record<CefrLevel,CourseLevel>>;
+export const croatianCourseLevels:CourseLevel[]=[
+  {id:'A1',title:'Osnove',descriptor:'Ankommen & erste Gespräche',goal:'Kroatische Begrüßungen, Bestellungen, Reise- und Alltagssituationen aktiv verstehen und selbst formulieren.',units:appendUnits(croatianA1Units,croatianDynamicByLevel.A1?.units??[]),productionTargetUnits:10},
+  {id:'A2',title:'Svakodnevna komunikacija',descriptor:'Selbstständiger im Alltag',goal:'Über Erlebnisse und Pläne sprechen, Probleme erklären, Termine abstimmen sowie Meinungen und Empfehlungen einfach ausdrücken.',units:appendUnits(croatianA2Units,croatianDynamicByLevel.A2?.units??[]),productionTargetUnits:10},
+  ...(croatianDynamic.filter(level=>['B1','B2','C1'].includes(level.id)))
+];
+
+function fullMultilingualLevels(language:string):CourseLevel[]{
+  const generated=multilingualCefrLevels(language);
+  if(!starterCourseLanguages.includes(language))return generated;
+  const starter=starterCourseLevels(language)[0];
+  return generated.map(level=>level.id==='A1'&&starter?{...level,units:appendUnits(starter.units,level.units),productionTargetUnits:starter.units.length+level.units.length}:level);
+}
+
+export function courseLevels(targetLanguage='en'):CourseLevel[] {
+  if(targetLanguage==='en')return englishCourseLevels;
+  if(targetLanguage==='hr')return croatianCourseLevels;
+  if(multilingualCefrLanguages.includes(targetLanguage))return fullMultilingualLevels(targetLanguage);
+  return englishCourseLevels;
+}
+export function allLessons(targetLanguage='en') { return courseLevels(targetLanguage).flatMap(level=>level.units.flatMap(unit=>unit.lessons)); }
+export const englishA1Lessons = englishA1Units.flatMap(unit => unit.lessons);
+export const englishAllLessons = allLessons('en');
+export const firstEnglishLesson = englishA1Lessons[0];
+export const firstCroatianLesson = croatianCourseLevels[0].units[0].lessons[0];
+export function firstLesson(targetLanguage='en'){return allLessons(targetLanguage)[0]??firstEnglishLesson;}
+
+export function levelById(id:CefrLevel,targetLanguage='en') { const levels=courseLevels(targetLanguage); return levels.find(level=>level.id===id)??levels[0]; }
+export function levelLessons(id:CefrLevel,targetLanguage='en') { return levelById(id,targetLanguage).units.flatMap(unit=>unit.lessons); }
+export function lessonIndex(lessonId:string,targetLanguage='en') { return allLessons(targetLanguage).findIndex(lesson=>lesson.id===lessonId); }
+export function lessonIsUnlocked(lessonId:string,completedLessonIds:string[],targetLanguage='en') {
+  const lesson=allLessons(targetLanguage).find(item=>item.id===lessonId);
+  if(!lesson)return false;
+  const lessons=levelLessons(lesson.level as CefrLevel,targetLanguage);
+  const index=lessons.findIndex(item=>item.id===lessonId);
+  if(index<=0)return true;
+  return completedLessonIds.includes(lessons[index-1].id);
+}
+export function courseStats(targetLanguage='en') {
+  const levels=courseLevels(targetLanguage),lessons=allLessons(targetLanguage);
+  return {lessons:lessons.length,exercises:lessons.reduce((sum,lesson)=>sum+(lesson.dynamic?16:lesson.exercises.length),0),units:levels.reduce((sum,level)=>sum+level.units.length,0),levels:levels.length};
+}
