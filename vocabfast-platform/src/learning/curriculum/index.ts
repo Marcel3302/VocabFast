@@ -5,9 +5,11 @@ import { englishA2Units as englishA2UnitsRaw, englishB1Units as englishB1UnitsRa
 import { englishC2Units as englishC2UnitsRaw } from './c2';
 import { englishA2ReleaseUnits, englishB1ReleaseUnits } from './release-units';
 import { englishB2ReleaseUnits, englishC1ReleaseUnits, englishC2ReleaseUnits } from './release-advanced-units';
+import { englishExtensionUnits } from './en-extension-units';
 import { croatianA1Units as croatianA1UnitsRaw } from './hr-a1';
 import { croatianA2Units as croatianA2UnitsRaw } from './hr-a2';
 import { croatianA1ExtraLessonsByUnit, croatianA2ExtraLessonsByUnit } from './hr-release-extras';
+import { starterCourseLanguages, starterCourseLevels } from './starter-languages';
 import { expandLesson } from '../lesson-expansion';
 import type { Lesson } from '../types';
 
@@ -21,21 +23,22 @@ function appendLessons(units:CourseUnit[],extras:Record<string,Lesson[]>):Course
 export const englishA1Units: CourseUnit[] = expandUnits([
   {id:'en-a1-u1',number:1,title:'Erste Gespräche',subtitle:'Begrüßen, vorstellen, bestellen und erste Fragen stellen.',lessons:englishA1Unit1Lessons},
   {id:'en-a1-u2',number:2,title:'Im Alltag',subtitle:'Familie, Tagesablauf, Uhrzeit, Einkaufen, Zuhause und unterwegs.',lessons:englishA1Unit2Lessons},
-  ...englishA1ReleaseUnits
+  ...englishA1ReleaseUnits,
+  ...englishExtensionUnits.A1
 ]);
-export const englishA2Units=expandUnits([...englishA2UnitsRaw,...englishA2ReleaseUnits]);
-export const englishB1Units=expandUnits([...englishB1UnitsRaw,...englishB1ReleaseUnits]);
-export const englishB2Units=expandUnits([...englishB2UnitsRaw,...englishB2ReleaseUnits]);
-export const englishC1Units=expandUnits([...englishC1UnitsRaw,...englishC1ReleaseUnits]);
-export const englishC2Units=expandUnits([...englishC2UnitsRaw,...englishC2ReleaseUnits]);
+export const englishA2Units=expandUnits([...englishA2UnitsRaw,...englishA2ReleaseUnits,...englishExtensionUnits.A2]);
+export const englishB1Units=expandUnits([...englishB1UnitsRaw,...englishB1ReleaseUnits,...englishExtensionUnits.B1]);
+export const englishB2Units=expandUnits([...englishB2UnitsRaw,...englishB2ReleaseUnits,...englishExtensionUnits.B2]);
+export const englishC1Units=expandUnits([...englishC1UnitsRaw,...englishC1ReleaseUnits,...englishExtensionUnits.C1]);
+export const englishC2Units=expandUnits([...englishC2UnitsRaw,...englishC2ReleaseUnits,...englishExtensionUnits.C2]);
 
 export const englishCourseLevels: CourseLevel[] = [
-  {id:'A1',title:'Grundlagen',descriptor:'Ankommen & erste Gespräche',goal:'Einfache Alltagssituationen verstehen, kurze Sätze bilden und grundlegende Bedürfnisse ausdrücken.',units:englishA1Units,productionTargetUnits:4},
-  {id:'A2',title:'Alltag',descriptor:'Selbstständig in bekannten Situationen',goal:'Über Erfahrungen, Pläne und Probleme sprechen und typische Reise- und Servicesituationen bewältigen.',units:englishA2Units,productionTargetUnits:6},
-  {id:'B1',title:'Selbstständig',descriptor:'Zusammenhängend kommunizieren',goal:'Meinungen begründen, Erlebnisse strukturiert erzählen und im Beruf oder auf Reisen sicher reagieren.',units:englishB1Units,productionTargetUnits:8},
-  {id:'B2',title:'Sicher & präzise',descriptor:'Komplexe Themen professionell behandeln',goal:'Argumentieren, verhandeln, Texte zusammenfassen und auch anspruchsvollere Situationen differenziert bewältigen.',units:englishB2Units,productionTargetUnits:10},
-  {id:'C1',title:'Fortgeschritten',descriptor:'Nuance, Register & professionelle Wirkung',goal:'Komplexe Inhalte präzise, spontan und adressatengerecht ausdrücken und implizite Bedeutungen sicher erfassen.',units:englishC1Units,productionTargetUnits:12},
-  {id:'C2',title:'Feinschliff',descriptor:'Nahezu muttersprachliche Kontrolle',goal:'Subtile Bedeutungsunterschiede, Register, Synthese und anspruchsvolle professionelle Kommunikation sehr präzise steuern.',units:englishC2Units,productionTargetUnits:8}
+  {id:'A1',title:'Grundlagen',descriptor:'Ankommen & erste Gespräche',goal:'Einfache Alltagssituationen verstehen, kurze Sätze bilden und grundlegende Bedürfnisse ausdrücken.',units:englishA1Units,productionTargetUnits:5},
+  {id:'A2',title:'Alltag',descriptor:'Selbstständig in bekannten Situationen',goal:'Über Erfahrungen, Pläne und Probleme sprechen und typische Reise- und Servicesituationen bewältigen.',units:englishA2Units,productionTargetUnits:7},
+  {id:'B1',title:'Selbstständig',descriptor:'Zusammenhängend kommunizieren',goal:'Meinungen begründen, Erlebnisse strukturiert erzählen und im Beruf oder auf Reisen sicher reagieren.',units:englishB1Units,productionTargetUnits:9},
+  {id:'B2',title:'Sicher & präzise',descriptor:'Komplexe Themen professionell behandeln',goal:'Argumentieren, verhandeln, Texte zusammenfassen und auch anspruchsvollere Situationen differenziert bewältigen.',units:englishB2Units,productionTargetUnits:11},
+  {id:'C1',title:'Fortgeschritten',descriptor:'Nuance, Register & professionelle Wirkung',goal:'Komplexe Inhalte präzise, spontan und adressatengerecht ausdrücken und implizite Bedeutungen sicher erfassen.',units:englishC1Units,productionTargetUnits:13},
+  {id:'C2',title:'Feinschliff',descriptor:'Nahezu muttersprachliche Kontrolle',goal:'Subtile Bedeutungsunterschiede, Register, Synthese und anspruchsvolle professionelle Kommunikation sehr präzise steuern.',units:englishC2Units,productionTargetUnits:9}
 ];
 
 export const croatianA1Units:CourseUnit[]=expandUnits(appendLessons(croatianA1UnitsRaw,croatianA1ExtraLessonsByUnit));
@@ -45,7 +48,12 @@ export const croatianCourseLevels:CourseLevel[]=[
   {id:'A2',title:'Svakodnevna komunikacija',descriptor:'Selbstständiger im Alltag',goal:'Über Erlebnisse und Pläne sprechen, Probleme erklären, Termine abstimmen sowie Meinungen und Empfehlungen einfach ausdrücken.',units:croatianA2Units,productionTargetUnits:4}
 ];
 
-export function courseLevels(targetLanguage='en'):CourseLevel[] { return targetLanguage==='hr'?croatianCourseLevels:englishCourseLevels; }
+export function courseLevels(targetLanguage='en'):CourseLevel[] {
+  if(targetLanguage==='en')return englishCourseLevels;
+  if(targetLanguage==='hr')return croatianCourseLevels;
+  if(starterCourseLanguages.includes(targetLanguage))return starterCourseLevels(targetLanguage);
+  return englishCourseLevels;
+}
 export function allLessons(targetLanguage='en') { return courseLevels(targetLanguage).flatMap(level=>level.units.flatMap(unit=>unit.lessons)); }
 export const englishA1Lessons = englishA1Units.flatMap(unit => unit.lessons);
 export const englishAllLessons = allLessons('en');
