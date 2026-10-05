@@ -57,6 +57,13 @@ export type SpeakingExercise = ExerciseBase & {
 
 export type Exercise = MultipleChoiceExercise | TranslationExercise | SentenceBuildExercise | FillGapExercise | ListeningExercise | DictationExercise | SpeakingExercise;
 
+export type DynamicLessonBlueprint = {
+  scenario: string;
+  objective: string;
+  grammarFocus: string;
+  phrases: string[];
+};
+
 export type Lesson = {
   id: string;
   courseId: string;
@@ -67,6 +74,7 @@ export type Lesson = {
   estimatedMinutes: number;
   newConcepts: string[];
   exercises: Exercise[];
+  dynamic?: DynamicLessonBlueprint;
 };
 
 export type LessonResult = {
