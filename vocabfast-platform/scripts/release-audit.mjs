@@ -15,6 +15,8 @@ requireFile('src/learning/activity.ts','Authenticated active-time tracker is mis
 requireFile('src/components/TranslatorView.tsx','Multilingual translator UI is missing.');
 requireFile('src/learning/localization.ts','Source-language lesson localization is missing.');
 requireFile('src/learning/lesson-session.ts','Varied lesson session generator is missing.');
+requireFile('src/learning/dynamic-lesson.ts','Dynamic multilingual lesson materializer is missing.');
+requireFile('src/learning/curriculum/multilingual-cefr.ts','Full multilingual CEFR curriculum is missing.');
 requireFile('src/learning/curriculum/hr-a1.ts','Croatian A1 course is missing.');
 requireFile('src/learning/curriculum/hr-a2.ts','Croatian A2 course is missing.');
 requireFile('src/learning/curriculum/release-units.ts','Release curriculum expansion is missing.');
@@ -50,8 +52,7 @@ requireText('src/App.tsx','createLessonSession(lesson)','Opening a lesson must c
 requireText('src/main.tsx',"lazy(()=>import('./App'))",'The full learning app must stay outside the tiny bootstrap chunk.');
 requireText('src/main.tsx',"lazy(()=>import('./admin/AdminPortal'))",'Admin portal must stay out of the customer startup bundle.');
 requireText('src/components/ProfileView.tsx','learningPairs','Profile language-pair management is missing.');
-requireText('src/components/ProfileView.tsx','Kroatisch: A1–A2','Profile course availability copy is stale.');
-requireText('src/components/ProfileView.tsx','A1-Starterkurs','Profile does not explain the expanded multilingual starter courses.');
+requireText('src/components/ProfileView.tsx','Alle unterstützten Lernsprachen: A1–C1','Profile does not describe the full multilingual CEFR paths.');
 requireText('src/components/Onboarding.tsx','sourceLanguage','First-run source language selection is missing.');
 requireText('src/components/Onboarding.tsx','targetLanguage','First-run target language selection is missing.');
 requireText('src/components/WelcomeGate.tsx','confirmPassword','Registration password confirmation is missing.');
@@ -59,6 +60,9 @@ requireText('src/components/LessonPlayer.tsx','seededChoices','Lesson answer cho
 requireText('src/components/LessonPlayer.tsx','answerMatches','Forgiving production/speech grading is not enabled.');
 requireText('src/components/LessonPlayer.tsx','speakLanguage','Lessons are not using target-language speech.');
 requireText('src/components/LessonPlayer.tsx','localizeGermanTexts','Lessons do not adapt support text to the selected source language.');
+requireText('src/components/LessonPlayer.tsx','materializeDynamicLesson','Dynamic multilingual lessons are not prepared before practice.');
+requireText('src/learning/dynamic-lesson.ts','CACHE_PREFIX','Dynamic lesson translations are not cached.');
+requireText('src/learning/dynamic-lesson.ts','usefulTranslation','Dynamic lessons do not reject unusable target-language output.');
 requireText('src/learning/lesson-session.ts','LAST_SESSION_PREFIX','Lesson variation does not remember the previous session.');
 requireText('src/learning/lesson-session.ts','gapVariant','Lesson variation is missing dynamic gap exercises.');
 requireText('src/learning/lesson-session.ts','speechVariant','Lesson variation is missing speaking variants.');
@@ -69,12 +73,15 @@ requireText('src/learning/mastery.ts','activePairKey','Mastery is not isolated b
 requireText('src/learning/course-state.ts','activePairKey','CEFR/course state is not isolated by language pair.');
 requireText('src/learning/curriculum/index.ts','croatianA2Units','Croatian A2 is not registered.');
 requireText('src/learning/curriculum/index.ts','englishExtensionUnits','Expanded English units are not registered.');
-requireText('src/learning/curriculum/index.ts','starterCourseLevels','Starter courses are not registered for non-English languages.');
-requireText('src/learning/curriculum/index.ts',"id:'A2'",'Croatian multi-level progression is missing.');
-requireText('src/data/catalog.ts',"levels: ['A1','A2']",'Croatian A1-A2 range is not exposed in the language catalog.');
-requireText('src/data/catalog.ts',"code: 'sl', name: 'Slowenisch', nativeName: 'Slovenščina', symbol: 'SL', available: true, courseAvailable: true",'Slovenian starter course is not exposed as learnable.');
-requireText('src/data/catalog.ts',"code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: true, courseAvailable: true",'Spanish starter course is not exposed as learnable.');
-requireText('src/data/catalog.ts',"code: 'ar', name: 'Arabisch', nativeName: 'العربية', symbol: 'ع', available: true, courseAvailable: true",'Arabic starter course is not exposed as learnable.');
+requireText('src/learning/curriculum/index.ts','multilingualCefrLevels','Full A1-C1 multilingual CEFR paths are not registered.');
+requireText('src/learning/curriculum/multilingual-cefr.ts',"C1:{title:'Fortgeschritten'",'Multilingual curriculum does not reach C1.');
+requireText('src/learning/curriculum/multilingual-cefr.ts','Strategie & Entscheidungen','Advanced real-world decision training is missing.');
+requireText('src/learning/curriculum/multilingual-cefr.ts','Kulturelle & soziale Feinheiten','C1 cultural nuance training is missing.');
+requireText('src/data/catalog.ts',"const C1=['A1','A2','B1','B2','C1']",'Shared A1-C1 range is not exposed in the language catalog.');
+requireText('src/data/catalog.ts',"code: 'hr', name: 'Kroatisch', nativeName: 'Hrvatski', symbol: 'HR', available: true, courseAvailable: true, translationAvailable: true, levels: C1",'Croatian is not exposed through C1.');
+requireText('src/data/catalog.ts',"code: 'sl', name: 'Slowenisch', nativeName: 'Slovenščina', symbol: 'SL', available: true, courseAvailable: true",'Slovenian is not exposed as learnable.');
+requireText('src/data/catalog.ts',"code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: true, courseAvailable: true",'Spanish is not exposed as learnable.');
+requireText('src/data/catalog.ts',"code: 'ar', name: 'Arabisch', nativeName: 'العربية', symbol: 'ع', available: true, courseAvailable: true",'Arabic is not exposed as learnable.');
 requireText('src/components/TranslatorView.tsx','Als Karteikarte speichern','Translator results cannot be saved into personal vocabulary.');
 requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
 requireText('src/preview-entry.js','/api/preview/activity','Authenticated activity API is missing.');
@@ -110,4 +117,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, Croatian A1/A2, multilingual A1 starter courses, expanded English A1-C2 real-world units, non-repeating lesson sessions, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, non-repeating lesson sessions, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
