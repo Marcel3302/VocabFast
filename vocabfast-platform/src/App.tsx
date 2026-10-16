@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { languageByCode, languages, learnableLanguages } from './data/catalog';
 import DashboardView from './components/DashboardView';
 import CourseView from './components/CourseView';
@@ -28,12 +28,13 @@ const CoachView=lazy(()=>import('./components/CoachView'));
 const GrammarView=lazy(()=>import('./components/GrammarView'));
 const TranslatorView=lazy(()=>import('./components/TranslatorView'));
 const MultilingualSpeakView=lazy(()=>import('./components/MultilingualSpeakView'));
+const AiTalkView=lazy(()=>import('./components/AiTalkView'));
 const PracticeView=lazy(()=>import('./components/PlatformViews').then(module=>({default:module.PracticeView})));
 const ProgressView=lazy(()=>import('./components/PlatformViews').then(module=>({default:module.ProgressView})));
 const SpecialtyView=lazy(()=>import('./components/PlatformViews').then(module=>({default:module.SpecialtyView})));
 const WordsView=lazy(()=>import('./components/PlatformViews').then(module=>({default:module.WordsView})));
 
-type NavId='home'|'speak'|'travel'|'me'|'course'|'grammar'|'practice'|'coach'|'translate'|'words'|'specialty'|'progress'|'profile';
+type NavId='home'|'speak'|'talk'|'travel'|'me'|'course'|'grammar'|'practice'|'coach'|'translate'|'words'|'specialty'|'progress'|'profile';
 type AccountPhase='loading'|'guest'|'ready';
 type OnboardingStart={mode:'placement'}|{mode:'manual';level:CefrLevel};
 
@@ -77,8 +78,7 @@ export default function App(){
   const courseRange=targetMeta.levels.length>1?`${targetMeta.levels[0]}–${targetMeta.levels[targetMeta.levels.length-1]}`:targetMeta.levels[0]||'Kurs';
   const pendingPairId=`${newPairSource}-${newPairTarget}`;
   const pendingPairExists=preferences.learningPairs.some(pair=>pair.id===pendingPairId);
-  const navItems=useMemo(()=>speakAvailable?[['home','Learn'],['speak','Speak'],['travel','Travel'],['translate','Translate'],['me','Me']] as const:[['home','Learn'],['travel','Travel'],['translate','Translate'],['me','Me']] as const,[speakAvailable]);
-  const icons:Record<string,string>={home:'L',speak:'◉',travel:'✦',translate:'⇄',me:'●'};
+  const icons:Record<string,string>={home:'L',course:'▤',practice:'◎',words:'W',grammar:'Aa',talk:'✦',speak:'◉',travel:'⌁',translate:'⇄',me:'●'};
 
   useEffect(()=>{if(!lessonOpen)return;let last=Date.now();const timer=window.setInterval(()=>{const now=Date.now();if(document.visibilityState==='visible')learningSeconds.current+=Math.min((now-last)/1000,2);last=now;},1000);return()=>clearInterval(timer);},[lessonOpen]);
   useEffect(()=>{if(booted.current)return;booted.current=true;void hydrateAccount();},[]);
@@ -141,6 +141,7 @@ export default function App(){
   function renderView(){
     const buildReview=()=>buildAdaptiveReviewLesson(courseState.activeLevel,targetLanguage);
     const buildMode=(types:Parameters<typeof buildModeLesson>[0],title:string,subtitle:string)=>buildModeLesson(types,title,subtitle,courseState.activeLevel,targetLanguage);
+    if(activeNav==='talk')return <AiTalkView targetLanguage={targetLanguage} targetLabel={targetMeta.name} sourceLanguage={sourceLanguage} sourceLabel={sourceMeta.name} level={courseState.activeLevel} audioRate={preferences.audioRate}/>;
     if(activeNav==='speak'&&speakAvailable)return englishMode?<SpeakView level={courseState.activeLevel} isPro={isPro} onOpenCoach={()=>openNavigation('coach')} onOpenPractice={()=>navigateTo('practice')} onOpenWords={()=>navigateTo('words')} onOpenPro={()=>setProOpen(true)}/>:<MultilingualSpeakView level={courseState.activeLevel} targetLanguage={targetLanguage} languageName={targetMeta.name} onOpenPractice={()=>navigateTo('practice')} onOpenWords={()=>navigateTo('words')}/>;
     if(activeNav==='travel')return <TravelView languageName={targetMeta.name} languageSymbol={targetMeta.symbol} level={courseState.activeLevel} completedLessons={curriculumCompleted} totalLessons={activeLessons.length} totalXp={progress.totalXp} streak={progress.currentStreak} onOpenTranslator={()=>navigateTo('translate')} onOpenPractice={()=>navigateTo('practice')}/>;
     if(activeNav==='me')return <MeView name={preferences.name} languageName={targetMeta.name} level={courseState.activeLevel} totalXp={progress.totalXp} streak={progress.currentStreak} completedLessons={curriculumCompleted} totalLessons={activeLessons.length} onOpenProgress={()=>navigateTo('progress')} onOpenProfile={()=>navigateTo('profile')} onOpenWords={()=>navigateTo('words')} onOpenPractice={()=>navigateTo('practice')}/>;
@@ -153,20 +154,33 @@ export default function App(){
     if(englishMode&&activeNav==='coach')return <CoachView audioRate={preferences.audioRate} level={courseState.activeLevel}/>;
     if(activeNav==='words')return <WordsView isPro={isPro} openPro={()=>setProOpen(true)} targetLanguage={targetLanguage} languageLabel={targetMeta.name} sourceLanguage={sourceLanguage} sourceLabel={sourceMeta.name} level={courseState.activeLevel} openLesson={openLesson}/>;
     if(englishMode&&activeNav==='specialty')return <SpecialtyView/>;
-    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} targetLanguage={targetLanguage} isPro={isPro} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} openTranslator={()=>setActiveNav('translate')} openGrammar={()=>setActiveNav('grammar')} openWords={()=>setActiveNav('words')} onSelectLevel={selectLevel}/>;
+    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} targetLanguage={targetLanguage} isPro={isPro} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} openTranslator={()=>setActiveNav('translate')} openGrammar={()=>setActiveNav('grammar')} openWords={()=>setActiveNav('words')} openTalk={()=>setActiveNav('talk')} openPractice={()=>setActiveNav('practice')} onSelectLevel={selectLevel}/>;
   }
 
   if(accountPhase==='loading')return <div className="platform-loading"><div><i/><strong>Dein VocabFast-Konto wird geladen …</strong></div></div>;
   if(accountPhase==='guest')return <WelcomeGate onAuthenticated={handleAuthenticated} notice={authNotice}/>;
   const learnActive=['home','course','grammar','practice','words','specialty'].includes(activeNav);
-  const speakActive=['speak','coach'].includes(activeNav);
+  const speakActive=['speak','coach','talk'].includes(activeNav);
   const meActive=['me','progress','profile'].includes(activeNav);
 
   return <div className="app-shell">
     <aside className="sidebar">
       <div className="brand-row"><div className="brand-mark">V</div><div><strong>VocabFast</strong><span>Language Companion</span></div></div>
       <button className="language-switch" onClick={openLanguageSwitcher} aria-label="Lernsprache und Lernpfad wechseln"><span className="language-badge">{targetMeta.symbol}</span><span className="language-switch-copy"><small>{sourceMeta.symbol} → {targetMeta.symbol} · {courseState.activeLevel}</small><strong>{targetMeta.name}</strong></span><span className="chevron">⌄</span></button>
-      <nav className="main-nav" aria-label="Hauptnavigation">{navItems.map(([id,label])=><button key={id} className={(id==='home'?learnActive:id==='speak'?speakActive:id==='me'?meActive:activeNav===id)?'active':''} onClick={()=>openNavigation(id as NavId)}><span className="nav-icon">{icons[id]}</span><span>{label}</span></button>)}</nav>
+      <nav className="main-nav grouped-nav" aria-label="Hauptnavigation">
+        <span className="nav-section-label">LERNEN</span>
+        <button className={learnActive?'active':''} onClick={()=>navigateTo('home')}><span className="nav-icon">{icons.home}</span><span>Übersicht</span></button>
+        <button className={activeNav==='course'?'active':''} onClick={()=>navigateTo('course')}><span className="nav-icon">{icons.course}</span><span>Kurs</span></button>
+        <button className={activeNav==='practice'?'active':''} onClick={()=>navigateTo('practice')}><span className="nav-icon">{icons.practice}</span><span>Üben</span></button>
+        <button className={activeNav==='words'?'active':''} onClick={()=>navigateTo('words')}><span className="nav-icon">{icons.words}</span><span>Wortschatz</span></button>
+        <button className={activeNav==='grammar'?'active':''} onClick={()=>navigateTo('grammar')}><span className="nav-icon">{icons.grammar}</span><span>Grammatik</span></button>
+        <span className="nav-section-label">SPRECHEN</span>
+        <button className={activeNav==='talk'?'active ai-talk-nav':''} onClick={()=>navigateTo('talk')}><span className="nav-icon">{icons.talk}</span><span>AI Talk</span></button>
+        {speakAvailable&&<button className={activeNav==='speak'||activeNav==='coach'?'active':''} onClick={()=>navigateTo('speak')}><span className="nav-icon">{icons.speak}</span><span>Speak Training</span></button>}
+        <button className={activeNav==='travel'?'active':''} onClick={()=>navigateTo('travel')}><span className="nav-icon">{icons.travel}</span><span>Travel</span></button>
+        <span className="nav-section-label">TOOLS</span>
+        <button className={activeNav==='translate'?'active':''} onClick={()=>navigateTo('translate')}><span className="nav-icon">{icons.translate}</span><span>Translate</span></button>
+      </nav>
       <div className="sidebar-spacer"/>
       {englishMode&&!isPro&&<div className="pro-mini-card"><button type="button" className="pro-pill pro-link" onClick={()=>setProOpen(true)}>PRO</button><strong>Real Life freischalten.</strong><p>KI-Gespräche, intensives Sprechtraining, Fachsprache und mehr.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>}
       <button className={`profile-link ${meActive?'active':''}`} onClick={()=>setActiveNav('me')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button>
@@ -181,8 +195,8 @@ export default function App(){
 
     <nav className="mobile-bottom-nav companion-mobile-nav" aria-label="Mobile Hauptnavigation">
       <button className={learnActive?'active':''} onClick={()=>navigateTo('home')}><span>L</span><small>Learn</small></button>
-      {speakAvailable&&<button className={speakActive?'active':''} onClick={()=>navigateTo('speak')}><span>◉</span><small>Speak</small></button>}
-      <button className={activeNav==='travel'?'active':''} onClick={()=>navigateTo('travel')}><span>✦</span><small>Travel</small></button>
+      <button className={activeNav==='talk'?'active':''} onClick={()=>navigateTo('talk')}><span>✦</span><small>AI Talk</small></button>
+      <button className={activeNav==='travel'?'active':''} onClick={()=>navigateTo('travel')}><span>⌁</span><small>Travel</small></button>
       <button className={activeNav==='translate'?'active':''} onClick={()=>navigateTo('translate')}><span>⇄</span><small>Translate</small></button>
       <button className={meActive?'active':''} onClick={()=>navigateTo('me')}><span>●</span><small>Me</small></button>
     </nav>
