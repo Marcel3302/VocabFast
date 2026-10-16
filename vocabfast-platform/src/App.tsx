@@ -13,6 +13,7 @@ import { bootstrapAccount, clearPlatformStorage, currentAccount, flushAccountSyn
 import type { Lesson, LessonResult } from './learning/types';
 import { recordStudySeconds } from './learning/study-time';
 import { createLessonSession } from './learning/lesson-session';
+import { duolingoSyncDue, refreshDuolingo } from './learning/duolingo';
 import './course.css';
 import './enhancements.css';
 import './layout-polish.css';
@@ -83,6 +84,7 @@ export default function App(){
 
   useEffect(()=>{if(!lessonOpen)return;let last=Date.now();const timer=window.setInterval(()=>{const now=Date.now();if(document.visibilityState==='visible')learningSeconds.current+=Math.min((now-last)/1000,2);last=now;},1000);return()=>clearInterval(timer);},[lessonOpen]);
   useEffect(()=>{if(booted.current)return;booted.current=true;void hydrateAccount();},[]);
+  useEffect(()=>{if(accountPhase!=='ready'||!duolingoSyncDue())return;void refreshDuolingo().catch(error=>console.warn('Duolingo background sync failed',error));},[accountPhase]);
   useEffect(()=>{
     if(accountPhase!=='ready')return;
     let active=true;
