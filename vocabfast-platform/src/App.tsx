@@ -18,6 +18,7 @@ import './enhancements.css';
 import './layout-polish.css';
 import './mobile-release.css';
 import './language-hub.css';
+import './navigation-refresh.css';
 
 const LessonPlayer=lazy(()=>import('./components/LessonPlayer'));
 const PlacementTest=lazy(()=>import('./components/PlacementTest'));
