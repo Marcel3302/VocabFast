@@ -149,11 +149,11 @@ export default function App(){
     if(activeNav==='practice')return <PracticeView openLesson={openLesson} buildReview={buildReview} buildMode={buildMode} languageLabel={targetMeta.name}/>;
     if(activeNav==='progress')return <ProgressView progress={progress} targetLanguage={targetLanguage}/>;
     if(activeNav==='profile')return <ProfileView preferences={preferences} progress={progress} isPro={isPro} onSave={saveLearnerPreferences} onSwitchPair={next=>void switchLearningPair(next)} onResetProgress={resetProgress} onAccountDeleted={handleAccountDeleted}/>;
-    if(englishMode&&activeNav==='grammar')return <GrammarView activeLevel={courseState.activeLevel} openLesson={openLesson} onSelectLevel={selectLevel}/>;
+    if(activeNav==='grammar')return <GrammarView activeLevel={courseState.activeLevel} openLesson={openLesson} onSelectLevel={selectLevel} targetLanguage={targetLanguage} targetLabel={targetMeta.name} sourceLanguage={sourceLanguage} sourceLabel={sourceMeta.name}/>;
     if(englishMode&&activeNav==='coach')return <CoachView audioRate={preferences.audioRate} level={courseState.activeLevel}/>;
-    if(activeNav==='words')return <WordsView isPro={isPro} openPro={()=>setProOpen(true)} targetLanguage={targetLanguage} languageLabel={targetMeta.name}/>;
+    if(activeNav==='words')return <WordsView isPro={isPro} openPro={()=>setProOpen(true)} targetLanguage={targetLanguage} languageLabel={targetMeta.name} sourceLanguage={sourceLanguage} sourceLabel={sourceMeta.name} level={courseState.activeLevel} openLesson={openLesson}/>;
     if(englishMode&&activeNav==='specialty')return <SpecialtyView/>;
-    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} targetLanguage={targetLanguage} isPro={isPro} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} openTranslator={()=>setActiveNav('translate')} onSelectLevel={selectLevel}/>;
+    return <DashboardView progress={progress} preferences={preferences} activeLevel={courseState.activeLevel} placement={courseState.placement} lastResult={lastResult} targetLanguage={targetLanguage} isPro={isPro} openLesson={openLesson} buildReview={buildReview} openPro={()=>setProOpen(true)} openCourse={()=>setActiveNav('course')} openPlacement={()=>setPlacementOpen(true)} openTranslator={()=>setActiveNav('translate')} openGrammar={()=>setActiveNav('grammar')} openWords={()=>setActiveNav('words')} onSelectLevel={selectLevel}/>;
   }
 
   if(accountPhase==='loading')return <div className="platform-loading"><div><i/><strong>Dein VocabFast-Konto wird geladen …</strong></div></div>;
