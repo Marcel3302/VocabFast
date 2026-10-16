@@ -1,0 +1,94 @@
+import { advancedConceptCatalog } from './curriculum/advanced';
+
+export type ConceptMeta = {
+  id: string;
+  label: string;
+  translation?: string;
+  category: 'Wortschatz' | 'Grammatik' | 'Kommunikation';
+};
+
+const baseConceptCatalog: ConceptMeta[] = [
+  { id:'greeting.hello', label:'hello / hi', translation:'hallo', category:'Kommunikation' },
+  { id:'greeting.goodbye', label:'goodbye', translation:'auf Wiedersehen', category:'Kommunikation' },
+  { id:'intro.name', label:'my name is …', translation:'mein Name ist …', category:'Kommunikation' },
+  { id:'pronoun.i', label:'I', translation:'ich', category:'Grammatik' },
+  { id:'verb.be.am', label:'I am', translation:'ich bin', category:'Grammatik' },
+  { id:'verb.be.is', label:'is', translation:'ist', category:'Grammatik' },
+  { id:'verb.be.are', label:'are', translation:'bist / seid / sind', category:'Grammatik' },
+  { id:'courtesy.please', label:'please', translation:'bitte', category:'Kommunikation' },
+  { id:'courtesy.thanks', label:'thank you', translation:'danke', category:'Kommunikation' },
+  { id:'courtesy.you-are-welcome', label:'you’re welcome', translation:'gern geschehen', category:'Kommunikation' },
+  { id:'courtesy.sorry', label:'sorry / excuse me', translation:'Entschuldigung / tut mir leid', category:'Kommunikation' },
+  { id:'cafe.coffee', label:'coffee', translation:'Kaffee', category:'Wortschatz' },
+  { id:'cafe.tea', label:'tea', translation:'Tee', category:'Wortschatz' },
+  { id:'cafe.want', label:'I would like …', translation:'ich möchte …', category:'Kommunikation' },
+  { id:'cafe.order', label:'ordering', translation:'bestellen', category:'Kommunikation' },
+  { id:'cafe.bill', label:'the bill', translation:'die Rechnung', category:'Wortschatz' },
+  { id:'number.1-20', label:'numbers 1–20', translation:'Zahlen 1–20', category:'Wortschatz' },
+  { id:'age.ask', label:'How old are you?', translation:'Wie alt bist du?', category:'Kommunikation' },
+  { id:'age.answer', label:'… years old', translation:'… Jahre alt', category:'Kommunikation' },
+  { id:'origin.ask', label:'Where are you from?', translation:'Woher kommst du?', category:'Kommunikation' },
+  { id:'origin.from', label:'from', translation:'aus / von', category:'Grammatik' },
+  { id:'country.austria', label:'Austria', translation:'Österreich', category:'Wortschatz' },
+  { id:'country.germany', label:'Germany', translation:'Deutschland', category:'Wortschatz' },
+  { id:'country.england', label:'England', translation:'England', category:'Wortschatz' },
+  { id:'question.what-name', label:'What is your name?', translation:'Wie heißt du?', category:'Kommunikation' },
+  { id:'question.where-live', label:'Where do you live?', translation:'Wo wohnst du?', category:'Kommunikation' },
+  { id:'question.speak-english', label:'Do you speak English?', translation:'Sprichst du Englisch?', category:'Kommunikation' },
+  { id:'verb.live', label:'live', translation:'wohnen / leben', category:'Wortschatz' },
+  { id:'verb.speak', label:'speak', translation:'sprechen', category:'Wortschatz' },
+  { id:'article.a', label:'a', translation:'ein / eine', category:'Grammatik' },
+  { id:'article.an', label:'an', translation:'ein / eine vor Vokallaut', category:'Grammatik' },
+  { id:'demonstrative.this', label:'this', translation:'dies / das hier', category:'Grammatik' },
+  { id:'demonstrative.that', label:'that', translation:'das dort', category:'Grammatik' },
+  { id:'noun.book', label:'book', translation:'Buch', category:'Wortschatz' },
+  { id:'noun.apple', label:'apple', translation:'Apfel', category:'Wortschatz' },
+  { id:'family.mother', label:'mother', translation:'Mutter', category:'Wortschatz' },
+  { id:'family.father', label:'father', translation:'Vater', category:'Wortschatz' },
+  { id:'family.brother', label:'brother', translation:'Bruder', category:'Wortschatz' },
+  { id:'family.sister', label:'sister', translation:'Schwester', category:'Wortschatz' },
+  { id:'verb.have', label:'have', translation:'haben', category:'Grammatik' },
+  { id:'routine.get-up', label:'get up', translation:'aufstehen', category:'Wortschatz' },
+  { id:'routine.work', label:'work', translation:'arbeiten', category:'Wortschatz' },
+  { id:'routine.eat', label:'eat', translation:'essen', category:'Wortschatz' },
+  { id:'routine.sleep', label:'sleep', translation:'schlafen', category:'Wortschatz' },
+  { id:'present.simple-i', label:'I + base verb', translation:'einfaches Präsens mit I', category:'Grammatik' },
+  { id:'time.ask', label:'What time is it?', translation:'Wie spät ist es?', category:'Kommunikation' },
+  { id:'time.oclock', label:'o’clock', translation:'Uhr', category:'Kommunikation' },
+  { id:'time.half-past', label:'half past', translation:'halb nach', category:'Kommunikation' },
+  { id:'time.at', label:'at + time', translation:'um + Uhrzeit', category:'Grammatik' },
+  { id:'time.morning', label:'in the morning', translation:'am Morgen', category:'Kommunikation' },
+  { id:'time.afternoon', label:'in the afternoon', translation:'am Nachmittag', category:'Kommunikation' },
+  { id:'time.night', label:'at night', translation:'in der Nacht', category:'Kommunikation' },
+  { id:'appointment.basic', label:'appointment', translation:'Termin', category:'Wortschatz' },
+  { id:'shopping.price', label:'price / euros', translation:'Preis / Euro', category:'Wortschatz' },
+  { id:'shopping.how-much', label:'How much is this?', translation:'Wie viel kostet das?', category:'Kommunikation' },
+  { id:'shopping.size', label:'size / item choice', translation:'Größe / Auswahl', category:'Kommunikation' },
+  { id:'color.red', label:'red', translation:'rot', category:'Wortschatz' },
+  { id:'color.blue', label:'blue', translation:'blau', category:'Wortschatz' },
+  { id:'color.black', label:'black', translation:'schwarz', category:'Wortschatz' },
+  { id:'home.kitchen', label:'kitchen', translation:'Küche', category:'Wortschatz' },
+  { id:'home.bedroom', label:'bedroom', translation:'Schlafzimmer', category:'Wortschatz' },
+  { id:'home.bathroom', label:'bathroom', translation:'Badezimmer', category:'Wortschatz' },
+  { id:'home.living-room', label:'living room', translation:'Wohnzimmer', category:'Wortschatz' },
+  { id:'there.is', label:'there is', translation:'es gibt (Singular)', category:'Grammatik' },
+  { id:'there.are', label:'there are', translation:'es gibt (Plural)', category:'Grammatik' },
+  { id:'direction.where', label:'Where is …?', translation:'Wo ist …?', category:'Kommunikation' },
+  { id:'direction.left', label:'left', translation:'links', category:'Wortschatz' },
+  { id:'direction.right', label:'right', translation:'rechts', category:'Wortschatz' },
+  { id:'direction.straight', label:'go straight', translation:'geradeaus gehen', category:'Kommunikation' },
+  { id:'place.station', label:'station', translation:'Bahnhof / Station', category:'Wortschatz' },
+  { id:'place.hotel', label:'hotel', translation:'Hotel', category:'Wortschatz' },
+  { id:'travel.ticket', label:'ticket', translation:'Ticket / Fahrkarte', category:'Wortschatz' },
+  { id:'travel.train', label:'train', translation:'Zug', category:'Wortschatz' },
+  { id:'travel.bus', label:'bus', translation:'Bus', category:'Wortschatz' },
+  { id:'travel.airport', label:'airport', translation:'Flughafen', category:'Wortschatz' },
+  { id:'travel.need', label:'I need …', translation:'ich brauche …', category:'Kommunikation' },
+  { id:'travel.to', label:'to + destination', translation:'nach / zu + Ziel', category:'Grammatik' }
+];
+
+export const conceptCatalog: ConceptMeta[] = [...baseConceptCatalog, ...advancedConceptCatalog];
+
+export function conceptMeta(id: string) {
+  return conceptCatalog.find(item => item.id === id) ?? { id, label: id, category: 'Wortschatz' as const };
+}
