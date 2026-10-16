@@ -88,6 +88,9 @@ requireText('src/data/catalog.ts',"code: 'es', name: 'Spanisch', nativeName: 'Es
 requireText('src/data/catalog.ts',"code: 'ar', name: 'Arabisch', nativeName: 'العربية', symbol: 'ع', available: true, courseAvailable: true",'Arabic is not exposed as learnable.');
 requireText('src/components/TranslatorView.tsx','Als Karteikarte speichern','Translator results cannot be saved into personal vocabulary.');
 requireFile('src/components/AiTalkView.tsx','Dedicated AI Talk view is missing.');
+requireFile('src/components/DuolingoConnectionCard.tsx','Duolingo connection card is missing.');
+requireFile('src/learning/duolingo.ts','Duolingo client state is missing.');
+requireFile('src/duolingo-service.js','Duolingo profile service is missing.');
 requireText('src/components/AiTalkView.tsx',"mode:'conversation'",'AI Talk does not use conversation mode.');
 requireText('src/components/AiTalkView.tsx',"'female'",'AI Talk does not request the preferred female voice.');
 requireText('src/components/AiTalkView.tsx','recognizeLanguage','AI Talk voice input is missing.');
@@ -102,6 +105,9 @@ requireText('src/study-generator-service.js','Do not reuse or closely paraphrase
 requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
 requireText('src/preview-entry.js','/api/platform/study-session','AI study-session API route is missing.');
 requireText('src/preview-entry.js','/api/platform/assistant','AI assistant API route is missing.');
+requireText('src/preview-entry.js','/api/platform/duolingo','Duolingo profile route is missing.');
+requireText('src/components/ProfileView.tsx','DuolingoConnectionCard','Duolingo connection is not exposed in profile.');
+requireText('src/duolingo-service.js','2017-06-30/users','Duolingo public profile endpoint is not wired.');
 requireText('src/preview-entry.js','/api/preview/activity','Authenticated activity API is missing.');
 requireText('src/preview-entry.js','analyticsSummaries','Admin account responses are not enriched with usage analytics.');
 requireText('src/learning/account.ts','startActivityTracking','Account bootstrap does not start active-time tracking.');
@@ -135,4 +141,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, multi-session task-history variation, AI vocabulary/grammar labs, dedicated AI Talk voice conversation, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, multi-session task-history variation, AI vocabulary/grammar labs, dedicated AI Talk voice conversation, read-only Duolingo profile connection, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
