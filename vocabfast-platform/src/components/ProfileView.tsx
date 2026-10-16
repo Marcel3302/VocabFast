@@ -3,6 +3,7 @@ import { languages, learnableLanguages, languageByCode } from '../data/catalog';
 import { changeAccountPassword, deleteAccount } from '../learning/account';
 import { activePairKey, removeLearningPair, withActivePair, type LanguageCode, type LearnerPreferences, type LearningReason } from '../learning/preferences';
 import type { PlatformProgress } from '../learning/progress';
+import DuolingoConnectionCard from './DuolingoConnectionCard';
 import './profile-view.css';
 
 type Props = {
@@ -95,6 +96,8 @@ export default function ProfileView({ preferences, progress, isPro=false, onSave
         <fieldset><legend>Audio-Geschwindigkeit</legend><div className="setting-pills">{([{value:.75,label:'Langsam'},{value:.9,label:'Lernmodus'},{value:1,label:'Normal'}] as const).map(item=><button type="button" key={item.value} className={draft.audioRate===item.value?'active':''} onClick={()=>setDraft({...draft,audioRate:item.value})}>{item.label}</button>)}</div></fieldset>
         <button className="profile-save" onClick={save}>{saved?'✓ Gespeichert':'Einstellungen speichern'}</button>
       </article>
+
+      <DuolingoConnectionCard/>
 
       <article className="profile-panel stats-panel"><div className="view-section-head inner"><div><span className="eyebrow">AKTUELLER LERNPFAD</span><h2>Fortschritt auf einen Blick</h2></div></div><div className="profile-stats"><div><strong>{progress.totalXp}</strong><span>XP</span></div><div><strong>{progress.sessions}</strong><span>Lerneinheiten</span></div><div><strong>{progress.currentStreak}</strong><span>Streak</span></div><div><strong>{progress.completedLessonIds.length}</strong><span>Lektionen</span></div></div><div className="local-note"><strong>Automatisch synchronisiert</strong><p>{languageByCode(preferences.sourceLanguage).symbol} → {languageByCode(preferences.targetLanguage).symbol} wird als eigener Lernpfad gespeichert.</p></div><button className="danger-button" onClick={reset}>Diesen Lernpfad zurücksetzen</button></article>
 
