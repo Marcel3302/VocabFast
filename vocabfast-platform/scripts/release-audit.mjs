@@ -87,7 +87,12 @@ requireText('src/data/catalog.ts',"code: 'sl', name: 'Slowenisch', nativeName: '
 requireText('src/data/catalog.ts',"code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: true, courseAvailable: true",'Spanish is not exposed as learnable.');
 requireText('src/data/catalog.ts',"code: 'ar', name: 'Arabisch', nativeName: 'العربية', symbol: 'ع', available: true, courseAvailable: true",'Arabic is not exposed as learnable.');
 requireText('src/components/TranslatorView.tsx','Als Karteikarte speichern','Translator results cannot be saved into personal vocabulary.');
-requireText('src/components/AiAssistant.tsx','Freies Gespräch','Free-topic AI conversation mode is missing.');
+requireFile('src/components/AiTalkView.tsx','Dedicated AI Talk view is missing.');
+requireText('src/components/AiTalkView.tsx',"mode:'conversation'",'AI Talk does not use conversation mode.');
+requireText('src/components/AiTalkView.tsx',"'female'",'AI Talk does not request the preferred female voice.');
+requireText('src/components/AiTalkView.tsx','recognizeLanguage','AI Talk voice input is missing.');
+requireText('src/learning/speech.ts','preferredSpeechVoice','Preferred speech voice selection is missing.');
+requireText('src/App.tsx','AI Talk','AI Talk is not exposed in the main navigation.');
 requireText('src/components/AiAssistant.tsx','Allgemeine KI','General AI mode is missing.');
 requireText('src/components/AiAssistant.tsx','recognizeLanguage','AI voice input is missing.');
 requireText('src/components/AiAssistant.tsx','speakLanguage','AI spoken replies are missing.');
@@ -130,4 +135,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, multi-session task-history variation, AI vocabulary/grammar labs, free-topic voice AI conversation, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, multi-session task-history variation, AI vocabulary/grammar labs, dedicated AI Talk voice conversation, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
