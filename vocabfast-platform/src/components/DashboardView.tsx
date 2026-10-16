@@ -11,10 +11,10 @@ import './dashboard-toolkit.css';
 
 const PDFReader=lazy(()=>import('./PDFReader'));
 
-type Props={progress:PlatformProgress;preferences:LearnerPreferences;activeLevel:CefrLevel;placement:PlacementResult|null;lastResult:LessonResult|null;targetLanguage:string;isPro?:boolean;openLesson:(lesson:Lesson)=>void;buildReview:()=>Lesson;openPro:()=>void;openCourse:()=>void;openPlacement:()=>void;openTranslator:()=>void;openGrammar:()=>void;openWords:()=>void;onSelectLevel:(level:CefrLevel)=>void};
+type Props={progress:PlatformProgress;preferences:LearnerPreferences;activeLevel:CefrLevel;placement:PlacementResult|null;lastResult:LessonResult|null;targetLanguage:string;isPro?:boolean;openLesson:(lesson:Lesson)=>void;buildReview:()=>Lesson;openPro:()=>void;openCourse:()=>void;openPlacement:()=>void;openTranslator:()=>void;openGrammar:()=>void;openWords:()=>void;openTalk:()=>void;openPractice:()=>void;onSelectLevel:(level:CefrLevel)=>void};
 const placementLabels={grammar:'Grammatik',vocabulary:'Wortschatz',communication:'Kommunikation'} as const;
 
-export default function DashboardView({progress,preferences,activeLevel,placement,lastResult,targetLanguage,isPro=false,openLesson,buildReview,openPro,openCourse,openPlacement,openTranslator,openGrammar,openWords,onSelectLevel}:Props){
+export default function DashboardView({progress,preferences,activeLevel,placement,lastResult,targetLanguage,isPro=false,openLesson,buildReview,openPro,openCourse,openPlacement,openTranslator,openGrammar,openWords,openTalk,openPractice,onSelectLevel}:Props){
   const [readerOpen,setReaderOpen]=useState(false);
   const language=languageByCode(targetLanguage),levels=courseLevels(targetLanguage),level=levelById(activeLevel,targetLanguage),lessons=level.units.flatMap(unit=>unit.lessons);
   const curriculumCompleted=lessons.filter(lesson=>progress.completedLessonIds.includes(lesson.id)).length,courseProgress=lessons.length?Math.round(curriculumCompleted/lessons.length*100):0,nextLesson=lessons.find(lesson=>!progress.completedLessonIds.includes(lesson.id))??lessons[lessons.length-1],fullEnglish=targetLanguage==='en';
@@ -65,7 +65,7 @@ export default function DashboardView({progress,preferences,activeLevel,placemen
 
     <section className="coach-card coach-card-modern"><div className="coach-head"><div className="coach-mark">✦</div><div><span className="eyebrow">VOCABFAST MEMORY</span><h3>{progress.sessions?'Dein sinnvollster nächster Schritt':'Lass uns deinen Lernrhythmus starten'}</h3></div></div><div className="coach-insight"><span>Aktueller Fokus</span><strong>{language.name} {activeLevel}</strong><small>{level.descriptor}</small></div><button onClick={()=>openLesson(progress.sessions?buildReview():lessons[0])}>{progress.sessions?'Empfohlenes Training':'Erste Einheit starten'}</button></section>
 
-    <section className="study-toolkit-card"><span>STUDY TOOLKIT</span><h3>Vier schnelle Wege zu aktivem C1.</h3><p>Wechsle direkt zwischen Wortschatz, Grammatik, echten Unterlagen und Übersetzen.</p><div className="study-toolkit-actions"><button onClick={openWords}>Wortschatz</button><button onClick={openGrammar}>Grammatik</button><button onClick={()=>setReaderOpen(true)}>PDF Reader</button><button onClick={openTranslator}>Translate</button></div></section>
+    <section className="study-toolkit-card"><span>SCHNELLSTART</span><h3>Wähle einfach, was du jetzt trainieren willst.</h3><p>Die wichtigsten Bereiche sind direkt erreichbar – ohne Untermenüs oder Suchen.</p><div className="study-toolkit-actions"><button className="toolkit-talk" onClick={openTalk}>✦ AI Talk</button><button onClick={openPractice}>◎ Üben</button><button onClick={openWords}>W Wortschatz</button><button onClick={openGrammar}>Aa Grammatik</button><button onClick={()=>setReaderOpen(true)}>PDF Reader</button><button onClick={openTranslator}>⇄ Translate</button></div></section>
 
     <section className="streak-card streak-card-modern"><div className="card-heading"><div><span className="eyebrow">ROUTINE</span><h3>{progress.currentStreak} Tage am Stück</h3></div><span className="streak-fire">🔥</span></div><div className="streak-number"><strong>{progress.currentStreak}</strong><span>aktueller Streak</span></div><p>Bestwert: {progress.longestStreak} Tage. Ein verpasster Tag löscht deinen Fortschritt nicht – entscheidend ist der Wiedereinstieg.</p></section>
 
