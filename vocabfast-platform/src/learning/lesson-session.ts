@@ -1,6 +1,8 @@
 import type { DictationExercise, Exercise, Lesson, ListeningExercise, SpeakingExercise, TranslationExercise } from './types';
 
 const LAST_SESSION_PREFIX='vocabfast.lesson-session.v2:';
+const TASK_HISTORY_PREFIX='vocabfast.lesson-task-history.v3:';
+const MAX_TASK_HISTORY=180;
 const instructionVariants:Record<string,string[]>={
   'multiple-choice':['Wähle die beste Antwort.','Welche Lösung passt hier?','Entscheide dich für die passende Formulierung.','Wähle die richtige Variante.'],
   translation:['Übersetze sinngemäß in die Zielsprache.','Formuliere diese Aussage natürlich in der Zielsprache.','Wie würdest du das in der Zielsprache sagen?','Übertrage den Satz ohne Wort-für-Wort-Denken.'],
@@ -46,23 +48,27 @@ function listeningVariant(lesson:Lesson,target:string,session:string,index:numbe
   const targets=targetSentences(lesson),choices=shuffle([target,...shuffle(targets.filter(value=>value!==target)).slice(0,3)]);
   return{id:`${lesson.id}-${session}-listen${index}`,type:'listening',instruction:pick(instructionVariants.listening),prompt:'Welche Aussage hörst du?',speech:target,choices,answer:target,conceptIds:targetConcepts(lesson),difficulty:2,xp:9};
 }
-function signature(exercises:Exercise[]){return exercises.map(item=>`${item.type}:${answerText(item)}:${item.instruction}`).join('|');}
+function taskSignature(item:Exercise){const extra=item.type==='fill-gap'?item.sentence:item.type==='sentence-build'?item.tokens.join(' '):item.prompt;return `${item.type}:${item.instruction}:${extra}:${answerText(item)}`.toLocaleLowerCase().replace(/\s+/g,' ').trim();}
+function signature(exercises:Exercise[]){return exercises.map(taskSignature).join('|');}
 function previousSignature(lessonId:string){try{return localStorage.getItem(`${LAST_SESSION_PREFIX}${lessonId}`)||'';}catch{return '';}}
 function rememberSignature(lessonId:string,value:string){try{localStorage.setItem(`${LAST_SESSION_PREFIX}${lessonId}`,value);}catch{/* optional */}}
+function taskHistory(lessonId:string){try{const raw=JSON.parse(localStorage.getItem(`${TASK_HISTORY_PREFIX}${lessonId}`)||'[]');return new Set<string>(Array.isArray(raw)?raw.filter(item=>typeof item==='string').slice(-MAX_TASK_HISTORY):[]);}catch{return new Set<string>();}}
+function rememberTasks(lessonId:string,history:Set<string>,exercises:Exercise[]){try{const merged=[...history,...exercises.map(taskSignature)],unique=[...new Set(merged)].slice(-MAX_TASK_HISTORY);localStorage.setItem(`${TASK_HISTORY_PREFIX}${lessonId}`,JSON.stringify(unique));}catch{/* optional */}}
 
 export function createLessonSession(lesson:Lesson):Lesson{
-  const previous=previousSignature(lesson.id);let best:Exercise[]=[];
+  const previous=previousSignature(lesson.id),history=taskHistory(lesson.id);let best:Exercise[]=[];
   for(let attempt=0;attempt<5;attempt+=1){
     const session=`${Date.now().toString(36)}${Math.floor(random()*1e6).toString(36)}`;
     const targets=shuffle(targetSentences(lesson));
     const pool:Exercise[]=[...lesson.exercises.map((exercise,index)=>varyBase(exercise,session,index))];
     targets.forEach((target,index)=>{const gap=gapVariant(lesson,target,session,index),build=buildVariant(lesson,target,session,index);if(gap)pool.push(gap);if(build)pool.push(build);pool.push(speechVariant(lesson,target,session,index),dictationVariant(lesson,target,session,index),listeningVariant(lesson,target,session,index));});
     const desired=Math.min(16,Math.max(12,lesson.exercises.length));
-    const selected=shuffle(pool).slice(0,desired);
+    const unseen=shuffle(pool.filter(item=>!history.has(taskSignature(item)))),seen=shuffle(pool.filter(item=>history.has(taskSignature(item))));
+    const selected=[...unseen,...seen].slice(0,desired);
     const types=new Set(selected.map(item=>item.type));
-    for(const required of ['translation','listening','speaking'] as const){if(types.has(required))continue;const replacement=pool.find(item=>item.type===required&&!selected.includes(item));if(replacement)selected[Math.floor(random()*selected.length)]=replacement;}
+    for(const required of ['translation','listening','speaking'] as const){if(types.has(required))continue;const replacement=unseen.find(item=>item.type===required&&!selected.includes(item))??pool.find(item=>item.type===required&&!selected.includes(item));if(replacement)selected[Math.floor(random()*selected.length)]=replacement;}
     best=shuffle(selected);if(signature(best)!==previous)break;
   }
-  const value=signature(best);rememberSignature(lesson.id,value);
+  const value=signature(best);rememberSignature(lesson.id,value);rememberTasks(lesson.id,history,best);
   return{...lesson,estimatedMinutes:Math.max(lesson.estimatedMinutes,Math.ceil(best.length*.75)),exercises:best};
 }
