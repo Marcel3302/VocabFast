@@ -17,6 +17,8 @@ requireFile('src/learning/localization.ts','Source-language lesson localization 
 requireFile('src/learning/lesson-session.ts','Varied lesson session generator is missing.');
 requireFile('src/learning/dynamic-lesson.ts','Dynamic multilingual lesson materializer is missing.');
 requireFile('src/learning/curriculum/multilingual-cefr.ts','Full multilingual CEFR curriculum is missing.');
+requireFile('src/components/AiStudyPanel.tsx','AI vocabulary/grammar lab UI is missing.');
+requireFile('src/study-generator-service.js','AI vocabulary/grammar generator service is missing.');
 requireFile('src/learning/curriculum/hr-a1.ts','Croatian A1 course is missing.');
 requireFile('src/learning/curriculum/hr-a2.ts','Croatian A2 course is missing.');
 requireFile('src/learning/curriculum/release-units.ts','Release curriculum expansion is missing.');
@@ -64,6 +66,8 @@ requireText('src/components/LessonPlayer.tsx','materializeDynamicLesson','Dynami
 requireText('src/learning/dynamic-lesson.ts','CACHE_PREFIX','Dynamic lesson translations are not cached.');
 requireText('src/learning/dynamic-lesson.ts','usefulTranslation','Dynamic lessons do not reject unusable target-language output.');
 requireText('src/learning/lesson-session.ts','LAST_SESSION_PREFIX','Lesson variation does not remember the previous session.');
+requireText('src/learning/lesson-session.ts','TASK_HISTORY_PREFIX','Lesson variation does not remember previously used tasks.');
+requireText('src/learning/lesson-session.ts','MAX_TASK_HISTORY','Lesson variation history is not bounded.');
 requireText('src/learning/lesson-session.ts','gapVariant','Lesson variation is missing dynamic gap exercises.');
 requireText('src/learning/lesson-session.ts','speechVariant','Lesson variation is missing speaking variants.');
 requireText('src/learning/localization.ts','/api/platform/translate','Lesson localization is not using the authenticated translation service.');
@@ -83,7 +87,16 @@ requireText('src/data/catalog.ts',"code: 'sl', name: 'Slowenisch', nativeName: '
 requireText('src/data/catalog.ts',"code: 'es', name: 'Spanisch', nativeName: 'Español', symbol: 'ES', available: true, courseAvailable: true",'Spanish is not exposed as learnable.');
 requireText('src/data/catalog.ts',"code: 'ar', name: 'Arabisch', nativeName: 'العربية', symbol: 'ع', available: true, courseAvailable: true",'Arabic is not exposed as learnable.');
 requireText('src/components/TranslatorView.tsx','Als Karteikarte speichern','Translator results cannot be saved into personal vocabulary.');
+requireText('src/components/AiAssistant.tsx','Freies Gespräch','Free-topic AI conversation mode is missing.');
+requireText('src/components/AiAssistant.tsx','Allgemeine KI','General AI mode is missing.');
+requireText('src/components/AiAssistant.tsx','recognizeLanguage','AI voice input is missing.');
+requireText('src/components/AiAssistant.tsx','speakLanguage','AI spoken replies are missing.');
+requireText('src/components/GrammarView.tsx','AiStudyPanel','Multilingual AI grammar lab is missing.');
+requireText('src/components/PlatformViews.tsx','kind="vocabulary"','Multilingual AI vocabulary lab is missing.');
+requireText('src/study-generator-service.js','Do not reuse or closely paraphrase','AI study generator does not exclude recent tasks.');
 requireText('src/preview-entry.js','/api/platform/translate','Authenticated translation API is missing.');
+requireText('src/preview-entry.js','/api/platform/study-session','AI study-session API route is missing.');
+requireText('src/preview-entry.js','/api/platform/assistant','AI assistant API route is missing.');
 requireText('src/preview-entry.js','/api/preview/activity','Authenticated activity API is missing.');
 requireText('src/preview-entry.js','analyticsSummaries','Admin account responses are not enriched with usage analytics.');
 requireText('src/learning/account.ts','startActivityTracking','Account bootstrap does not start active-time tracking.');
@@ -117,4 +130,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, non-repeating lesson sessions, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, multi-session task-history variation, AI vocabulary/grammar labs, free-topic voice AI conversation, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
