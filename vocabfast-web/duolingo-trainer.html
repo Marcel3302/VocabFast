@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Duolingo Worttrainer | VocabFast</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#e9f1ff;background:#0c1426}*{box-sizing:border-box}body{margin:0}main{max-width:920px;margin:auto;padding:30px 18px}a{color:#8ed9ff}.panel{background:#17233a;border:1px solid #31435d;border-radius:18px;padding:22px;margin:18px 0}h1{font-size:clamp(28px,5vw,42px);margin-bottom:8px}h2{font-size:21px}p,.muted{color:#b8c8de;line-height:1.5}textarea,input,select,button{font:inherit}textarea,input,select{background:#0b1528;color:#fff;border:1px solid #52627a;border-radius:10px;padding:12px;width:100%}textarea{min-height:140px;resize:vertical}button{cursor:pointer;border:0;border-radius:10px;padding:12px 18px;background:#4ed7a4;color:#071a1d;font-weight:700}button.secondary{background:#293d5c;color:white}button.danger{background:#7e3443;color:white}.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.controls>*{flex:1 1 160px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{background:#101e34;border-radius:12px;padding:15px;text-align:center}.stat strong{font-size:24px;display:block}.flash{background:#101e34;border:1px solid #3a5576;border-radius:16px;min-height:180px;display:grid;place-items:center;text-align:center;padding:24px;font-size:clamp(24px,5vw,38px);overflow-wrap:anywhere}.hint{font-size:14px;color:#aabed5}.hidden{display:none}#feedback{min-height:24px;color:#9ee7c9}.wordlist{max-height:300px;overflow:auto}.word{display:flex;justify-content:space-between;gap:12px;padding:10px;border-bottom:1px solid #33445a}.word span{overflow-wrap:anywhere}.word button{padding:5px 10px}@media(max-width:540px){.stats{grid-template-columns:repeat(3,1fr)}.panel{padding:16px}}
+</style></head><body><main>
+<a href="./index.html">← Zurück zu VocabFast</a><h1>Duolingo Worttrainer</h1>
+<p>Deine Wörter. Alle wiederholen. Ohne Beschränkung auf zehn Wörter. Speicherung lokal in diesem Browser.</p>
+<div class="stats"><div class="stat"><strong id="total">0</strong>Wörter</div><div class="stat"><strong id="due">0</strong>Heute fällig</div><div class="stat"><strong id="learned">0</strong>Gut gelernt</div></div>
+<section class="panel"><h2>1. Wörter importieren</h2>
+<p>Eine Zeile pro Wortpaar: <b>english;deutsch</b> oder <b>english[TAB]deutsch</b>. Du kannst auch eine CSV- oder TXT-Datei auswählen. Doppelte Wortpaare werden übersprungen.</p>
+<textarea id="bulk" placeholder="hello;hallo&#10;aircraft;Luftfahrzeug&#10;weather;Wetter"></textarea>
+<div class="controls"><button id="import">Wörter übernehmen</button><input type="file" id="file" accept=".csv,.txt,text/plain,text/csv"></div>
+<p id="feedback" role="status" aria-live="polite"></p></section>
+<section class="panel"><h2>2. Lernen</h2>
+<div class="controls"><select id="direction" aria-label="Übersetzungsrichtung"><option value="en">Englisch → Deutsch</option><option value="de">Deutsch → Englisch</option><option value="mix">Gemischt</option></select><select id="mode" aria-label="Lernmodus"><option value="due">Fällige Wörter</option><option value="all">Alle Wörter zufällig</option><option value="hard">Schwierige Wörter</option></select><button id="next">Nächstes Wort</button></div>
+<p id="progress" class="hint"></p><div id="question" class="flash">Importiere zuerst deine Wörter.</div><div id="answer" class="flash hidden" style="margin-top:12px"></div>
+<div class="controls" style="margin-top:14px"><button id="reveal" class="secondary">Antwort anzeigen</button><button id="again" class="danger hidden">Noch üben</button><button id="good" class="hidden">Gewusst ✓</button></div>
+<p class="hint">„Noch üben“ zeigt das Wort früher wieder. „Gewusst“ verlängert den Wiederholungsabstand.</p></section>
+<section class="panel"><h2>3. Wortliste verwalten</h2><div class="controls"><input id="search" placeholder="Wort suchen …" aria-label="Wort suchen"><button id="export" class="secondary">CSV exportieren</button></div><div id="wordlist" class="wordlist"></div><p class="hint">Die Daten bleiben auf diesem Gerät und in diesem Browser. Für einen Gerätewechsel die CSV exportieren und auf dem anderen Gerät importieren.</p></section>
+</main><script>
+(()=>{'use strict';
+const KEY='vocabfast_duolingo_words_v1', $=id=>document.getElementById(id);
+let words=[];try{const saved=JSON.parse(localStorage.getItem(KEY)||'[]');if(Array.isArray(saved))words=saved.filter(w=>w&&typeof w.en==='string'&&typeof w.de==='string')}catch(e){}
+let current=null,reverse=false,shown=false,session=0;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(words));$('feedback').textContent='Lokal gespeichert.'}catch(e){$('feedback').textContent='Speichern fehlgeschlagen: Browser-Speicher prüfen.'}render()};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function parse(t){const lines=t.replace(/^\uFEFF/,'').split(/\r?\n/),out=[];for(const l of lines){if(!l.trim())continue;const sep=l.includes('\t')?'\t':l.includes(';')?';':',';const cols=l.split(sep).map(x=>x.trim().replace(/^"|"$/g,'').trim());if(cols.length<2||!cols[0]||!cols[1])continue;if(/^(english|englisch|en)$/i.test(cols[0])&&/^(deutsch|german|de)$/i.test(cols[1]))continue;out.push({en:cols[0],de:cols[1]})}return out}
+function importText(t){const pairs=parse(t),existing=new Set(words.map(w=>(w.en+'|'+w.de).toLocaleLowerCase())),now=Date.now();let n=0;for(const p of pairs){const k=(p.en+'|'+p.de).toLocaleLowerCase();if(existing.has(k))continue;existing.add(k);words.push({...p,step:0,due:now,misses:0});n++}save();$('feedback').textContent=n+' neue Wortpaare importiert ('+(pairs.length-n)+' bereits vorhanden).';if(!current)next()}
+$('import').onclick=()=>importText($('bulk').value);
+$('file').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>2e6){$('feedback').textContent='Datei zu groß (max. 2 MB).';return}importText(await f.text());e.target.value=''};
+function candidates(){const now=Date.now(),m=$('mode').value;return words.filter(w=>m==='all'||(m==='hard'?w.misses>0:w.due<=now))}
+function next(){const a=candidates();shown=false;$('answer').classList.add('hidden');$('again').classList.add('hidden');$('good').classList.add('hidden');$('reveal').classList.remove('hidden');if(!a.length){current=null;$('question').textContent=words.length?'Keine passenden Wörter. Wechsle den Lernmodus.':'Importiere zuerst deine Wörter.';return}const pool=a.length>1?a.filter(w=>w!==current):a;current=pool[Math.floor(Math.random()*pool.length)];reverse=$('direction').value==='de'||($('direction').value==='mix'&&Math.random()<.5);$('question').textContent=reverse?current.de:current.en;$('progress').textContent='In dieser Sitzung beantwortet: '+session}
+$('next').onclick=next;$('mode').onchange=next;$('direction').onchange=next;
+$('reveal').onclick=()=>{if(!current)return;$('answer').textContent=reverse?current.en:current.de;$('answer').classList.remove('hidden');$('again').classList.remove('hidden');$('good').classList.remove('hidden');$('reveal').classList.add('hidden');shown=true};
+function rate(ok){if(!current||!shown)return;current.step=ok?Math.min(8,(current.step||0)+1):0;current.misses=(current.misses||0)+(ok?0:1);const mins=ok?[0,10,1440,4320,10080,20160,43200,86400,172800][current.step]:1;current.due=Date.now()+mins*60000;session++;save();next()}
+$('again').onclick=()=>rate(false);$('good').onclick=()=>rate(true);
+function render(){const now=Date.now();$('total').textContent=words.length;$('due').textContent=words.filter(w=>w.due<=now).length;$('learned').textContent=words.filter(w=>w.step>=3).length;const q=$('search').value.toLocaleLowerCase();const filtered=words.map((w,i)=>({...w,i})).filter(w=>w.en.toLocaleLowerCase().includes(q)||w.de.toLocaleLowerCase().includes(q));$('wordlist').innerHTML=filtered.slice(0,300).map(w=>'<div class="word"><span>'+esc(w.en)+' — '+esc(w.de)+'</span><button class="secondary" data-remove="'+w.i+'" aria-label="Wort entfernen">×</button></div>').join('')+(filtered.length>300?'<p>Erste 300 Treffer angezeigt. Suche eingrenzen.</p>':'')}
+$('wordlist').onclick=e=>{const b=e.target.closest('[data-remove]');if(!b)return;const i=Number(b.dataset.remove);if(!Number.isInteger(i)||!words[i])return;if(!confirm('Dieses Wortpaar löschen?'))return;if(current===words[i])current=null;words.splice(i,1);save();if(!current)next()};
+$('search').oninput=render;
+$('export').onclick=()=>{const csv='english;deutsch\n'+words.map(w=>[w.en,w.de].map(s=>'"'+s.replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='vocabfast-duolingo-woerter.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+render();next();
+})();
+</script></body></html>
