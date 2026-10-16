@@ -1,0 +1,22 @@
+/* Navigation and information architecture refresh */
+.grouped-nav{display:grid;gap:4px;align-content:start}
+.grouped-nav .nav-section-label{display:block;margin:12px 12px 5px;color:#93a0b2;font-size:8px;font-weight:900;letter-spacing:.16em}
+.grouped-nav button{min-height:42px;border-radius:12px}
+.grouped-nav button .nav-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:9px;background:rgba(255,255,255,.52);font-size:11px;font-weight:900}
+.grouped-nav button.ai-talk-nav{background:linear-gradient(135deg,rgba(49,95,224,.14),rgba(128,89,232,.12))}
+.grouped-nav button.ai-talk-nav .nav-icon{background:linear-gradient(135deg,#315fe0,#8059e8);color:#fff}
+.study-toolkit-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important}
+.study-toolkit-actions button{min-height:42px!important;padding:10px 12px!important;border-radius:12px!important;text-align:left!important}
+.study-toolkit-actions .toolkit-talk{grid-column:1/-1;background:linear-gradient(135deg,#315fe0,#745fe5)!important;color:#fff!important;border-color:transparent!important;font-weight:900!important}
+@media(min-width:1180px){
+  .sidebar{overflow-y:auto}
+  .grouped-nav{padding-bottom:8px}
+}
+@media(max-width:980px){
+  .grouped-nav .nav-section-label{display:none}
+}
+@media(max-width:760px){
+  .study-toolkit-actions{grid-template-columns:1fr 1fr!important}
+  .study-toolkit-actions .toolkit-talk{grid-column:1/-1}
+  .companion-mobile-nav button small{font-size:9px}
+}
