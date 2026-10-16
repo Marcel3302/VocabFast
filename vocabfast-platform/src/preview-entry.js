@@ -4,6 +4,7 @@ import { PlatformAnalyticsStore } from './platform-analytics.js';
 import { robustTranslateApi } from './translation-service.js';
 import { aiAssistantApi } from './ai-assistant-service.js';
 import { studySessionApi } from './study-generator-service.js';
+import { duolingoProfileApi } from './duolingo-service.js';
 export { PreviewAccountStore } from './preview-worker.js';
 export { PlatformAnalyticsStore } from './platform-analytics.js';
 
@@ -182,6 +183,7 @@ export default{async fetch(request,env,ctx){
   if(url.pathname==='/api/preview/account'&&request.method==='DELETE')return deleteAccountWithAnalytics(request,env);
   if(url.pathname==='/api/platform/assistant')return aiAssistantApi(request,env);
   if(url.pathname==='/api/platform/study-session')return studySessionApi(request,env);
+  if(url.pathname==='/api/platform/duolingo')return duolingoProfileApi(request,env);
   if(url.pathname==='/api/platform/translate')return robustTranslateApi(request,env,previewWorker);
   if(url.pathname==='/api/platform/pdf-translate')return robustTranslateApi(request,env,previewWorker,{requirePro:true});
   return publicSurfaceResponse(await previewWorker.fetch(request,env,ctx),url);
