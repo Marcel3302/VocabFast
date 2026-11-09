@@ -64,7 +64,7 @@ export default function DashboardView({progress,preferences,activeLevel,placemen
 
     {lastResult&&<section className="last-session-card"><div><span className="eyebrow">LETZTE EINHEIT</span><h2>{lastResult.accuracy}% richtig · +{lastResult.xp} XP</h2><p>{lastResult.accuracy>=85?'Stark. Jetzt lohnt sich der nächste Lernschritt.':'Die Fehler aus dieser Einheit sind perfektes Material für eine kurze Wiederholung.'}</p></div><button onClick={()=>openLesson(buildReview())}>Fehler wiederholen →</button></section>}
 
-    {fullEnglish&&!isPro&&<section className="learn-pro-preview"><div><span className="pro-pill">PRO</span><h2>Wenn du mehr sprechen willst als klicken.</h2><p>Real-Life KI-Gespräche, Fachsprache und intensiveres Feedback erweitern deinen normalen Lernpfad.</p></div><div className="specialty-mini-list">{specialties.slice(0,3).map(item=><span key={item.id}>{item.icon} {item.name}</span>)}</div><button onClick={openPro}>Pro ansehen →</button></section>}
+    {fullEnglish&&!isPro&&<section className="learn-pro-preview"><div><span className="pro-pill">PRO</span><h2>Wenn du noch tiefer lernen willst.</h2><p>Zusätzliche Fachsprache, intensivere Trainings und erweiterte Lernwerkzeuge ergänzen deinen normalen Lernpfad.</p></div><div className="specialty-mini-list">{specialties.slice(0,3).map(item=><span key={item.id}>{item.icon} {item.name}</span>)}</div><button onClick={openPro}>Pro ansehen →</button></section>}
   </section>
 
 </div>{readerOpen&&<Suspense fallback={<div className="deferred-modal-loading"><div><i/><strong>PDF Reader wird geladen …</strong></div></div>}><PDFReader sourceLanguage={preferences.targetLanguage} targetLanguage={preferences.sourceLanguage} onClose={()=>setReaderOpen(false)}/></Suspense>}</>;
