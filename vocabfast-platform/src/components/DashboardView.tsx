@@ -8,6 +8,7 @@ import type { PlatformProgress } from '../learning/progress';
 import type { Lesson, LessonResult } from '../learning/types';
 import './dashboard-experience.css';
 import './dashboard-toolkit.css';
+import './dashboard-simple.css';
 
 const PDFReader=lazy(()=>import('./PDFReader'));
 
@@ -26,22 +27,28 @@ export default function DashboardView({progress,preferences,activeLevel,placemen
   const todayMessage=studiedToday?'Tagesziel geschafft. Wenn du noch Energie hast, wiederhole nur schwierige Inhalte.':goalPercent>0?'Du bist schon drin – eine kurze Einheit reicht, um heute sauber abzuschließen.':'Starte klein: eine Lektion ist genug, um den Rhythmus zu halten.';
 
   return <><div className="page-grid learn-dashboard"><section className="primary-column">
-    <div className="learn-hero">
-      <div className="learn-hero-copy"><span className="eyebrow">{greeting.toUpperCase()} · {preferences.name.toUpperCase()}</span><h1>Was bringt dich heute am weitesten?</h1><p>{todayMessage}</p><div className="learn-hero-actions"><button className="primary-action" onClick={()=>openLesson(nextLesson)}>Weiter mit „{nextLesson.title}“ <span>→</span></button><button className="secondary-action" onClick={()=>openLesson(buildReview())}>Smart Review</button></div></div>
-      <div className="learn-focus-ring" aria-label={`${courseProgress}% Fortschritt im aktuellen Level`}><div><span>{language.symbol}</span><strong>{courseProgress}%</strong><small>{language.name} · {activeLevel}</small></div></div>
+    <div className="learn-hero learn-hero-simple">
+      <div className="learn-hero-copy"><span className="eyebrow">{greeting.toUpperCase()} · {preferences.name.toUpperCase()}</span><h1>Einfach anfangen. VocabFast führt dich weiter.</h1><p>{todayMessage}</p><div className="learn-hero-actions"><button className="primary-action" onClick={()=>openLesson(nextLesson)}>Weiterlernen · {nextLesson.title} <span>→</span></button><button className="secondary-action" onClick={()=>openLesson(buildReview())}>Smart Review</button></div></div>
+      <div className="learn-focus-ring" aria-label={courseProgress+'% Fortschritt im aktuellen Level'}><div><span>{language.symbol}</span><strong>{courseProgress}%</strong><small>{language.name} · {activeLevel}</small></div></div>
     </div>
 
-    <div className="learn-command-grid">
-      <button className="learn-command primary" onClick={()=>openLesson(nextLesson)}><span className="learn-command-icon">▶</span><div><small>NÄCHSTER SCHRITT</small><strong>{nextLesson.title}</strong><p>{nextLesson.estimatedMinutes} Min · direkt weitermachen</p></div><b>→</b></button>
-      <button className="learn-command" onClick={()=>openLesson(buildReview())}><span className="learn-command-icon">◎</span><div><small>SMART REVIEW</small><strong>Unsicheres festigen</strong><p>Kurze Wiederholung aus deinem Lernstand</p></div><b>→</b></button>
-      <button className="learn-command" onClick={openTranslator}><span className="learn-command-icon">⇄</span><div><small>QUICK TOOL</small><strong>Etwas verstehen</strong><p>Text sprechen, übersetzen und speichern</p></div><b>→</b></button>
-      <button className="learn-command reader" onClick={()=>setReaderOpen(true)}><span className="learn-command-icon">PDF</span><div><small>STUDY READER</small><strong>Mit Unterlagen lernen</strong><p>Lesen, suchen, vorlesen, OCR und übersetzen</p></div><b>→</b></button>
-    </div>
+    <section className="learn-modes">
+      <div className="learn-simple-heading"><div><span className="eyebrow">WAS WILLST DU JETZT MACHEN?</span><h2>Direkt zum richtigen Lernmodus</h2></div></div>
+      <div className="learn-mode-grid">
+        <button className="learn-mode talk" onClick={openTalk}><span>✦</span><div><strong>AI Talk</strong><small>frei sprechen & zuhören</small></div><b>→</b></button>
+        <button className="learn-mode" onClick={openPractice}><span>◎</span><div><strong>Üben</strong><small>gemischte neue Aufgaben</small></div><b>→</b></button>
+        <button className="learn-mode" onClick={openWords}><span>W</span><div><strong>Wortschatz</strong><small>Vokabeln aktiv lernen</small></div><b>→</b></button>
+        <button className="learn-mode" onClick={openGrammar}><span>Aa</span><div><strong>Grammatik</strong><small>Regeln verstehen & anwenden</small></div><b>→</b></button>
+        <button className="learn-mode" onClick={openTranslator}><span>⇄</span><div><strong>Translate</strong><small>übersetzen, hören & speichern</small></div><b>→</b></button>
+        <button className="learn-mode" onClick={()=>setReaderOpen(true)}><span>PDF</span><div><strong>PDF Reader</strong><small>mit eigenen Unterlagen lernen</small></div><b>→</b></button>
+      </div>
+    </section>
 
-    <section className="today-plan-card">
-      <div className="today-plan-head"><div><span className="eyebrow">HEUTE</span><h2>Dein {preferences.dailyMinutes}-Minuten-Plan</h2><p>Du musst nicht alles machen. VocabFast priorisiert die sinnvollsten Schritte.</p></div><div className="today-progress"><strong>{goalPercent}%</strong><span>{minutes}/{preferences.dailyMinutes} Min</span></div></div>
-      <div className="today-plan-track"><i style={{width:`${goalPercent}%`}}/></div>
-      <div className="today-plan-steps"><button onClick={()=>openLesson(nextLesson)} className={curriculumCompleted>0?'done':''}><span>{curriculumCompleted>0?'✓':'1'}</span><div><strong>Neue Inhalte</strong><small>{nextLesson.title}</small></div><em>{nextLesson.estimatedMinutes} Min</em></button><button onClick={()=>openLesson(buildReview())}><span>2</span><div><strong>Wiederholen</strong><small>Schwierige Inhalte aktiv abrufen</small></div><em>5 Min</em></button><button onClick={openTranslator}><span>3</span><div><strong>Real-Life Mini-Aufgabe</strong><small>Übersetze einen Satz, den du heute wirklich brauchst</small></div><em>2 Min</em></button><button onClick={()=>setReaderOpen(true)}><span>4</span><div><strong>Aus echten Unterlagen lernen</strong><small>Öffne eine PDF und markiere Begriffe, die du wirklich brauchst</small></div><em>Reader</em></button></div>
+    <section className="learn-status-strip">
+      <div><span>HEUTE</span><strong>{minutes}/{preferences.dailyMinutes} Min</strong><div className="mini-progress"><i style={{width:goalPercent+'%'}}/></div></div>
+      <div><span>STREAK</span><strong>{progress.currentStreak} Tage</strong><small>Bestwert {progress.longestStreak}</small></div>
+      <div><span>FORTSCHRITT</span><strong>{curriculumCompleted}/{lessons.length} Lektionen</strong><small>{progress.totalXp} XP gesamt</small></div>
+      <button onClick={()=>openLesson(buildReview())}><span>◎</span><div><strong>Wiederholen</strong><small>Schwieriges festigen</small></div></button>
     </section>
 
     <div className="section-heading learn-section-heading"><div><span className="eyebrow">DEIN LEVEL</span><h2>{language.name} · {activeLevel} {level.title}</h2></div><button className="text-button" onClick={openCourse}>Kompletten Kurs öffnen →</button></div>
@@ -60,15 +67,5 @@ export default function DashboardView({progress,preferences,activeLevel,placemen
     {fullEnglish&&!isPro&&<section className="learn-pro-preview"><div><span className="pro-pill">PRO</span><h2>Wenn du mehr sprechen willst als klicken.</h2><p>Real-Life KI-Gespräche, Fachsprache und intensiveres Feedback erweitern deinen normalen Lernpfad.</p></div><div className="specialty-mini-list">{specialties.slice(0,3).map(item=><span key={item.id}>{item.icon} {item.name}</span>)}</div><button onClick={openPro}>Pro ansehen →</button></section>}
   </section>
 
-  <aside className="right-column learn-side">
-    <section className="daily-card daily-card-modern"><div className="card-heading"><div><span className="eyebrow">HEUTE</span><h3>{studiedToday?'Ziel geschafft':'Noch ein kurzer Schritt'}</h3></div><strong>{studiedToday?'✓':`${goalPercent}%`}</strong></div><div className="daily-ring"><div><strong>{`${goalPercent}%`}</strong><span>{`${minutes} / ${preferences.dailyMinutes} Min`}</span></div></div><p>{studiedToday?'Du musst heute nichts mehr beweisen. Morgen geht es einfach weiter.':'Regelmäßige kurze Sessions schlagen seltene Marathon-Einheiten.'}</p></section>
-
-    <section className="coach-card coach-card-modern"><div className="coach-head"><div className="coach-mark">✦</div><div><span className="eyebrow">VOCABFAST MEMORY</span><h3>{progress.sessions?'Dein sinnvollster nächster Schritt':'Lass uns deinen Lernrhythmus starten'}</h3></div></div><div className="coach-insight"><span>Aktueller Fokus</span><strong>{language.name} {activeLevel}</strong><small>{level.descriptor}</small></div><button onClick={()=>openLesson(progress.sessions?buildReview():lessons[0])}>{progress.sessions?'Empfohlenes Training':'Erste Einheit starten'}</button></section>
-
-    <section className="study-toolkit-card"><span>SCHNELLSTART</span><h3>Wähle einfach, was du jetzt trainieren willst.</h3><p>Die wichtigsten Bereiche sind direkt erreichbar – ohne Untermenüs oder Suchen.</p><div className="study-toolkit-actions"><button className="toolkit-talk" onClick={openTalk}>✦ AI Talk</button><button onClick={openPractice}>◎ Üben</button><button onClick={openWords}>W Wortschatz</button><button onClick={openGrammar}>Aa Grammatik</button><button onClick={()=>setReaderOpen(true)}>PDF Reader</button><button onClick={openTranslator}>⇄ Translate</button></div></section>
-
-    <section className="streak-card streak-card-modern"><div className="card-heading"><div><span className="eyebrow">ROUTINE</span><h3>{progress.currentStreak} Tage am Stück</h3></div><span className="streak-fire">🔥</span></div><div className="streak-number"><strong>{progress.currentStreak}</strong><span>aktueller Streak</span></div><p>Bestwert: {progress.longestStreak} Tage. Ein verpasster Tag löscht deinen Fortschritt nicht – entscheidend ist der Wiedereinstieg.</p></section>
-
-    {fullEnglish&&!placement&&<section className="placement-side-card"><span className="eyebrow">NOCH UNSICHER?</span><h3>Finde deinen besten Einstieg.</h3><p>Der Einstufungstest hilft dir, nicht zu leicht und nicht zu schwer zu starten.</p><button onClick={openPlacement}>Niveau bestimmen</button></section>}
-  </aside></div>{readerOpen&&<Suspense fallback={<div className="deferred-modal-loading"><div><i/><strong>PDF Reader wird geladen …</strong></div></div>}><PDFReader sourceLanguage={preferences.targetLanguage} targetLanguage={preferences.sourceLanguage} onClose={()=>setReaderOpen(false)}/></Suspense>}</>;
+</div>{readerOpen&&<Suspense fallback={<div className="deferred-modal-loading"><div><i/><strong>PDF Reader wird geladen …</strong></div></div>}><PDFReader sourceLanguage={preferences.targetLanguage} targetLanguage={preferences.sourceLanguage} onClose={()=>setReaderOpen(false)}/></Suspense>}</>;
 }
