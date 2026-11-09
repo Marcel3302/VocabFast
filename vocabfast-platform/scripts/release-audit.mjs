@@ -96,6 +96,10 @@ requireText('src/components/AiTalkView.tsx',"'female'",'AI Talk does not request
 requireText('src/components/AiTalkView.tsx','recognizeLanguage','AI Talk voice input is missing.');
 requireText('src/learning/speech.ts','preferredSpeechVoice','Preferred speech voice selection is missing.');
 requireText('src/App.tsx','AI Talk','AI Talk is not exposed in the main navigation.');
+requireText('src/App.tsx','simple-main-nav','Primary navigation is not using the simplified five-destination layout.');
+requireText('src/components/DashboardView.tsx','learn-mode-grid','Learn dashboard does not expose the direct learning modes.');
+requireText('src/components/AiTalkView.tsx','handsFree','AI Talk hands-free conversation mode is missing.');
+requireText('src/components/ProfileView.tsx','profile-advanced','Infrequent profile settings are not collapsed.');
 requireText('src/components/AiAssistant.tsx','Allgemeine KI','General AI mode is missing.');
 requireText('src/components/AiAssistant.tsx','recognizeLanguage','AI voice input is missing.');
 requireText('src/components/AiAssistant.tsx','speakLanguage','AI spoken replies are missing.');
@@ -141,4 +145,4 @@ if(failures.length){
   process.exit(1);
 }
 console.log('VocabFast release-surface audit passed.');
-console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, multi-session task-history variation, AI vocabulary/grammar labs, dedicated AI Talk voice conversation, read-only Duolingo profile connection, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
+console.log('Checked: public admin exposure, multilingual onboarding/switching, pair-isolated progress, source-language lesson localization, all learning languages through C1, expanded English A1-C2 real-world units, dynamic target-language lesson materialization, multi-session task-history variation, AI vocabulary/grammar labs, dedicated AI Talk voice conversation, read-only Duolingo profile connection, simplified primary navigation and hands-free AI Talk, authenticated active-time analytics, admin account visibility, translator route and save-to-vocabulary flow, registration confirmation, mobile navigation, lazy loading and customer bundle budget, lesson grading, Stripe checkout/webhook/return-sync wiring and protected admin routing.');
