@@ -33,6 +33,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
   const [topic,setTopic]=useState('Freies Thema');
   const [remaining,setRemaining]=useState<number|null>(null);
   const recognitionRef=useRef<{stop:()=>void}|null>(null);
+  const handsFreeRef=useRef(false);
   const latestTranscript=useRef('');
   const endRef=useRef<HTMLDivElement|null>(null);
   const voice=useMemo(()=>preferredSpeechVoice(targetLanguage,'female'),[targetLanguage,messages.length]);
@@ -53,11 +54,13 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
       if(!response.ok||!data.reply)throw new Error(data.error||'AI Talk konnte gerade nicht antworten.');
       setMessages(current=>[...current,{role:'assistant',text:data.reply!}]);
       setRemaining(typeof data.remaining==='number'?data.remaining:null);
-      if(autoVoice)speakLanguage(data.reply,targetLanguage,audioRate,'female',()=>{if(handsFree)startListening();});
-      else if(handsFree)window.setTimeout(()=>startListening(),180);
+      if(autoVoice)speakLanguage(data.reply,targetLanguage,audioRate,'female',()=>{if(handsFreeRef.current)startListening();});
+      else if(handsFreeRef.current)window.setTimeout(()=>startListening(),180);
     }catch(reason){setError(reason instanceof Error?reason.message:'AI Talk konnte gerade nicht antworten.');}
     finally{setBusy(false);}
   }
+
+  function setHandsFreeMode(value:boolean){handsFreeRef.current=value;setHandsFree(value);}
 
   function startListening(){
     if(busy)return;
@@ -73,7 +76,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
     setTopic(title);setMessages([]);setError('');setInput('');window.speechSynthesis?.cancel();void ask(prompt);
   }
 
-  function resetConversation(){recognitionRef.current?.stop();window.speechSynthesis?.cancel();setMessages([]);setInput('');setError('');setListening(false);setHandsFree(false);}
+  function resetConversation(){recognitionRef.current?.stop();window.speechSynthesis?.cancel();setMessages([]);setInput('');setError('');setListening(false);setHandsFreeMode(false);}
 
   return <section className="platform-view ai-talk-view">
     <div className="ai-talk-hero">
@@ -93,7 +96,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
         <strong>VocabFast Voice</strong>
         <small>{voice?voice.name:'weiblich klingende Systemstimme'}</small>
         <button onClick={()=>setAutoVoice(value=>!value)}>{autoVoice?'Automatisches Vorlesen an':'Automatisches Vorlesen aus'}</button>
-        <button onClick={()=>setHandsFree(value=>!value)}>{handsFree?'Freihändig an':'Freihändig aus'}</button>
+        <button onClick={()=>setHandsFreeMode(!handsFree)}>{handsFree?'Freihändig an':'Freihändig aus'}</button>
       </div>
     </div>
 
@@ -114,7 +117,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
           <div ref={endRef}/>
         </div>
         <div className="ai-talk-compose">
-          <button className={'ai-talk-mic '+(listening?'listening':'')} onClick={()=>{if(!listening)setHandsFree(true);startListening();}}><span>{listening?'■':'🎙'}</span><strong>{listening?'Ich höre zu …':'Gespräch starten'}</strong><small>{listening?'Zum Stoppen tippen':'Freihändig sprechen & antworten'}</small></button>
+          <button className={'ai-talk-mic '+(listening?'listening':'')} onClick={()=>{if(!listening)setHandsFreeMode(true);startListening();}}><span>{listening?'■':'🎙'}</span><strong>{listening?'Ich höre zu …':'Gespräch starten'}</strong><small>{listening?'Zum Stoppen tippen':'Freihändig sprechen & antworten'}</small></button>
           <div className="ai-talk-input-wrap"><textarea rows={3} value={input} onChange={event=>setInput(event.target.value)} placeholder={'Oder auf '+targetLabel+' schreiben …'} maxLength={1400}/><div><small>{remaining!==null?remaining+' KI-Anfragen in dieser Stunde übrig':'Freies Gespräch · '+level}</small><button className="view-primary" disabled={!input.trim()||busy||listening} onClick={()=>void ask(input)}>Senden →</button></div></div>
         </div>
       </section>
