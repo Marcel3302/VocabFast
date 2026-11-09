@@ -28,6 +28,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
   const [busy,setBusy]=useState(false);
   const [listening,setListening]=useState(false);
   const [autoVoice,setAutoVoice]=useState(true);
+  const [handsFree,setHandsFree]=useState(false);
   const [error,setError]=useState('');
   const [topic,setTopic]=useState('Freies Thema');
   const [remaining,setRemaining]=useState<number|null>(null);
@@ -52,12 +53,14 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
       if(!response.ok||!data.reply)throw new Error(data.error||'AI Talk konnte gerade nicht antworten.');
       setMessages(current=>[...current,{role:'assistant',text:data.reply!}]);
       setRemaining(typeof data.remaining==='number'?data.remaining:null);
-      if(autoVoice)speakLanguage(data.reply,targetLanguage,audioRate,'female');
+      if(autoVoice)speakLanguage(data.reply,targetLanguage,audioRate,'female',()=>{if(handsFree)startListening();});
+      else if(handsFree)window.setTimeout(()=>startListening(),180);
     }catch(reason){setError(reason instanceof Error?reason.message:'AI Talk konnte gerade nicht antworten.');}
     finally{setBusy(false);}
   }
 
   function startListening(){
+    if(busy)return;
     if(listening){recognitionRef.current?.stop();return;}
     if(!canRecognizeSpeech()){setError('Dein Browser unterstützt die Spracherkennung hier nicht. Du kannst trotzdem tippen.');return;}
     setError('');setListening(true);latestTranscript.current='';
@@ -70,7 +73,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
     setTopic(title);setMessages([]);setError('');setInput('');window.speechSynthesis?.cancel();void ask(prompt);
   }
 
-  function resetConversation(){recognitionRef.current?.stop();window.speechSynthesis?.cancel();setMessages([]);setInput('');setError('');setListening(false);}
+  function resetConversation(){recognitionRef.current?.stop();window.speechSynthesis?.cancel();setMessages([]);setInput('');setError('');setListening(false);setHandsFree(false);}
 
   return <section className="platform-view ai-talk-view">
     <div className="ai-talk-hero">
@@ -82,6 +85,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
           <span><i className="online-dot"/> AI Gesprächspartnerin bereit</span>
           <span>🎙 Spracheingabe</span>
           <span>🔊 Auto-Stimme {autoVoice?'an':'aus'}</span>
+          <span>↻ Freihändig {handsFree?'an':'aus'}</span>
         </div>
       </div>
       <div className="ai-talk-avatar-card">
@@ -89,6 +93,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
         <strong>VocabFast Voice</strong>
         <small>{voice?voice.name:'weiblich klingende Systemstimme'}</small>
         <button onClick={()=>setAutoVoice(value=>!value)}>{autoVoice?'Automatisches Vorlesen an':'Automatisches Vorlesen aus'}</button>
+        <button onClick={()=>setHandsFree(value=>!value)}>{handsFree?'Freihändig an':'Freihändig aus'}</button>
       </div>
     </div>
 
@@ -100,7 +105,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
       </aside>
 
       <section className="ai-talk-stage">
-        <header><div><span className="ai-talk-live-dot"/> <strong>{topic}</strong><small>{targetLabel} · {level}</small></div><button onClick={()=>setAutoVoice(value=>!value)} aria-pressed={autoVoice}>{autoVoice?'🔊 Stimme an':'🔇 Stimme aus'}</button></header>
+        <header><div><span className="ai-talk-live-dot"/> <strong>{topic}</strong><small>{targetLabel} · {level}</small></div><div className="ai-talk-header-actions"><button onClick={()=>setHandsFree(value=>!value)} aria-pressed={handsFree}>{handsFree?'↻ Freihändig':'○ Einzeln'}</button><button onClick={()=>setAutoVoice(value=>!value)} aria-pressed={autoVoice}>{autoVoice?'🔊 Stimme an':'🔇 Stimme aus'}</button></div></header>
         <div className="ai-talk-transcript">
           {!messages.length&&<div className="ai-talk-empty"><div className="ai-talk-avatar large"><span>AI</span></div><strong>Bereit, wenn du es bist.</strong><p>Wähle links ein Thema oder drücke unten auf das Mikrofon. Deine Antwort wird nach dem Sprechen automatisch gesendet.</p></div>}
           {messages.map((message,index)=><article key={message.role+'-'+index} className={message.role}><div className="ai-talk-bubble"><small>{message.role==='assistant'?'VOCABFAST AI':'DU'}</small><p>{message.text}</p>{message.role==='assistant'&&<button onClick={()=>speakLanguage(message.text,targetLanguage,audioRate,'female')}>🔊 Anhören</button>}</div></article>)}
@@ -109,7 +114,7 @@ export default function AiTalkView({targetLanguage,targetLabel,sourceLanguage,so
           <div ref={endRef}/>
         </div>
         <div className="ai-talk-compose">
-          <button className={'ai-talk-mic '+(listening?'listening':'')} onClick={startListening}><span>{listening?'■':'🎙'}</span><strong>{listening?'Ich höre zu …':'Sprechen'}</strong><small>{listening?'Zum Stoppen tippen':'Antwort wird automatisch gesendet'}</small></button>
+          <button className={'ai-talk-mic '+(listening?'listening':'')} onClick={()=>{if(!listening)setHandsFree(true);startListening();}}><span>{listening?'■':'🎙'}</span><strong>{listening?'Ich höre zu …':'Gespräch starten'}</strong><small>{listening?'Zum Stoppen tippen':'Freihändig sprechen & antworten'}</small></button>
           <div className="ai-talk-input-wrap"><textarea rows={3} value={input} onChange={event=>setInput(event.target.value)} placeholder={'Oder auf '+targetLabel+' schreiben …'} maxLength={1400}/><div><small>{remaining!==null?remaining+' KI-Anfragen in dieser Stunde übrig':'Freies Gespräch · '+level}</small><button className="view-primary" disabled={!input.trim()||busy||listening} onClick={()=>void ask(input)}>Senden →</button></div></div>
         </div>
       </section>
