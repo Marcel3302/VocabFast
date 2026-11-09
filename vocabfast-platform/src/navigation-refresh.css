@@ -20,3 +20,5 @@
   .study-toolkit-actions .toolkit-talk{grid-column:1/-1}
   .companion-mobile-nav button small{font-size:9px}
 }
+
+.simple-main-nav{gap:6px!important;margin-top:14px}.simple-main-nav .nav-section-label{display:none!important}.simple-main-nav button{min-height:46px!important;padding:8px 10px!important}.simple-main-nav button>span:last-child{font-size:11px;font-weight:800}.simple-main-nav button.active{box-shadow:inset 3px 0 0 #315fe0}.simple-main-nav button.ai-talk-nav{box-shadow:inset 3px 0 0 #765fe5}
