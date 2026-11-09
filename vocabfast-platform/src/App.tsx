@@ -170,22 +170,15 @@ export default function App(){
     <aside className="sidebar">
       <div className="brand-row"><div className="brand-mark">V</div><div><strong>VocabFast</strong><span>Language Companion</span></div></div>
       <button className="language-switch" onClick={openLanguageSwitcher} aria-label="Lernsprache und Lernpfad wechseln"><span className="language-badge">{targetMeta.symbol}</span><span className="language-switch-copy"><small>{sourceMeta.symbol} → {targetMeta.symbol} · {courseState.activeLevel}</small><strong>{targetMeta.name}</strong></span><span className="chevron">⌄</span></button>
-      <nav className="main-nav grouped-nav" aria-label="Hauptnavigation">
-        <span className="nav-section-label">LERNEN</span>
-        <button className={learnActive?'active':''} onClick={()=>navigateTo('home')}><span className="nav-icon">{icons.home}</span><span>Übersicht</span></button>
-        <button className={activeNav==='course'?'active':''} onClick={()=>navigateTo('course')}><span className="nav-icon">{icons.course}</span><span>Kurs</span></button>
-        <button className={activeNav==='practice'?'active':''} onClick={()=>navigateTo('practice')}><span className="nav-icon">{icons.practice}</span><span>Üben</span></button>
-        <button className={activeNav==='words'?'active':''} onClick={()=>navigateTo('words')}><span className="nav-icon">{icons.words}</span><span>Wortschatz</span></button>
-        <button className={activeNav==='grammar'?'active':''} onClick={()=>navigateTo('grammar')}><span className="nav-icon">{icons.grammar}</span><span>Grammatik</span></button>
-        <span className="nav-section-label">SPRECHEN</span>
+      <nav className="main-nav grouped-nav simple-main-nav" aria-label="Hauptnavigation">
+        <button className={learnActive?'active':''} onClick={()=>navigateTo('home')}><span className="nav-icon">{icons.home}</span><span>Learn</span></button>
         <button className={activeNav==='talk'?'active ai-talk-nav':''} onClick={()=>navigateTo('talk')}><span className="nav-icon">{icons.talk}</span><span>AI Talk</span></button>
-        {speakAvailable&&<button className={activeNav==='speak'||activeNav==='coach'?'active':''} onClick={()=>navigateTo('speak')}><span className="nav-icon">{icons.speak}</span><span>Speak Training</span></button>}
         <button className={activeNav==='travel'?'active':''} onClick={()=>navigateTo('travel')}><span className="nav-icon">{icons.travel}</span><span>Travel</span></button>
-        <span className="nav-section-label">TOOLS</span>
         <button className={activeNav==='translate'?'active':''} onClick={()=>navigateTo('translate')}><span className="nav-icon">{icons.translate}</span><span>Translate</span></button>
+        <button className={meActive?'active':''} onClick={()=>navigateTo('me')}><span className="nav-icon">{icons.me}</span><span>Me</span></button>
       </nav>
       <div className="sidebar-spacer"/>
-      {englishMode&&!isPro&&<div className="pro-mini-card"><button type="button" className="pro-pill pro-link" onClick={()=>setProOpen(true)}>PRO</button><strong>Real Life freischalten.</strong><p>KI-Gespräche, intensives Sprechtraining, Fachsprache und mehr.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>}
+      {englishMode&&!isPro&&<div className="pro-mini-card"><button type="button" className="pro-pill pro-link" onClick={()=>setProOpen(true)}>PRO</button><strong>Mehr Tiefe freischalten.</strong><p>Zusätzliche Fachsprache, intensivere Trainings und erweiterte Lernwerkzeuge.</p><button onClick={()=>setProOpen(true)}>Pro entdecken</button></div>}
       <button className={`profile-link ${meActive?'active':''}`} onClick={()=>setActiveNav('me')}><span>{initials(preferences.name)}</span><div><strong>{preferences.name}</strong><small>{progress.currentStreak} Tage Streak · {progress.totalXp} XP</small></div></button>
       <div className="account-session-row"><span><strong>{accountUser?.email}</strong><small>{syncError?'Speichern fehlgeschlagen':'Konto verbunden'}</small></span><button onClick={()=>void signOut()}>Abmelden</button></div>
     </aside>
