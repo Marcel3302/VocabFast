@@ -1,0 +1,59 @@
+name: VocabFast UI release fallback
+on:
+  push:
+    branches: [vocabfast-language-platform]
+    paths:
+      - .github/workflows/ui-release-fallback.yml
+
+permissions:
+  contents: read
+
+jobs:
+  release-ui:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    defaults:
+      run:
+        working-directory: vocabfast-platform
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check preview Worker
+        run: npm run check:preview-worker
+      - name: Build platform
+        run: npm run build
+      - name: Release-surface audit
+        run: npm run audit:release
+      - name: Verify Cloudflare bundle
+        run: npx wrangler deploy --config wrangler.preview.jsonc --dry-run --outdir .wrangler-fallback-dry
+      - name: Deploy VocabFast
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: npx wrangler deploy --config wrangler.preview.jsonc
+      - name: Live smoke
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: |
+          set -euo pipefail
+          sleep 3
+          BASE='https://vocabfast.net'
+          curl --fail-with-body --silent --show-error "$BASE/api/preview/health"
+          echo
+          ME_STATUS=$(curl --silent --show-error -o /tmp/vf-me.json -w '%{http_code}' "$BASE/api/preview/me")
+          cat /tmp/vf-me.json
+          echo
+          if [ "$ME_STATUS" != '200' ]; then
+            echo "Expected public account probe to return 200."
+            exit 1
+          fi
+          ADMIN_STATUS=$(curl --silent --show-error -o /tmp/vf-admin.json -w '%{http_code}' "$BASE/api/admin/context")
+          cat /tmp/vf-admin.json
+          echo
+          if [ "$ADMIN_STATUS" != '401' ]; then
+            echo "Expected protected admin context to return 401."
+            exit 1
+          fi
